@@ -10,3 +10,6 @@
 [submodule "contigsearch"]
 	path = contigsearch
 	url = https://github.com/yoann-dufresne/ContigSearch.git
+[submodule "lib/bamtools"]
+	path = lib/bamtools
+	url = http://github.com/pezmaster31/bamtools
