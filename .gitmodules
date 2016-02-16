@@ -7,3 +7,6 @@
 [submodule "ovgraphbuild/lib/seqan"]
 	path = ovgraphbuild/lib/seqan
 	url = https://github.com/seqan/seqan.git
+[submodule "contigsearch"]
+	path = contigsearch
+	url = https://github.com/yoann-dufresne/ContigSearch.git
