@@ -13,3 +13,6 @@
 [submodule "lib/bamtools"]
 	path = lib/bamtools
 	url = http://github.com/pezmaster31/bamtools
+[submodule "sumaclust"]
+	path = sumaclust
+	url = https://git.metabarcoding.org/obitools/sumaclust.git
