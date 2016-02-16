@@ -171,5 +171,5 @@ if __name__ == '__main__':
         args.output_tab.write('{0}\n'.format(lca))
         #~ print
         
-    
+    return 0
     
