@@ -1,0 +1,9 @@
+[submodule "sortmerna"]
+	path = sortmerna
+	url = https://github.com/biocore/sortmerna.git
+[submodule "sga"]
+	path = sga
+	url = https://github.com/jts/sga.git
+[submodule "ovgraphbuild/lib/seqan"]
+	path = ovgraphbuild/lib/seqan
+	url = https://github.com/seqan/seqan.git
