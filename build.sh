@@ -20,6 +20,8 @@ cd sumaclust
 make
 cd ../
 
+mkdir bin
+
 ln -sf scripts/* bin/.
 ln -sf sumaclust/sumaclust bin/.
 ln -sf ovgraphbuild/bin/ovgraphbuild bin/.
