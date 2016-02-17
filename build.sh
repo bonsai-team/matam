@@ -1,29 +1,28 @@
 #! /usr/bin/env bash
 
+MATAMOG_DIR=$(pwd)
+
 git submodule update --init --recursive
 
-cd contigsearch
+cd $MATAMOG_DIR/contigsearch
 ./compile.sh
-cd ..
 
-mkdir ovgraphbuild/build
-cd ovgraphbuild/build
+mkdir $MATAMOG_DIR/ovgraphbuild/build
+cd $MATAMOG_DIR/ovgraphbuild/build
 cmake ..
 make
-cd ../../
 
-cd sortmerna
+cd $MATAMOG_DIR/sortmerna
 ./build.sh
-cd ..
 
-cd sumaclust
+cd $MATAMOG_DIR/sumaclust
 make
-cd ../
 
-mkdir bin
+mkdir $MATAMOG_DIR/bin
+cd $MATAMOG_DIR/bin
 
-ln -sf scripts/* bin/.
-ln -sf sumaclust/sumaclust bin/.
-ln -sf ovgraphbuild/bin/ovgraphbuild bin/.
-ln -sf sortmerna/indexdb_rna bin/.
-ln -sf sortmerna/sortmerna bin/.
+ln -sf $MATAMOG_DIR/scripts/* $MATAMOG_DIR/bin/.
+ln -sf $MATAMOG_DIR/sumaclust/sumaclust $MATAMOG_DIR/bin/.
+ln -sf $MATAMOG_DIR/ovgraphbuild/bin/ovgraphbuild $MATAMOG_DIR/bin/.
+ln -sf $MATAMOG_DIR/sortmerna/indexdb_rna $MATAMOG_DIR/bin/.
+ln -sf $MATAMOG_DIR/sortmerna/sortmerna $MATAMOG_DIR/bin/.
