@@ -5,35 +5,16 @@ import os
 import sys
 import argparse
 import re
+import subprocess
 
 
-matamog_dir = os.path.realpath(sys.argv[0])[:-18]
+matamog_dir = os.path.realpath(sys.argv[0])[:-19]
 sumaclust_bin = matamog_dir + '/bin/sumaclust'
 extract_taxo_bin = matamog_dir + '/bin/extract_taxo_from_fasta.py'
 clean_name_bin = matamog_dir + '/bin/fasta_clean_name.py'
-
-
-def run_shell(cmd_line, verbose=False):
-    """
-    Run a shell command and return STDOUT, STDERR, and return code
-    """
-    if verbose:
-        sys.stdout.write("\nCMD: {0}\n".format(cmd_line))
-    process = subprocess.Popen(cmd_line, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    # Retrieve STDOUT and STDERR
-    process_out, process_err = process.communicate()
-    # Get return code
-    process_errcode = process.returncode
-    # For debug and/or print
-    if verbose:
-        if process_out.strip():
-            # If there is something in STDOUT
-            sys.stdout.write("\n{0}\n".format(process_out.strip()))
-        if process_err.strip():
-            # If there is something in STDERR
-            sys.stderr.write("\n{0}\n".format(process_err.strip()))
-    # Return STDOUT, STDERR, and return code
-    return process_out, process_err, process_errcode
+name_filter_bin = matamog_dir + '/bin/fasta_name_filter.py'
+indexdb_bin = matamog_dir + '/bin/indexdb_rna'
+sortmerna_bin = matamog_dir + '/bin/sortmerna'
 
 
 def read_fasta_file_handle(fasta_file_handle):
@@ -85,10 +66,10 @@ def parse_arguments():
     #
     group_main = parser.add_argument_group('Main Parameters')
     group_main.add_argument('-i', '--input_fastx', metavar='FASTX', 
-                            type=argparse.FileType('r', 0), default='-',
+                            type=str, required=True,
                             help='Input reads file (fasta or fastq format)')
     group_main.add_argument('-d', '--ref_db', metavar='FASTA',
-                            type=argparse.FileType('r', 0), required=True,
+                            type=str, required=True,
                             help='Reference database (fasta format, with Silva taxo headers)')
     group_main.add_argument('-o', '--output_contigs', metavar='OUTPUT', 
                             type=str, default='DEFAULTNAME',
@@ -114,6 +95,12 @@ def parse_arguments():
     group_mapping.add_argument('--best', metavar='INT',
                                type=int, default=10,
                                help='Get up to --best good alignments per read')
+    group_mapping.add_argument('--min_lis', metavar='INT',
+                               type=int, default=10,
+                               help=argparse.SUPPRESS)
+    group_mapping.add_argument('--evalue', metavar='REAL',
+                               type=float, default=1e-10,
+                               help='Max e-value to keep an alignment for (default: 10e-10)')
     #
     group_filt = parser.add_argument_group('Alignment Filtering (Step 3)')
     group_filt.add_argument('--score_threshold', metavar='REAL',
@@ -185,8 +172,8 @@ def print_intro(args):
     
     #~ sys.stdout.write('PARAM: Executable  = {0}\n'.format(os.path.abspath(os.path.dirname(os.path.realpath(sys.argv[0])))))
     sys.stdout.write('PARAM: Matamog dir = {0}\n'.format(matamog_dir))
-    sys.stdout.write('PARAM: Input Fastx = {0}\n'.format(args.input_fastx.name))
-    sys.stdout.write('PARAM: Ref DB      = {0}\n'.format(args.ref_db.name))
+    sys.stdout.write('PARAM: Input Fastx = {0}\n'.format(args.input_fastx))
+    sys.stdout.write('PARAM: Ref DB      = {0}\n'.format(args.ref_db))
     sys.stdout.write('PARAM: Steps       = {0}\n'.format(args.steps))
     sys.stdout.write('\n')
     
@@ -202,24 +189,26 @@ if __name__ == '__main__':
     print_intro(args)
     
     #
-    ref_db_basename = '.'.join(args.ref_db.name.split('.')[:-1])
-    output_directory = 'tmp'
+    ref_db_filename = args.ref_db.split('/')[-1]
+    ref_db_basename = '.'.join(ref_db_filename.split('.')[:-1])
     
-    try:
-        if not os.path.exists(output_directory):
-            os.makedirs(output_directory)
-    except OSError:
-        sys.stderr.write("\nERROR: [Outdir] {0} cannot be created\n\n".format(output_directory))
-        raise
+    input_fastx_filename = args.input_fastx.split('/')[-1]
+    input_fastx_basename = '.'.join(input_fastx_filename.split('.')[:-1])
     
-    current_basename = output_directory + '/' + ref_db_basename
+    current_basename = ref_db_basename
     
     #
     steps_set = frozenset(args.steps)
     
+    ###############################
     # STEP 1: Ref DB pre-processing
+    cluster_id_int = int(args.clustering_id_threshold * 100)
+    clustered_ref_db_basename = 'NR{0}'.format(cluster_id_int)
+    sortmerna_index_directory = 'sortmerna_index'
+    sortmerna_index_basename = sortmerna_index_directory + '/' + clustered_ref_db_basename
+    
     if 1 in steps_set:
-        sys.stdout.write('## Ref DB pre-processing step (1):\n')
+        sys.stdout.write('## Ref DB pre-processing step (1):\n\n')
         
         # Extract taxo from ref DB and sort by ref id
         
@@ -238,16 +227,41 @@ if __name__ == '__main__':
         # Sort sequences by decreasing length
         
         cleaned_ref_db_filename = ref_db_basename + '.cleaned.fasta'
-        print cleaned_ref_db_filename
         
-        # Clutering with sumaclust
+        ## FOR EACH kingdom IN ['archaea', 'bacteria', 'eukaryota']
+        ## Clutering with sumaclust
         
-        sumaclust_command_line = sumaclust_bin + ' '
+        sumaclust_filename = ref_db_basename + '.sumaclust_' 
+        sumaclust_filename += '{0}'.format(cluster_id_int)
+        sumaclust_filename += '.fasta'
         
-        # Extracting centroids
+        sumaclust_cmd_line = sumaclust_bin + ' -t ' + '{0:.2f}'.format(args.clustering_id_threshold)
+        sumaclust_cmd_line += ' -p ' + str(args.cpu) + ' -F ' + sumaclust_filename
+        sumaclust_cmd_line += ' ' + cleaned_ref_db_filename
+        
+        sys.stdout.write('CMD: {0}\n\n'.format(sumaclust_cmd_line))
+        
+        ## Extracting centroids
+        
+        filter_cmd_line = name_filter_bin + ' -s "cluster_center=True" -i '
+        filter_cmd_line += sumaclust_filename + ' -o tmp.fasta'
+        
+        sys.stdout.write('CMD: {0}\n'.format(filter_cmd_line))
+        
+        ## Concatenate kingdom centroids
+        
+        sumaclust_kingdom_filename = ref_db_basename + '.sumaclust_'
+        sumaclust_kingdom_filename += '{0}'.format(cluster_id_int)
+        sumaclust_kingdom_filename += '_by_kingdom.fasta'
+        
+        # Clean fasta headers
+        clean_name_cmd_line = clean_name_bin + ' -i ' + sumaclust_kingdom_filename
+        clean_name_cmd_line += ' -o ' + clustered_ref_db_basename + '.fasta'
+        
+        sys.stdout.write('CMD: {0}\n'.format(clean_name_cmd_line))
+        subprocess.call(clean_name_cmd_line, shell=True)
         
         # SortMeRNA Ref DB indexing
-        sortmerna_index_directory = 'sortmerna_index'
         try:
             if not os.path.exists(sortmerna_index_directory):
                 os.makedirs(sortmerna_index_directory)
@@ -255,12 +269,36 @@ if __name__ == '__main__':
             sys.stderr.write("\nERROR: {0} cannot be created\n\n".format(sortmerna_index_directory))
             raise
         
+        indexdb_cmd_line = indexdb_bin + ' -v --ref ' + clustered_ref_db_basename
+        indexdb_cmd_line += '.fasta,' + sortmerna_index_basename
         
+        sys.stdout.write('CMD: {0}\n'.format(indexdb_cmd_line))
+        subprocess.call(indexdb_cmd_line, shell=True)
         
-    
+    ######################################
     # STEP 2: Reads mapping against Ref DB
+    sortme_output_basename = input_fastx_basename + '.S2.1_vs_' + clustered_ref_db_basename
+    sortme_output_basename += '.b' + str(args.best) + '.m' + str(args.min_lis)
+    
     if 2 in steps_set:
-        sys.stdout.write('## Mapping step (2):\n')
+        sys.stdout.write('## Mapping step (2):\n\n')
+        
+        # Set SortMeRNA command line
+        sortmerna_cmd_line = sortmerna_bin + ' --ref ' + clustered_ref_db_basename
+        sortmerna_cmd_line += '.fasta,' + sortmerna_index_basename + ' --reads '
+        sortmerna_cmd_line += args.input_fastx + ' --aligned ' + sortme_output_basename
+        sortmerna_cmd_line += ' --fastx --sam --blast "1 cigar qcov" --log --best '
+        sortmerna_cmd_line += str(args.best) + ' --min_lis ' + str(args.min_lis) 
+        sortmerna_cmd_line += ' -e {0:.2e}'.format(args.evalue)
+        sortmerna_cmd_line += ' -a ' + str(args.cpu) + ' -v'
+        
+        # Run SortMeRNA
+        sys.stdout.write('CMD: {0}\n'.format(sortmerna_cmd_line))
+        #~ subprocess.call(sortmerna_cmd_line, shell=True)
+    
+    #############################
+    # STEP 3: Alignment Filtering
+    
     
     
     
