@@ -309,19 +309,10 @@ void printCompatibilityStats(GlobalStatistics &globalStats)
               << "INFO: Number of enclosed overlaps:  " << globalStats.enclosedOverlapsNum << "\n"
               << "\n";
 
-    unsigned long Y = 4753986;
-    // $ cat SRA_LTP.test_dataset.rrna.fastq | awk 'NR%4==1' | cut -d '_' -f1 | uniq -c | awk 'BEGIN{sum=0}{print $1^2,$0; sum+=($1^2)}END{print sum}'
-    unsigned long X = 1237714;
-
-    std::cout << "INFO: Given Y = " << Y
-              << " the number of all possible reads pairs, and X = " << X
-              << " the number of reads pairs from the same species" << "\n"
-              << "INFO: True Positives:  " << globalStats.truePositive << "\n"
+    std::cout << "INFO: True Positives:  " << globalStats.truePositive << "\n"
               << "INFO: False Positives: " << globalStats.falsePositive << "\n"
               << "INFO: False Negatives: " << globalStats.falseNegative << "\n"
-              << "INFO: True Negatives:  " << globalStats.trueNegative << "\n"
-              << "INFO: False Negatives (global): X - TP = " << (X - globalStats.truePositive) << "\n"
-              << "INFO: True Negatives (global): Y - X - FP = " << (Y - X - globalStats.falsePositive)
+              << "INFO: True Negatives:  " << globalStats.trueNegative
               << "\n" << "\n";
 
     float sensitivity = 100.0 * globalStats.truePositive / (globalStats.truePositive + globalStats.falseNegative);
@@ -332,14 +323,6 @@ void printCompatibilityStats(GlobalStatistics &globalStats)
               << "INFO: Sensitivity: " << sensitivity << "%" << "\n"
               << "INFO: Specificity: " << specificity << "%" << "\n"
               << "INFO: Precision  : " << precision << "%"
-              << "\n" << "\n";
-
-    float globalSensitivity = 100.0 * globalStats.truePositive / X;
-    float globalSpecificity = 100.0 * globalStats.trueNegative / (Y - X);
-
-    std::cout << std::setprecision(4)
-              << "INFO: Global sensitivity: " << globalSensitivity << "%" << "\n"
-              << "INFO: Global specificity: " << globalSpecificity << "%"
               << "\n" << "\n";
 }
 
