@@ -53,6 +53,4 @@ if __name__ == '__main__':
             
             if to_write:
                 args.output_sam.write("{0}\n".format(line.strip()))
-                
-    return 0
 
