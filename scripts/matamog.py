@@ -386,8 +386,8 @@ if __name__ == '__main__':
     #######################
     # STEP 6: LCA Labelling
     quorum_int = int(args.quorum * 100)
-    labelled_nodes_filename = contigsearch_basename + '.nodes_contracted'
-    labelled_nodes_filename += '.metanode_contig_lca' + str(quorum_int) + 'pct.csv'
+    labelled_nodes_basename = contigsearch_basename + '.nodes_contracted'
+    labelled_nodes_basename += '.metanode_contig_lca' + str(quorum_int) + 'pct'
     
     if 6 in steps_set:
         sys.stdout.write('## LCA Labelling (6):\n\n')
@@ -446,23 +446,31 @@ if __name__ == '__main__':
         cmd_line += 'LTPs119_SSU.test.16sp.taxo.tab' + ' | sort -k3,3 | ' ## Filename in hard !!!!!!!
         cmd_line += 'awk \'BEGIN{print "Id Size Specie ContigId TrueTaxo NodeLCA ContigLCA"}{print $0}\''
         cmd_line += ' | sed "s/;/,/g" | sed "s/ /;/g" > '
-        cmd_line += labelled_nodes_filename
+        cmd_line += labelled_nodes_basename + '.csv'
         
         sys.stdout.write('CMD: {0}\n'.format(cmd_line))
         subprocess.call(cmd_line, shell=True)
         
         # LCA Stats (only with a known test dataset)
-        cmd_line = compute_stats_lca_bin + ' --header -l 6 -t 5 -i '
-        cmd_line += labelled_nodes_filename
+        stats_filename = labelled_nodes_basename + '.stats'
         
-        sys.stdout.write('\n## STATS LCA (NODE LEVEL):\n')
+        cmd_line = 'echo "## STATS LCA (NODE LEVEL):\n" > ' + stats_filename
+        subprocess.call(cmd_line, shell=True)
+        
+        cmd_line = compute_stats_lca_bin + ' --header -l 6 -t 5 -i '
+        cmd_line += labelled_nodes_basename + '.csv >> '
+        cmd_line += stats_filename
+        
         sys.stdout.write('CMD: {0}\n'.format(cmd_line))
         subprocess.call(cmd_line, shell=True)
         
-        cmd_line = compute_stats_lca_bin + ' --header -l 7 -t 5 -i '
-        cmd_line += labelled_nodes_filename
+        cmd_line = 'echo "\n## STATS LCA (CONTIG LEVEL):\n" >> ' + stats_filename
+        subprocess.call(cmd_line, shell=True)
         
-        sys.stdout.write('\n## STATS LCA (CONTIG LEVEL):\n')
+        cmd_line = compute_stats_lca_bin + ' --header -l 7 -t 5 -i '
+        cmd_line += labelled_nodes_basename + '.csv >> '
+        cmd_line += stats_filename
+        
         sys.stdout.write('CMD: {0}\n'.format(cmd_line))
         subprocess.call(cmd_line, shell=True)
     
