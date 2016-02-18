@@ -78,4 +78,4 @@ if __name__ == '__main__':
             args.output_file.write('\tNA')
         args.output_file.write('\n')
     
-    return 0
+    exit(0)
