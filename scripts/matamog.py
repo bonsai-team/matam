@@ -275,7 +275,7 @@ if __name__ == '__main__':
         indexdb_cmd_line = indexdb_bin + ' -v --ref ' + clustered_ref_db_basename
         indexdb_cmd_line += '.fasta,' + sortmerna_index_basename
         
-        sys.stdout.write('CMD: {0}\n'.format(indexdb_cmd_line))
+        sys.stdout.write('CMD: {0}\n\n'.format(indexdb_cmd_line))
         subprocess.call(indexdb_cmd_line, shell=True)
         
     ######################################
@@ -296,7 +296,7 @@ if __name__ == '__main__':
         sortmerna_cmd_line += ' -a ' + str(args.cpu) + ' -v'
         
         # Run SortMeRNA
-        sys.stdout.write('CMD: {0}\n'.format(sortmerna_cmd_line))
+        sys.stdout.write('CMD: {0}\n\n'.format(sortmerna_cmd_line))
         subprocess.call(sortmerna_cmd_line, shell=True)
     
     #############################
@@ -331,7 +331,7 @@ if __name__ == '__main__':
         read_taxo_cmd_line += ' | sort -k2,2 | awk "{print \$2,\$1,\$3}" | sed "s/ /\\t/g" > '
         read_taxo_cmd_line += read_ref_taxo_basename + '.tab'
         
-        sys.stdout.write('CMD: {0}\n'.format(read_taxo_cmd_line))
+        sys.stdout.write('CMD: {0}\n\n'.format(read_taxo_cmd_line))
         subprocess.call(read_taxo_cmd_line, shell=True)
     
     ################################
@@ -358,7 +358,7 @@ if __name__ == '__main__':
         ovgraphbuild_cmd_line += ' -s ' + sam_filt_basename + '.sam'
         
         # Run ovgraphbuild
-        sys.stdout.write('CMD: {0}\n'.format(ovgraphbuild_cmd_line))
+        sys.stdout.write('CMD: {0}\n\n'.format(ovgraphbuild_cmd_line))
         subprocess.call(ovgraphbuild_cmd_line, shell=True)
     
     ##################################################
@@ -380,8 +380,9 @@ if __name__ == '__main__':
         contigsearch_cmd_line += ' -e ' + ovgraphbuild_basename + '.edges.csv'
         
         # Run ContigSearch
-        sys.stdout.write('CMD: {0}\n'.format(contigsearch_cmd_line))
+        sys.stdout.write('CMD: {0}\n\n'.format(contigsearch_cmd_line))
         subprocess.call(contigsearch_cmd_line, shell=True)
+        sys.stdout.write('\n')
     
     #######################
     # STEP 6: LCA Labelling
@@ -471,7 +472,7 @@ if __name__ == '__main__':
         cmd_line += labelled_nodes_basename + '.csv >> '
         cmd_line += stats_filename
         
-        sys.stdout.write('CMD: {0}\n'.format(cmd_line))
+        sys.stdout.write('CMD: {0}\n\n'.format(cmd_line))
         subprocess.call(cmd_line, shell=True)
     
     ##########################
