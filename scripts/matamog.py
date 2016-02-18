@@ -277,7 +277,7 @@ if __name__ == '__main__':
     ######################################
     # STEP 2: Reads mapping against Ref DB
     sortme_output_basename = input_fastx_basename + '.S2.1_vs_' + clustered_ref_db_basename
-    sortme_output_basename += '.b' + str(args.best) + '.m' + str(args.min_lis)
+    sortme_output_basename += '_b' + str(args.best) + '_m' + str(args.min_lis)
     
     if 2 in steps_set:
         sys.stdout.write('## Mapping step (2):\n\n')
@@ -330,17 +330,30 @@ if __name__ == '__main__':
     
     ################################
     # STEP 4: Overlap Graph Building
+    min_identity_int = int(args.min_identity * 100)
+    ovgraphbuild_basename = sam_filt_basename + '.ovgb_i' + str(min_identity_int)
+    ovgraphbuild_basename += '_o' + str(args.min_overlap_length) + '_'
+    if args.multi:
+        ovgraphbuild_basename += 'multi'
+    else:
+        ovgraphbuild_basename += 'single'
     
     if 4 in steps_set:
         sys.stdout.write('## Overlap Graph building step (4):\n\n')
         
         # Ovgraphbuild command line
-        ovgraphbuild_cmd_line = '. ' + ovgraphbuild_bin + ' -v --debug '
-        ovgraphbuild_cmd_line += '-i ' + str(args.min_identity)
-        ovgraphbuild_cmd_line += '-m ' + str(args.min_overlap_length)
-        #~ ovgraphbuild_cmd_line += 
+        ovgraphbuild_cmd_line = ovgraphbuild_bin + ' -v --debug'
+        ovgraphbuild_cmd_line += ' -i ' + str(args.min_identity)
+        ovgraphbuild_cmd_line += ' -m ' + str(args.min_overlap_length)
+        if args.multi:
+            ovgraphbuild_cmd_line += ' --multi_ref'
+        ovgraphbuild_cmd_line += ' --asqg --csv --output_basename '
+        ovgraphbuild_cmd_line += ovgraphbuild_basename
+        ovgraphbuild_cmd_line += ' -s ' + sam_filt_basename + '.sam'
         
-        
+        # Run ovgraphbuild
+        sys.stdout.write('CMD: {0}\n'.format(ovgraphbuild_cmd_line))
+        subprocess.call(ovgraphbuild_cmd_line, shell=True)
     
     
     exit(0)
