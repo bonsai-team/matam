@@ -35,7 +35,7 @@ struct AlphaOptions
         outputBasename(""), outputASQG(false), outputCSV(false),
         minRefPairwisePercentId(0),
         minOverlapLength(0), idRateThreshold(100.0), minNumTrailingMatches(0),
-        verbose(false), debug(false), test(false), multiRef(true),
+        verbose(false), debug(false), test(false), multiRef(false),
         noIndel(false)
     {}
 };

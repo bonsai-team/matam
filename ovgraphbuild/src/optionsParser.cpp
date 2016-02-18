@@ -10,8 +10,8 @@ auto parseCommandLine(AlphaOptions &options, int argc, char const **argv)
     seqan::ArgumentParser parser("alpha");
     // Set short description, version, and date.
     seqan::setShortDescription(parser, "Prototype of a conserved marker assembler for MetaG & MetaT NGS data");
-    seqan::setVersion(parser, "0.2.0");
-    seqan::setDate(parser, "July 2015");
+    seqan::setVersion(parser, "0.9.0");
+    seqan::setDate(parser, "February 2016");
 
     // Define Options -- Section Input Files
     seqan::addSection(parser, "Input");
@@ -38,7 +38,7 @@ auto parseCommandLine(AlphaOptions &options, int argc, char const **argv)
     seqan::addOption(parser, seqan::ArgParseOption( "", "min_trail_matches", "Minimum trailing matches needed to anchor the pairwise overlaps (correction).",
         seqan::ArgParseArgument::INTEGER, "MIN"));
     seqan::addOption(parser, seqan::ArgParseOption( "", "no_indel", "Indels are not allowed in reads overlap."));
-    seqan::addOption(parser, seqan::ArgParseOption( "", "single_ref", "Turn off multi-ref algorithm."));
+    seqan::addOption(parser, seqan::ArgParseOption( "", "multi_ref", "Turn on multi-ref algorithm."));
     seqan::addOption(parser, seqan::ArgParseOption( "", "illumina", "Optimize the parameters for illumina sequencing."));
 
     // Define Options -- Section Misc.
@@ -110,7 +110,7 @@ auto parseCommandLine(AlphaOptions &options, int argc, char const **argv)
     seqan::getOptionValue(options.idRateThreshold, parser, "id_threshold");
     seqan::getOptionValue(options.minNumTrailingMatches, parser, "min_trail_matches");
     options.noIndel = seqan::isSet(parser, "no_indel");
-    options.multiRef = !seqan::isSet(parser, "single_ref");
+    options.multiRef = seqan::isSet(parser, "multi_ref");
 
     if (seqan::isSet(parser, "illumina"))
     {
