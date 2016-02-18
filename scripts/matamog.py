@@ -15,7 +15,8 @@ clean_name_bin = matamog_dir + '/bin/fasta_clean_name.py'
 name_filter_bin = matamog_dir + '/bin/fasta_name_filter.py'
 indexdb_bin = matamog_dir + '/bin/indexdb_rna'
 sortmerna_bin = matamog_dir + '/bin/sortmerna'
-
+filter_score_bin = matamog_dir + '/bin/filter_score_multialign.py'
+ovgraphbuild_bin = matamog_dir + '/bin/ovgraphbuild'
 
 def read_fasta_file_handle(fasta_file_handle):
     """
@@ -195,8 +196,6 @@ if __name__ == '__main__':
     input_fastx_filename = args.input_fastx.split('/')[-1]
     input_fastx_basename = '.'.join(input_fastx_filename.split('.')[:-1])
     
-    current_basename = ref_db_basename
-    
     #
     steps_set = frozenset(args.steps)
     
@@ -294,14 +293,54 @@ if __name__ == '__main__':
         
         # Run SortMeRNA
         sys.stdout.write('CMD: {0}\n'.format(sortmerna_cmd_line))
-        #~ subprocess.call(sortmerna_cmd_line, shell=True)
+        subprocess.call(sortmerna_cmd_line, shell=True)
     
     #############################
     # STEP 3: Alignment Filtering
+    score_threshold_int = int(args.score_threshold * 100)
+    sam_filt_basename = sortme_output_basename + '.scr_filt_'
+    if args.geometric_mode:
+        sam_filt_basename += 'geo_'
+    sam_filt_basename += str(score_threshold_int) + 'pct'
+    read_ref_taxo_basename = sam_filt_basename + '.read_ref_taxo'
     
+    if 3 in steps_set:
+        sys.stdout.write('## Alignment filtering step (3):\n\n')
+        
+        # Filtering scores command line
+        filter_score_cmd_line = 'cat ' + sortme_output_basename + '.sam'
+        filter_score_cmd_line += ' | grep -v "^@" | sort -k 1,1V -k 12,12Vr'
+        filter_score_cmd_line += ' | ' + filter_score_bin + ' -t ' + str(args.score_threshold)
+        if args.geometric_mode:
+            filter_score_cmd_line += ' --geometric'
+        filter_score_cmd_line += ' > ' + sam_filt_basename + '.sam'
+        
+        # Run scores filtering
+        sys.stdout.write('CMD: {0}\n'.format(filter_score_cmd_line))
+        subprocess.call(filter_score_cmd_line, shell=True)
+        
+        # Generate read ref taxo file
+        read_taxo_cmd_line = 'cat ' + sam_filt_basename + '.sam | cut -f1,3 | sort -k2,2'
+        read_taxo_cmd_line += ' | join -12 -21 - ' + ref_db_basename + '.taxo.tab'
+        read_taxo_cmd_line += ' | sort -k2,2 | awk "{print \$2,\$1,\$3}" | sed "s/ /\\t/g" > '
+        read_taxo_cmd_line += read_ref_taxo_basename + '.tab'
+        
+        sys.stdout.write('CMD: {0}\n'.format(read_taxo_cmd_line))
+        subprocess.call(read_taxo_cmd_line, shell=True)
     
+    ################################
+    # STEP 4: Overlap Graph Building
     
-    
+    if 4 in steps_set:
+        sys.stdout.write('## Overlap Graph building step (4):\n\n')
+        
+        # Ovgraphbuild command line
+        ovgraphbuild_cmd_line = '. ' + ovgraphbuild_bin + ' -v --debug '
+        ovgraphbuild_cmd_line += '-i ' + str(args.min_identity)
+        ovgraphbuild_cmd_line += '-m ' + str(args.min_overlap_length)
+        #~ ovgraphbuild_cmd_line += 
+        
+        
     
     
     exit(0)
