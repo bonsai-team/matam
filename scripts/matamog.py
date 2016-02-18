@@ -17,6 +17,9 @@ indexdb_bin = matamog_dir + '/bin/indexdb_rna'
 sortmerna_bin = matamog_dir + '/bin/sortmerna'
 filter_score_bin = matamog_dir + '/bin/filter_score_multialign.py'
 ovgraphbuild_bin = matamog_dir + '/bin/ovgraphbuild'
+contigsearch_jar = matamog_dir + '/bin/ContigSearch.jar'
+compute_lca_bin = matamog_dir + '/bin/compute_lca_from_tab.py'
+compute_stats_lca_bin = matamog_dir + '/bin/compute_stats_from_lca.py'
 
 def read_fasta_file_handle(fasta_file_handle):
     """
@@ -84,8 +87,8 @@ def parse_arguments():
                             type=int, default=3,
                             help='Max number of CPU to use')
     group_perf.add_argument('--max_memory', metavar='INT',
-                            type=int, default=-1,
-                            help='Maximum memory to use (in MBi). Default is auto')
+                            type=int, default=4000,
+                            help='Maximum memory to use (in MBi). Default is 4000MBi')
     #
     group_db = parser.add_argument_group('Ref DB pre-processing (Step 1)')
     group_db.add_argument('--clustering_id_threshold', metavar='REAL',
@@ -107,8 +110,8 @@ def parse_arguments():
     group_filt.add_argument('--score_threshold', metavar='REAL',
                             type=float, default=0.9,
                             help='Score threshold (real between 0 and 1)')
-    group_filt.add_argument('--geometric_mode', action='store_true',
-                            help='Use geometric mode filtering')
+    group_filt.add_argument('--straight_mode', action='store_true',
+                            help='Use straight mode filtering. Default is geometric mode')
     #
     group_ovg = parser.add_argument_group('Overlap Graph Building (Step 4)')
     group_ovg.add_argument('--min_identity', metavar='REAL',
@@ -201,17 +204,18 @@ if __name__ == '__main__':
     
     ###############################
     # STEP 1: Ref DB pre-processing
+    ref_db_taxo_filename = ref_db_basename + '.taxo.tab'
+    
     cluster_id_int = int(args.clustering_id_threshold * 100)
     clustered_ref_db_basename = 'NR{0}'.format(cluster_id_int)
     sortmerna_index_directory = 'sortmerna_index'
     sortmerna_index_basename = sortmerna_index_directory + '/' + clustered_ref_db_basename
     
+    
     if 1 in steps_set:
         sys.stdout.write('## Ref DB pre-processing step (1):\n\n')
         
         # Extract taxo from ref DB and sort by ref id
-        
-        ref_db_taxo_filename = ref_db_basename + '.taxo.tab'
         
         # Clean fasta headers
         
@@ -276,7 +280,7 @@ if __name__ == '__main__':
         
     ######################################
     # STEP 2: Reads mapping against Ref DB
-    sortme_output_basename = input_fastx_basename + '.S2.1_vs_' + clustered_ref_db_basename
+    sortme_output_basename = input_fastx_basename + '.S21_vs_' + clustered_ref_db_basename
     sortme_output_basename += '_b' + str(args.best) + '_m' + str(args.min_lis)
     
     if 2 in steps_set:
@@ -299,7 +303,9 @@ if __name__ == '__main__':
     # STEP 3: Alignment Filtering
     score_threshold_int = int(args.score_threshold * 100)
     sam_filt_basename = sortme_output_basename + '.scr_filt_'
-    if args.geometric_mode:
+    if args.straight_mode:
+        sam_filt_basename += 'str_'
+    else:
         sam_filt_basename += 'geo_'
     sam_filt_basename += str(score_threshold_int) + 'pct'
     read_ref_taxo_basename = sam_filt_basename + '.read_ref_taxo'
@@ -311,7 +317,7 @@ if __name__ == '__main__':
         filter_score_cmd_line = 'cat ' + sortme_output_basename + '.sam'
         filter_score_cmd_line += ' | grep -v "^@" | sort -k 1,1V -k 12,12Vr'
         filter_score_cmd_line += ' | ' + filter_score_bin + ' -t ' + str(args.score_threshold)
-        if args.geometric_mode:
+        if not args.straight_mode:
             filter_score_cmd_line += ' --geometric'
         filter_score_cmd_line += ' > ' + sam_filt_basename + '.sam'
         
@@ -355,8 +361,121 @@ if __name__ == '__main__':
         sys.stdout.write('CMD: {0}\n'.format(ovgraphbuild_cmd_line))
         subprocess.call(ovgraphbuild_cmd_line, shell=True)
     
+    ##################################################
+    # STEP 5: Graph Compaction & Contig Identification
+    contigsearch_basename = ovgraphbuild_basename + '.ctgs'
+    contigsearch_basename += '_N' + str(args.min_read_node)
+    contigsearch_basename += '_E' + str(args.min_overlap_edge)
+    
+    if 5 in steps_set:
+        sys.stdout.write('## Graph Compaction & Contig Identification step (5):\n\n')
+        
+        # ContigSearch command line
+        contigsearch_cmd_line = 'java -Xmx' + str(args.max_memory) + 'M -cp "'
+        contigsearch_cmd_line += contigsearch_jar + '" main.Main'
+        contigsearch_cmd_line += ' -N ' + str(args.min_read_node)
+        contigsearch_cmd_line += ' -E ' + str(args.min_overlap_edge)
+        contigsearch_cmd_line += ' -b ' + contigsearch_basename
+        contigsearch_cmd_line += ' -n ' + ovgraphbuild_basename + '.nodes.csv'
+        contigsearch_cmd_line += ' -e ' + ovgraphbuild_basename + '.edges.csv'
+        
+        # Run ContigSearch
+        sys.stdout.write('CMD: {0}\n'.format(contigsearch_cmd_line))
+        subprocess.call(contigsearch_cmd_line, shell=True)
+    
+    #######################
+    # STEP 6: LCA Labelling
+    quorum_int = int(args.quorum * 100)
+    labelled_nodes_filename = contigsearch_basename + '.nodes_contracted'
+    labelled_nodes_filename += '.metanode_contig_lca' + str(quorum_int) + 'pct.csv'
+    
+    if 6 in steps_set:
+        sys.stdout.write('## LCA Labelling (6):\n\n')
+        
+        #
+        cmd_line = 'tail -n +2 ' + contigsearch_basename + '.contigs.csv'
+        cmd_line += ' | sed "s/;/\\t/g" | sort -k2,2 | awk \'{print $2"\\t"$3"\\t"$1}\' > '
+        cmd_line += contigsearch_basename + '.contigs.tab'
+        
+        sys.stdout.write('CMD: {0}\n'.format(cmd_line))
+        subprocess.call(cmd_line, shell=True)
+        
+        #
+        cmd_line = 'tail -n +2 ' + ovgraphbuild_basename + '.nodes.csv'
+        cmd_line += ' | sed "s/;/\\t/g" | sort -k1,1 > '
+        cmd_line += ovgraphbuild_basename + '.nodes.tab'
+        
+        sys.stdout.write('CMD: {0}\n'.format(cmd_line))
+        subprocess.call(cmd_line, shell=True)
+        
+        #
+        complete_taxo_filename = contigsearch_basename + '.read_id_metanode_contig_ref_taxo.tab'
+        
+        cmd_line = 'join -11 -21 ' + ovgraphbuild_basename + '.nodes.tab '
+        cmd_line += contigsearch_basename + '.contigs.tab '
+        cmd_line += '| sort -k2,2 | awk \'{print $1"\\t"$2"\\t"$4"\\t"$5}\' | join -12 -21 - '
+        cmd_line += read_ref_taxo_basename + '.tab | sed "s/ /\\t/g" > '
+        cmd_line += complete_taxo_filename
+        
+        sys.stdout.write('CMD: {0}\n'.format(cmd_line))
+        subprocess.call(cmd_line, shell=True)
+        
+        #
+        cmd_line = 'cat ' + complete_taxo_filename + ' | sort -k3,3 | '
+        cmd_line += compute_lca_bin + ' -t 6 -f 3 -g 1 -m ' + str(args.quorum) + ' > '
+        cmd_line += contigsearch_basename + '.metanode_lca' + str(quorum_int) + 'pct.tab'
+        
+        sys.stdout.write('CMD: {0}\n'.format(cmd_line))
+        subprocess.call(cmd_line, shell=True)
+        
+        #
+        cmd_line = 'cat ' + complete_taxo_filename + ' | sort -k4,4 | '
+        cmd_line += compute_lca_bin + ' -t 6 -f 4 -g 1 -m ' + str(args.quorum) + ' > '
+        cmd_line += contigsearch_basename + '.contig_lca' + str(quorum_int) + 'pct.tab'
+        
+        sys.stdout.write('CMD: {0}\n\n'.format(cmd_line))
+        subprocess.call(cmd_line, shell=True)
+        
+        #
+        cmd_line = 'cat ' + contigsearch_basename + '.nodes_contracted.csv'
+        cmd_line += ' | tail -n +2 | sed "s/;/\\t/g" | sort -k1,1 | join -11 -21 - '
+        cmd_line += contigsearch_basename + '.metanode_lca' + str(quorum_int) + 'pct.tab'
+        cmd_line += ' | sort -k4,4 | join -14 -21 - '
+        cmd_line += contigsearch_basename + '.contig_lca' + str(quorum_int) + 'pct.tab'
+        cmd_line += ' | sort -k4,4 | join -a1 -e"NULL" -o "1.2,1.3,0,1.1,2.2,1.5,1.6" -14 -21 - '
+        cmd_line += 'LTPs119_SSU.test.16sp.taxo.tab' + ' | sort -k3,3 | ' ## Filename in hard !!!!!!!
+        cmd_line += 'awk \'BEGIN{print "Id Size Specie ContigId TrueTaxo NodeLCA ContigLCA"}{print $0}\''
+        cmd_line += ' | sed "s/;/,/g" | sed "s/ /;/g" > '
+        cmd_line += labelled_nodes_filename
+        
+        sys.stdout.write('CMD: {0}\n'.format(cmd_line))
+        subprocess.call(cmd_line, shell=True)
+        
+        # LCA Stats (only with a known test dataset)
+        cmd_line = compute_stats_lca_bin + ' --header -l 6 -t 5 -i '
+        cmd_line += labelled_nodes_filename
+        
+        sys.stdout.write('\n## STATS LCA (NODE LEVEL):\n')
+        sys.stdout.write('CMD: {0}\n'.format(cmd_line))
+        subprocess.call(cmd_line, shell=True)
+        
+        cmd_line = compute_stats_lca_bin + ' --header -l 7 -t 5 -i '
+        cmd_line += labelled_nodes_filename
+        
+        sys.stdout.write('\n## STATS LCA (CONTIG LEVEL):\n')
+        sys.stdout.write('CMD: {0}\n'.format(cmd_line))
+        subprocess.call(cmd_line, shell=True)
+    
+    ##########################
+    # STEP 7: Contigs Assembly
+    
+    
+    
+    
+    
     
     exit(0)
+
 
 
 
