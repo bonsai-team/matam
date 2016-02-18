@@ -9,6 +9,7 @@ cd $MATAMOG_DIR/contigsearch
 
 mkdir $MATAMOG_DIR/ovgraphbuild/build
 cd $MATAMOG_DIR/ovgraphbuild/build
+cmake -G 'CodeBlocks - Unix Makefiles' ..
 cmake ..
 make
 
