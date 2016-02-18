@@ -7,12 +7,12 @@
 [submodule "ovgraphbuild/lib/seqan"]
 	path = ovgraphbuild/lib/seqan
 	url = https://github.com/seqan/seqan.git
-[submodule "contigsearch"]
-	path = contigsearch
-	url = https://github.com/yoann-dufresne/ContigSearch.git
 [submodule "lib/bamtools"]
 	path = lib/bamtools
 	url = http://github.com/pezmaster31/bamtools
 [submodule "sumaclust"]
 	path = sumaclust
 	url = https://git.metabarcoding.org/obitools/sumaclust.git
+[submodule "contigsearch"]
+	path = contigsearch
+	url = https://github.com/ppericard/ContigSearch.git
