@@ -20,6 +20,9 @@ ovgraphbuild_bin = matamog_dir + '/bin/ovgraphbuild'
 contigsearch_jar = matamog_dir + '/bin/ContigSearch.jar'
 compute_lca_bin = matamog_dir + '/bin/compute_lca_from_tab.py'
 compute_stats_lca_bin = matamog_dir + '/bin/compute_stats_from_lca.py'
+replace_Ns_bin = matamog_dir + '/bin/replace_Ns_by_rand_nu.py'
+sort_fasta_bin = matamog_dir + '/bin/sort_fasta_by_length.py'
+
 
 def read_fasta_file_handle(fasta_file_handle):
     """
@@ -79,7 +82,7 @@ def parse_arguments():
                             type=str, default='DEFAULTNAME',
                             help='Output contigs file (fasta format)')
     group_main.add_argument('-s', '--steps', metavar='INT',
-                            type=int, nargs='+', default=[1,2,3,4,5,6,7],
+                            type=int, nargs='+', default=[0,1,2,3,4,5,6,7],
                             help='Steps to execute')
     #
     group_perf = parser.add_argument_group('Performance')
@@ -90,7 +93,11 @@ def parse_arguments():
                             type=int, default=4000,
                             help='Maximum memory to use (in MBi). Default is 4000MBi')
     #
-    group_db = parser.add_argument_group('Ref DB pre-processing (Step 1)')
+    group_db = parser.add_argument_group('Ref DB pre-processing (Step 0)')
+    group_db.add_argument('--remove_Ns', action='store_true',
+                          help='Remove sequences with Ns. (Default is replacing Ns with random nucleotides)')
+    #
+    group_clust = parser.add_argument_group('Clustering Ref DB (Step 1)')
     group_db.add_argument('--clustering_id_threshold', metavar='REAL',
                           type=float, default=0.95,
                           help='Identity threshold for clustering')
@@ -144,8 +151,8 @@ def parse_arguments():
     
     # check if steps are in proper range
     steps_set = set(args.steps)
-    if len(steps_set - set(range(1, 8))) > 0:
-        raise Exception("steps not in range [1,7]")
+    if len(steps_set - set(range(0, 8))) > 0:
+        raise Exception("steps not in range [0,7]")
     
     if args.clustering_id_threshold < 0 or args.clustering_id_threshold > 1:
         raise Exception("clustering id threshold not in range [0,1]")
@@ -203,65 +210,96 @@ if __name__ == '__main__':
     steps_set = frozenset(args.steps)
     
     ###############################
-    # STEP 1: Ref DB pre-processing
+    # STEP 0: Ref DB pre-processing
     ref_db_taxo_filename = ref_db_basename + '.taxo.tab'
+    cleaned_ref_db_filename = ref_db_basename + '.cleaned.fasta'
     
+    if 0 in steps_set:
+        sys.stdout.write('## Ref DB pre-processing step (0):\n\n')
+        
+        # Extract taxo from ref DB and sort by ref id
+        cmd_line = extract_taxo_bin + ' -i ' + args.ref_db + ' | sort -k1,1 > '
+        cmd_line += ref_db_taxo_filename
+        
+        sys.stdout.write('CMD: {0}\n'.format(cmd_line))
+        subprocess.call(cmd_line, shell=True)
+        
+        # Trim Ns from both sides
+        # Filter out small sequences
+        
+        # Convert Us in Ts
+        # Option: Either filter out seq with Ns or replace Ns with random nucl
+        cmd_line = 'cat ' + args.ref_db
+        cmd_line += ' | sed "/!>/s/U/T/g" | sed "/!>/s/u/t/g"'
+        if not args.remove_Ns:
+            cmd_line += ' | ' + replace_Ns_bin
+        cmd_line += ' | ' + sort_fasta_bin + ' --reverse > '
+        cmd_line += cleaned_ref_db_filename
+        
+        sys.stdout.write('CMD: {0}\n'.format(cmd_line))
+        subprocess.call(cmd_line, shell=True)
+    
+    ###########################
+    # STEP 1: Ref DB clustering
     cluster_id_int = int(args.clustering_id_threshold * 100)
-    clustered_ref_db_basename = 'NR{0}'.format(cluster_id_int)
+    clustered_ref_db_basename = ref_db_basename + '.NR{0}'.format(cluster_id_int)
     sortmerna_index_directory = 'sortmerna_index'
     sortmerna_index_basename = sortmerna_index_directory + '/' + clustered_ref_db_basename
     
+    kingdoms_list = ['archaea','bacteria','eukaryota']
+    
+    sumaclust_kingdom_filename = ref_db_basename + '.sumaclust_'
+    sumaclust_kingdom_filename += '{0}'.format(cluster_id_int)
+    sumaclust_kingdom_filename += '_by_kingdom.fasta'
+    
+    try:
+        os.remove(sumaclust_kingdom_filename)
+    except OSError:
+        pass
     
     if 1 in steps_set:
-        sys.stdout.write('## Ref DB pre-processing step (1):\n\n')
+        sys.stdout.write('## Ref DB clustering step (1):\n\n')
         
-        # Extract taxo from ref DB and sort by ref id
-        
-        # Clean fasta headers
-        
-        # Convert Us in Ts
-        
-        # Trim Ns from both sides
-        
-        # Filter out small sequences
-        
-        # Option: Either filter out seq with Ns or replace Ns with random nucl
-        
-        # Sort sequences by decreasing length
-        
-        cleaned_ref_db_filename = ref_db_basename + '.cleaned.fasta'
-        
-        ## FOR EACH kingdom IN ['archaea', 'bacteria', 'eukaryota']
-        ## Clutering with sumaclust
-        
-        sumaclust_filename = ref_db_basename + '.sumaclust_' 
-        sumaclust_filename += '{0}'.format(cluster_id_int)
-        sumaclust_filename += '.fasta'
-        
-        sumaclust_cmd_line = sumaclust_bin + ' -t ' + '{0:.2f}'.format(args.clustering_id_threshold)
-        sumaclust_cmd_line += ' -p ' + str(args.cpu) + ' -F ' + sumaclust_filename
-        sumaclust_cmd_line += ' ' + cleaned_ref_db_filename
-        
-        sys.stdout.write('CMD: {0}\n\n'.format(sumaclust_cmd_line))
-        
-        ## Extracting centroids
-        
-        filter_cmd_line = name_filter_bin + ' -s "cluster_center=True" -i '
-        filter_cmd_line += sumaclust_filename + ' -o tmp.fasta'
-        
-        sys.stdout.write('CMD: {0}\n'.format(filter_cmd_line))
-        
-        ## Concatenate kingdom centroids
-        
-        sumaclust_kingdom_filename = ref_db_basename + '.sumaclust_'
-        sumaclust_kingdom_filename += '{0}'.format(cluster_id_int)
-        sumaclust_kingdom_filename += '_by_kingdom.fasta'
-        
+        for kingdom in kingdoms_list:
+            # Extracting kingdoms fasta files
+            cmd_line = name_filter_bin + ' -i ' + cleaned_ref_db_filename
+            cmd_line += ' -s \'' + kingdom + '\' > '
+            cmd_line += ref_db_basename + '.' + kingdom + '.fasta'
+            
+            sys.stdout.write('CMD: {0}\n'.format(cmd_line))
+            subprocess.call(cmd_line, shell=True)
+            
+            # Clutering with sumaclust
+            sumaclust_basename = ref_db_basename + '.' + kingdom + '.sumaclust_' 
+            sumaclust_basename += '{0}'.format(cluster_id_int)
+            
+            sumaclust_cmd_line = sumaclust_bin + ' -t ' + '{0:.2f}'.format(args.clustering_id_threshold)
+            sumaclust_cmd_line += ' -p ' + str(args.cpu) + ' -F ' + sumaclust_basename + '.fasta'
+            sumaclust_cmd_line += ' ' + ref_db_basename + '.' + kingdom + '.fasta'
+            
+            sys.stdout.write('CMD: {0}\n'.format(sumaclust_cmd_line))
+            subprocess.call(sumaclust_cmd_line, shell=True)
+            
+            ## Extracting centroids
+            filter_cmd_line = name_filter_bin + ' -s "cluster_center=True" -i '
+            filter_cmd_line += sumaclust_basename + '.fasta -o '
+            filter_cmd_line += sumaclust_basename + '.centroids.fasta'
+            
+            sys.stdout.write('CMD: {0}\n'.format(filter_cmd_line))
+            subprocess.call(filter_cmd_line, shell=True)
+            
+            ## Concatenate kingdom centroids
+            cmd_line = 'cat ' + sumaclust_basename + '.centroids.fasta >> '
+            cmd_line += sumaclust_kingdom_filename
+            
+            sys.stdout.write('CMD: {0}\n\n'.format(cmd_line))
+            subprocess.call(cmd_line, shell=True)
+            
         # Clean fasta headers
         clean_name_cmd_line = clean_name_bin + ' -i ' + sumaclust_kingdom_filename
         clean_name_cmd_line += ' -o ' + clustered_ref_db_basename + '.fasta'
         
-        sys.stdout.write('CMD: {0}\n'.format(clean_name_cmd_line))
+        sys.stdout.write('CMD: {0}\n\n'.format(clean_name_cmd_line))
         subprocess.call(clean_name_cmd_line, shell=True)
         
         # SortMeRNA Ref DB indexing
@@ -477,6 +515,7 @@ if __name__ == '__main__':
         
         sys.stdout.write('CMD: {0}\n\n'.format(cmd_line))
         subprocess.call(cmd_line, shell=True)
+        sys.stdout.write('\n')
     
     ##########################
     # STEP 7: Contigs Assembly
