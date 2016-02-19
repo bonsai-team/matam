@@ -236,7 +236,7 @@ if __name__ == '__main__':
         cmd_line += ' | ' + sort_fasta_bin + ' --reverse > '
         cmd_line += cleaned_ref_db_filename
         
-        sys.stdout.write('CMD: {0}\n'.format(cmd_line))
+        sys.stdout.write('CMD: {0}\n\n'.format(cmd_line))
         subprocess.call(cmd_line, shell=True)
     
     ###########################
