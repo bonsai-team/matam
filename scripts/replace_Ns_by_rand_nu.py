@@ -10,6 +10,7 @@ import os
 import argparse
 import string
 import re
+import random
 
 def read_fasta_file_handle(fasta_file_handle):
     """
@@ -37,25 +38,31 @@ def read_fasta_file_handle(fasta_file_handle):
     # Close input file
     fasta_file_handle.close()
 
+def format_seq(seq, linereturn=80):
+    """
+    Format an input sequence
+    """
+    buff = list()
+    for i in xrange(0, len(seq), linereturn):
+        buff.append("{0}\n".format(seq[i:(i + linereturn)]))
+    return ''.join(buff).rstrip()
+
 
 if __name__ == '__main__':
     
-    parser = argparse.ArgumentParser(description='Convert a fasta file in a tabulated file.')
+    parser = argparse.ArgumentParser(description='Replace all the Ns by random nucleotides.')
     parser.add_argument('-i', '--input_fasta', metavar='input', 
-                        type=argparse.FileType('r', 0), default='-',
+                        type=argparse.FileType('r'), default='-',
                         help='input fasta file')
-    parser.add_argument('-o', '--output_tab', metavar='output',
-                        type=argparse.FileType('w', 0), default='-',
-                        help='ouput tab file')
-    parser.add_argument('--length', action='store_true',
-                        help='Add a column with the sequence length')
+    parser.add_argument('-o', '--output_fasta', metavar='output',
+                        type=argparse.FileType('w'), default='-',
+                        help='ouput fasta file')
     args = parser.parse_args()
     
+    ACGT = ['A', 'C', 'G', 'T']
+    
     for header, sequence in read_fasta_file_handle(args.input_fasta):
-        header = re.sub(r'\s+', ' ', header)
-        args.output_tab.write('{0}\t{1}'.format(header, sequence))
-        if args.length:
-            args.output_tab.write('\t{2}'.format(len(sequence)))
-        args.output_tab.write('\n')
+        sequence = re.sub(r'[^ACGT]', lambda x: random.choice(ACGT), sequence.upper())
+        args.output_fasta.write(">{0}\n{1}\n".format(header, format_seq(sequence)))
 
 
