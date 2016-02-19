@@ -277,6 +277,7 @@ if __name__ == '__main__':
         
         sys.stdout.write('CMD: {0}\n\n'.format(indexdb_cmd_line))
         subprocess.call(indexdb_cmd_line, shell=True)
+        sys.stdout.write('\n')
         
     ######################################
     # STEP 2: Reads mapping against Ref DB
@@ -298,6 +299,7 @@ if __name__ == '__main__':
         # Run SortMeRNA
         sys.stdout.write('CMD: {0}\n\n'.format(sortmerna_cmd_line))
         subprocess.call(sortmerna_cmd_line, shell=True)
+        sys.stdout.write('\n')
     
     #############################
     # STEP 3: Alignment Filtering
@@ -360,6 +362,7 @@ if __name__ == '__main__':
         # Run ovgraphbuild
         sys.stdout.write('CMD: {0}\n\n'.format(ovgraphbuild_cmd_line))
         subprocess.call(ovgraphbuild_cmd_line, shell=True)
+        sys.stdout.write('\n')
     
     ##################################################
     # STEP 5: Graph Compaction & Contig Identification
