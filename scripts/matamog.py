@@ -230,7 +230,7 @@ if __name__ == '__main__':
         # Convert Us in Ts
         # Option: Either filter out seq with Ns or replace Ns with random nucl
         cmd_line = 'cat ' + args.ref_db
-        cmd_line += ' | sed "/!>/s/U/T/g" | sed "/!>/s/u/t/g"'
+        cmd_line += ' | sed "/^>/ !s_U_T_g" | sed "/^>/ !s_u_t_g"'
         if not args.remove_Ns:
             cmd_line += ' | ' + replace_Ns_bin
         cmd_line += ' | ' + sort_fasta_bin + ' --reverse > '
