@@ -273,12 +273,14 @@ if __name__ == '__main__':
             sumaclust_basename = ref_db_basename + '.' + kingdom + '.sumaclust_' 
             sumaclust_basename += '{0}'.format(cluster_id_int)
             
-            sumaclust_cmd_line = sumaclust_bin + ' -t ' + '{0:.2f}'.format(args.clustering_id_threshold)
-            sumaclust_cmd_line += ' -p ' + str(args.cpu) + ' -F ' + sumaclust_basename + '.fasta'
+            # sumaclust -l is used to simulate semi-global alignment, since SumaClust is a global aligner
+            sumaclust_cmd_line = sumaclust_bin + ' -l -t ' + '{0:.2f}'.format(args.clustering_id_threshold)
+            sumaclust_cmd_line += ' -p ' + str(args.cpu)
             sumaclust_cmd_line += ' ' + ref_db_basename + '.' + kingdom + '.fasta'
+            sumaclust_cmd_line += ' > ' + sumaclust_basename + '.fasta'
             
             sys.stdout.write('CMD: {0}\n'.format(sumaclust_cmd_line))
-            #~ subprocess.call(sumaclust_cmd_line, shell=True)
+            subprocess.call(sumaclust_cmd_line, shell=True)
             
             ## Extracting centroids
             filter_cmd_line = name_filter_bin + ' -s "cluster_center=True" -i '
