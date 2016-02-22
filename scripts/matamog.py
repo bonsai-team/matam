@@ -211,8 +211,13 @@ if __name__ == '__main__':
     
     ###############################
     # STEP 0: Ref DB pre-processing
+    cleaned_ref_db_basename = ref_db_basename
+    if args.remove_Ns:
+        cleaned_ref_db_basename += '.noNs'
+    else:
+        cleaned_ref_db_basename += '.rdNs'
     ref_db_taxo_filename = ref_db_basename + '.taxo.tab'
-    cleaned_ref_db_filename = ref_db_basename + '.cleaned.fasta'
+    cleaned_ref_db_filename = cleaned_ref_db_basename + '.cleaned.fasta'
     
     if 0 in steps_set:
         sys.stdout.write('## Ref DB pre-processing step (0):\n\n')
@@ -242,7 +247,7 @@ if __name__ == '__main__':
     ###########################
     # STEP 1: Ref DB clustering
     cluster_id_int = int(args.clustering_id_threshold * 100)
-    clustered_ref_db_basename = ref_db_basename + '.NR{0}'.format(cluster_id_int)
+    clustered_ref_db_basename = cleaned_ref_db_basename + '.NR{0}'.format(cluster_id_int)
     sortmerna_index_directory = 'sortmerna_index'
     sortmerna_index_basename = sortmerna_index_directory + '/' + clustered_ref_db_basename
     
