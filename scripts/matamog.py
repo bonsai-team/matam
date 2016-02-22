@@ -230,7 +230,7 @@ if __name__ == '__main__':
         # Convert Us in Ts
         # Option: Either filter out seq with Ns or replace Ns with random nucl
         cmd_line = 'cat ' + args.ref_db
-        cmd_line += ' | sed "/^>/ !s_U_T_g" | sed "/^>/ !s_u_t_g"'
+        cmd_line += ' | sed "/^>/!s/U/T/g" | sed "/^>/!s/u/t/g"'
         if not args.remove_Ns:
             cmd_line += ' | ' + replace_Ns_bin
         cmd_line += ' | ' + sort_fasta_bin + ' --reverse > '
@@ -263,7 +263,7 @@ if __name__ == '__main__':
         for kingdom in kingdoms_list:
             # Extracting kingdoms fasta files
             cmd_line = name_filter_bin + ' -i ' + cleaned_ref_db_filename
-            cmd_line += ' -s \'' + kingdom + '\' > '
+            cmd_line += ' -s \' ' + kingdom + '\' > ' # !! need to be a space before the kingdom
             cmd_line += ref_db_basename + '.' + kingdom + '.fasta'
             
             sys.stdout.write('CMD: {0}\n'.format(cmd_line))
@@ -278,7 +278,7 @@ if __name__ == '__main__':
             sumaclust_cmd_line += ' ' + ref_db_basename + '.' + kingdom + '.fasta'
             
             sys.stdout.write('CMD: {0}\n'.format(sumaclust_cmd_line))
-            subprocess.call(sumaclust_cmd_line, shell=True)
+            #~ subprocess.call(sumaclust_cmd_line, shell=True)
             
             ## Extracting centroids
             filter_cmd_line = name_filter_bin + ' -s "cluster_center=True" -i '
