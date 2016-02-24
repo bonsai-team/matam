@@ -192,6 +192,8 @@ def print_intro(args):
 
 
 if __name__ == '__main__':
+
+    sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
     
     # Arguments parsing
     args = parse_arguments()
