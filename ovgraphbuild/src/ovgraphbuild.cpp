@@ -1,10 +1,10 @@
 /*
- * alpha.cpp
+ * ovgraphbuild.cpp
  *
  * Created on: July 25, 2014
- * Modified on: December 17, 2015
+ * Modified on: February 24, 2016
  * Author: Pierre Pericard
- * Version: 0.9.0
+ * Version: 1.0.0
  */
 
 #define SEQAN_PROFILE // enable time measurements

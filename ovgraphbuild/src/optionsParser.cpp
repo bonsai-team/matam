@@ -7,10 +7,10 @@
 auto parseCommandLine(AlphaOptions &options, int argc, char const **argv)
 {
     // Setup ArgumentParser.
-    seqan::ArgumentParser parser("alpha");
+    seqan::ArgumentParser parser("ovgraphbuild");
     // Set short description, version, and date.
-    seqan::setShortDescription(parser, "Prototype of a conserved marker assembler for MetaG & MetaT NGS data");
-    seqan::setVersion(parser, "0.9.0");
+    seqan::setShortDescription(parser, "Build a read overlap graph from a mapping file");
+    seqan::setVersion(parser, "1.0.0");
     seqan::setDate(parser, "February 2016");
 
     // Define Options -- Section Input Files
@@ -48,9 +48,9 @@ auto parseCommandLine(AlphaOptions &options, int argc, char const **argv)
     seqan::addOption(parser, seqan::ArgParseOption( "", "test", "Turn on test infos."));
 
     // Set required options
-//    setRequired(parser, "reference");
+    setRequired(parser, "reference");
 //    setRequired(parser, "pairwise");
-//    setRequired(parser, "sam");
+    setRequired(parser, "sam");
 
     // Set format restrictions
     seqan::setValidValues(parser, "reference", "fasta fa");
@@ -58,33 +58,11 @@ auto parseCommandLine(AlphaOptions &options, int argc, char const **argv)
     seqan::setValidValues(parser, "sam", "sam bam");
 
     // Set default values
-
-    seqan::setDefaultValue(parser, "reference", "/mnt/data/db/SILVA_119_SSURef_Nr99_tax_silva_trunc.sumaclust.id85_by_taxa.centroids.name_cleaned.readsample1pct.fasta");
-//    seqan::setDefaultValue(parser, "reference", "/mnt/data/db/SILVA_119_SSURef_Nr99_tax_silva_trunc.sumaclust.id85_by_taxa.centroids.name_cleaned.fasta");
-//    setDefaultValue(parser, "reference", "/mnt/data/db/SSURef_NR97_plus_LTP.acgt.fasta");
-
-//    seqan::setDefaultValue(parser, "pairwise", "/mnt/data/wkdir/SSURef_sumaclust_id85.yass_vs_SSURef_sumaclust_id85.optimized.evalE-20.yass.fasta");
-    seqan::setDefaultValue(parser, "pairwise", "/mnt/data/wkdir/SSURef_sumaclust_id85.readsample1pct.yass_vs_SSURef_sumaclust_id85.readsample1pct.optimized.evalE-20.yass.fasta");
-//    seqan::setDefaultValue(parser, "pairwise", "/mnt/data/wkdir/SSURef_sumaclust_id85.yass_vs_SSURef_sumaclust_id85.optimized.yass.sample.fasta");
-//    setDefaultValue(parser, "pairwise", "/mnt/data/wkdir/SSURef_sumaclust_id85.yass_vs_SSURef_sumaclust_id85.yass.fasta");
-//    setDefaultValue(parser, "pairwise", "/mnt/data/wkdir/SSURef_sumaclust_id85.yass_vs_SSURef_sumaclust_id85.yass.sample.fasta");
-
-//    setDefaultValue(parser, "sam", "/mnt/data/wkdir/SRA_LTP/SRA_LTP.test_dataset.rrna.sortmerna2.0_vs_SSURef_sumaclust_id85.best1.min_lis10.sorted.sam");
-    // $cat input.sam | samtools view  -Sb - | samtools sort - sorted && samtools index sorted.bam
-//    setDefaultValue(parser, "sam", "/mnt/data/wkdir/SRA_LTP/SRA_LTP.test_dataset.rrna.sortmerna2.0_vs_SSURef_sumaclust_id85.best1.min_lis10.sorted.sam");
-//    seqan::setDefaultValue(parser, "sam", "/mnt/data/wkdir/SRA_LTP/SRA_LTP.test_dataset.rrna.clean.sortmerna2.0_vs_SSURef_NR85.best10.min_lis10.sorted.sam");
-//    seqan::setDefaultValue(parser, "sam", "/mnt/data/wkdir/SRA_LTP/SRA_LTP.test_dataset.rrna.sortmerna2.0_vs_SSURef_sumaclust_id85.best10.min_lis10.sorted_by_ref.sample500k.sorted_by_read.sam");
-//    seqan::setDefaultValue(parser, "sam", "/mnt/data/wkdir/SRA_LTP/SRA_LTP.test_dataset.rrna.clean.sample1pct.sortmerna2.0_vs_SSURef_sumaclust_id85.best10.min_lis10.sorted.sam");
-//    seqan::setDefaultValue(parser, "sam", "/mnt/data/wkdir/SRA_LTP/SRA_LTP.test_dataset.rrna.noN.sample1pct.sortmerna2.0_vs_SSURef_NR85.best10.min_lis10.sorted.sam");
-//    seqan::setDefaultValue(parser, "sam", "/mnt/data/wkdir/SRA_LTP/SRA_LTP.test_dataset.rrna.noN.sample3pct.sortmerna2.0_vs_SSURef_NR85.best10.min_lis10.sorted.sam");
-//    seqan::setDefaultValue(parser, "sam", "/mnt/data/wkdir/SRA_LTP/SRA_LTP.test_dataset.rrna.noN.sample10pct.sortmerna2.0_vs_SSURef_NR85.best10.min_lis10.sorted.sam");
-    seqan::setDefaultValue(parser, "sam", "/mnt/data/wkdir/SRA_LTP/SRA_LTP.test_dataset.rrna.noN.qual.10k.sortmerna2.0_vs_SSURef_NR85.best10.min_lis10.sorted.sam");
-//    seqan::setDefaultValue(parser, "sam", "/mnt/data/wkdir/SRA_LTP/SRA_LTP.test_dataset.rrna.noN.qual.derep.10k.sortmerna2.0_vs_SSURef_NR85.best10.min_lis10.sorted.sam");
-    seqan::setDefaultValue(parser, "output_basename", "alpha_output");
+    seqan::setDefaultValue(parser, "output_basename", "ovgraphbuild_output");
 
     seqan::setDefaultValue(parser, "min_ref_pairwise_pid", 90);
     seqan::setDefaultValue(parser, "min_overlap", 50);
-    seqan::setDefaultValue(parser, "id_threshold", 0.95);
+    seqan::setDefaultValue(parser, "id_threshold", 1);
     seqan::setDefaultValue(parser, "min_trail_matches", 3);
 
     // Parse command line
