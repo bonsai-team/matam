@@ -7,8 +7,8 @@ import argparse
 import re
 import subprocess
 
-
-matamog_dir = os.path.realpath(sys.argv[0])[:-19]
+matamog_bin = os.path.realpath(sys.argv[0])
+matamog_dir = matamog_bin[:-19]
 sumaclust_bin = matamog_dir + '/bin/sumaclust'
 extract_taxo_bin = matamog_dir + '/bin/extract_taxo_from_fasta.py'
 clean_name_bin = matamog_dir + '/bin/fasta_clean_name.py'
@@ -98,9 +98,12 @@ def parse_arguments():
                           help='Remove sequences with Ns. (Default is replacing Ns with random nucleotides)')
     #
     group_clust = parser.add_argument_group('Clustering Ref DB (Step 1)')
-    group_db.add_argument('--clustering_id_threshold', metavar='REAL',
-                          type=float, default=0.95,
-                          help='Identity threshold for clustering')
+    group_clust.add_argument('--clustering_id_threshold', metavar='REAL',
+                             type=float, default=0.95,
+                             help='Identity threshold for clustering')
+    group_clust.add_argument('--kingdoms', metavar='STR',
+                             type=str, nargs='+', default=['archaea','bacteria','eukaryota'],
+                             help='Kingdoms to clusterize the DB for. Default is: archaea bacteria eukaryota')
     #
     group_mapping = parser.add_argument_group('Mapping (Step 2)')
     group_mapping.add_argument('--best', metavar='INT',
@@ -111,7 +114,7 @@ def parse_arguments():
                                help=argparse.SUPPRESS)
     group_mapping.add_argument('--evalue', metavar='REAL',
                                type=float, default=1e-10,
-                               help='Max e-value to keep an alignment for (default: 10e-10)')
+                               help='Max e-value to keep an alignment for (default: 1e-10)')
     #
     group_filt = parser.add_argument_group('Alignment Filtering (Step 3)')
     group_filt.add_argument('--score_threshold', metavar='REAL',
@@ -178,8 +181,56 @@ def print_intro(args):
     sys.stdout.write("""
 #################################
            MATAMOG
-#################################
-    \n""")
+#################################\n\n""")
+    
+    sys.stdout.write("""CMD: \
+{matamog} --cpu {cpu} --max_memory {memory} \
+""".format(matamog=matamog_bin,
+           cpu=args.cpu,
+           memory=args.max_memory))
+    
+    if args.remove_Ns:
+        sys.stdout.write('--remove_Ns ')
+    
+    sys.stdout.write("""\
+--clustering_id_threshold {clustid} --kingdoms \
+""".format(clustid=args.clustering_id_threshold))
+    
+    for kingdom in args.kingdoms:
+        sys.stdout.write(' {king}'.format(king=kingdom))
+    
+    sys.stdout.write("""\
+--best {best} --evalue {evalue} --score_threshold {scr_th} 
+""".format(best=args.best,
+           evalue=args.evalue,
+           scr_th=args.score_threshold))
+    
+    if args.straight_mode:
+        sys.stdout.write('--straight_mode')
+    
+    sys.stdout.write("""\
+--min_identity {min_id} --min_overlap_length {min_ov_lgth} \
+""".format(min_id=args.min_identity,
+           min_ov_lgth=args.min_overlap_length))
+    
+    if args.multi:
+        sys.stdout.write('--multi ')
+    
+    sys.stdout.write("""\
+--min_read_node {N} --min_overlap_edge {E} \
+--quorum {quorum} --steps \
+""".format(N=args.min_read_node,
+           E=args.min_overlap_edge,
+           quorum=args.quorum))
+    
+    for step in args.steps:
+        sys.stdout.write('{0} '.format(step))
+    
+    sys.stdout.write("""\
+-i {i} -d {d} -o {o} \n\n\
+""".format(i=args.input_fastx,
+           d=args.ref_db,
+           o=args.output_contigs))
     
     #~ sys.stdout.write('PARAM: Executable  = {0}\n'.format(os.path.abspath(os.path.dirname(os.path.realpath(sys.argv[0])))))
     sys.stdout.write('PARAM: Matamog dir = {0}\n'.format(matamog_dir))
@@ -215,9 +266,9 @@ if __name__ == '__main__':
     # STEP 0: Ref DB pre-processing
     cleaned_ref_db_basename = ref_db_basename
     if args.remove_Ns:
-        cleaned_ref_db_basename += '.noNs'
+        cleaned_ref_db_basename += '_noNs'
     else:
-        cleaned_ref_db_basename += '.rdNs'
+        cleaned_ref_db_basename += '_rdNs'
     ref_db_taxo_filename = ref_db_basename + '.taxo.tab'
     cleaned_ref_db_filename = cleaned_ref_db_basename + '.cleaned.fasta'
     
@@ -249,11 +300,9 @@ if __name__ == '__main__':
     ###########################
     # STEP 1: Ref DB clustering
     cluster_id_int = int(args.clustering_id_threshold * 100)
-    clustered_ref_db_basename = cleaned_ref_db_basename + '.NR{0}'.format(cluster_id_int)
+    clustered_ref_db_basename = cleaned_ref_db_basename + '_NR{0}'.format(cluster_id_int)
     sortmerna_index_directory = 'sortmerna_index'
     sortmerna_index_basename = sortmerna_index_directory + '/' + clustered_ref_db_basename
-    
-    kingdoms_list = ['archaea','bacteria','eukaryota']
     
     sumaclust_kingdom_filename = ref_db_basename + '.sumaclust_'
     sumaclust_kingdom_filename += '{0}'.format(cluster_id_int)
@@ -267,7 +316,7 @@ if __name__ == '__main__':
     if 1 in steps_set:
         sys.stdout.write('## Ref DB clustering step (1):\n\n')
         
-        for kingdom in kingdoms_list:
+        for kingdom in args.kingdoms:
             # Extracting kingdoms fasta files
             cmd_line = name_filter_bin + ' -i ' + cleaned_ref_db_filename
             cmd_line += ' -s \' ' + kingdom + '\' > ' # !! need to be a space before the kingdom
@@ -404,6 +453,7 @@ if __name__ == '__main__':
             ovgraphbuild_cmd_line += ' --multi_ref'
         ovgraphbuild_cmd_line += ' --asqg --csv --output_basename '
         ovgraphbuild_cmd_line += ovgraphbuild_basename
+        ovgraphbuild_cmd_line += ' -r ' + clustered_ref_db_basename + '.fasta'
         ovgraphbuild_cmd_line += ' -s ' + sam_filt_basename + '.sam'
         
         # Run ovgraphbuild
@@ -494,7 +544,7 @@ if __name__ == '__main__':
         cmd_line += ' | sort -k4,4 | join -14 -21 - '
         cmd_line += contigsearch_basename + '.contig_lca' + str(quorum_int) + 'pct.tab'
         cmd_line += ' | sort -k4,4 | join -a1 -e"NULL" -o "1.2,1.3,0,1.1,2.2,1.5,1.6" -14 -21 - '
-        cmd_line += 'LTPs119_SSU.test.16sp.taxo.tab' + ' | sort -k3,3 | ' ## Filename in hard !!!!!!!
+        cmd_line += '16sp.taxo.tab' + ' | sort -k3,3 | ' ## Filename in hard !!!!!!!
         cmd_line += 'awk \'BEGIN{print "Id Size Specie ContigId TrueTaxo NodeLCA ContigLCA"}{print $0}\''
         cmd_line += ' | sed "s/;/,/g" | sed "s/ /;/g" > '
         cmd_line += labelled_nodes_basename + '.csv'
