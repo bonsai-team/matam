@@ -104,6 +104,8 @@ def parse_arguments():
     group_clust.add_argument('--kingdoms', metavar='STR',
                              type=str, nargs='+', default=['archaea','bacteria','eukaryota'],
                              help='Kingdoms to clusterize the DB for. Default is: archaea bacteria eukaryota')
+    group_clust.add_argument('--index_only', action='store_true',
+                             help=argparse.SUPPRESS)
     #
     group_mapping = parser.add_argument_group('Mapping (Step 2)')
     group_mapping.add_argument('--best', metavar='INT',
@@ -197,11 +199,16 @@ def print_intro(args):
 """.format(clustid=args.clustering_id_threshold))
     
     for kingdom in args.kingdoms:
-        sys.stdout.write(' {king}'.format(king=kingdom))
+        sys.stdout.write('{king} '.format(king=kingdom))
+    
+    if args.index_only:
+        sys.stdout.write('--index_only ')
     
     sys.stdout.write("""\
---best {best} --evalue {evalue} --score_threshold {scr_th} 
+--best {best} --min_lis {min_lis} --evalue {evalue} \
+--score_threshold {scr_th} \
 """.format(best=args.best,
+           min_lis=args.min_lis,
            evalue=args.evalue,
            scr_th=args.score_threshold))
     
@@ -227,7 +234,7 @@ def print_intro(args):
         sys.stdout.write('{0} '.format(step))
     
     sys.stdout.write("""\
--i {i} -d {d} -o {o} \n\n\
+--input_fastx {i} --ref_db {d} --output_contigs {o} \n\n\
 """.format(i=args.input_fastx,
            d=args.ref_db,
            o=args.output_contigs))
@@ -316,49 +323,52 @@ if __name__ == '__main__':
     if 1 in steps_set:
         sys.stdout.write('## Ref DB clustering step (1):\n\n')
         
-        for kingdom in args.kingdoms:
-            # Extracting kingdoms fasta files
-            cmd_line = name_filter_bin + ' -i ' + cleaned_ref_db_filename
-            cmd_line += ' -s \' ' + kingdom + '\' > ' # !! need to be a space before the kingdom
-            cmd_line += ref_db_basename + '.' + kingdom + '.fasta'
+        if not args.index_only:
+            for kingdom in args.kingdoms:
+                cleaned_ref_db_kingdom_basename = cleaned_ref_db_basename + '.' + kingdom
+                
+                # Extracting kingdoms fasta files
+                cmd_line = name_filter_bin + ' -i ' + cleaned_ref_db_filename
+                cmd_line += ' -s \' ' + kingdom + '\' > ' # !! need to be a space before the kingdom
+                cmd_line += cleaned_ref_db_kingdom_basename + '.fasta'
+                
+                sys.stdout.write('CMD: {0}\n'.format(cmd_line))
+                subprocess.call(cmd_line, shell=True)
+                
+                # Clutering with sumaclust
+                sumaclust_basename = cleaned_ref_db_kingdom_basename + '.sumaclust_' 
+                sumaclust_basename += '{0}'.format(cluster_id_int)
+                
+                # sumaclust -l is used to simulate semi-global alignment, since SumaClust is a global aligner
+                sumaclust_cmd_line = sumaclust_bin + ' -l -t ' + '{0:.2f}'.format(args.clustering_id_threshold)
+                sumaclust_cmd_line += ' -p ' + str(args.cpu)
+                sumaclust_cmd_line += ' ' + cleaned_ref_db_kingdom_basename + '.fasta'
+                sumaclust_cmd_line += ' > ' + sumaclust_basename + '.fasta'
+                
+                sys.stdout.write('CMD: {0}\n'.format(sumaclust_cmd_line))
+                subprocess.call(sumaclust_cmd_line, shell=True)
+                
+                ## Extracting centroids
+                filter_cmd_line = name_filter_bin + ' -s "cluster_center=True" -i '
+                filter_cmd_line += sumaclust_basename + '.fasta -o '
+                filter_cmd_line += sumaclust_basename + '.centroids.fasta'
+                
+                sys.stdout.write('CMD: {0}\n'.format(filter_cmd_line))
+                subprocess.call(filter_cmd_line, shell=True)
+                
+                ## Concatenate kingdom centroids
+                cmd_line = 'cat ' + sumaclust_basename + '.centroids.fasta >> '
+                cmd_line += sumaclust_kingdom_filename
+                
+                sys.stdout.write('CMD: {0}\n\n'.format(cmd_line))
+                subprocess.call(cmd_line, shell=True)
+                
+            # Clean fasta headers
+            clean_name_cmd_line = clean_name_bin + ' -i ' + sumaclust_kingdom_filename
+            clean_name_cmd_line += ' -o ' + clustered_ref_db_basename + '.fasta'
             
-            sys.stdout.write('CMD: {0}\n'.format(cmd_line))
-            subprocess.call(cmd_line, shell=True)
-            
-            # Clutering with sumaclust
-            sumaclust_basename = ref_db_basename + '.' + kingdom + '.sumaclust_' 
-            sumaclust_basename += '{0}'.format(cluster_id_int)
-            
-            # sumaclust -l is used to simulate semi-global alignment, since SumaClust is a global aligner
-            sumaclust_cmd_line = sumaclust_bin + ' -l -t ' + '{0:.2f}'.format(args.clustering_id_threshold)
-            sumaclust_cmd_line += ' -p ' + str(args.cpu)
-            sumaclust_cmd_line += ' ' + ref_db_basename + '.' + kingdom + '.fasta'
-            sumaclust_cmd_line += ' > ' + sumaclust_basename + '.fasta'
-            
-            sys.stdout.write('CMD: {0}\n'.format(sumaclust_cmd_line))
-            subprocess.call(sumaclust_cmd_line, shell=True)
-            
-            ## Extracting centroids
-            filter_cmd_line = name_filter_bin + ' -s "cluster_center=True" -i '
-            filter_cmd_line += sumaclust_basename + '.fasta -o '
-            filter_cmd_line += sumaclust_basename + '.centroids.fasta'
-            
-            sys.stdout.write('CMD: {0}\n'.format(filter_cmd_line))
-            subprocess.call(filter_cmd_line, shell=True)
-            
-            ## Concatenate kingdom centroids
-            cmd_line = 'cat ' + sumaclust_basename + '.centroids.fasta >> '
-            cmd_line += sumaclust_kingdom_filename
-            
-            sys.stdout.write('CMD: {0}\n\n'.format(cmd_line))
-            subprocess.call(cmd_line, shell=True)
-            
-        # Clean fasta headers
-        clean_name_cmd_line = clean_name_bin + ' -i ' + sumaclust_kingdom_filename
-        clean_name_cmd_line += ' -o ' + clustered_ref_db_basename + '.fasta'
-        
-        sys.stdout.write('CMD: {0}\n\n'.format(clean_name_cmd_line))
-        subprocess.call(clean_name_cmd_line, shell=True)
+            sys.stdout.write('CMD: {0}\n\n'.format(clean_name_cmd_line))
+            subprocess.call(clean_name_cmd_line, shell=True)
         
         # SortMeRNA Ref DB indexing
         try:
