@@ -115,8 +115,8 @@ def parse_arguments():
                                type=int, default=10,
                                help=argparse.SUPPRESS)
     group_mapping.add_argument('--evalue', metavar='REAL',
-                               type=float, default=1e-10,
-                               help='Max e-value to keep an alignment for (default: 1e-10)')
+                               type=float, default=1e-5,
+                               help='Max e-value to keep an alignment for (default: 1e-5)')
     #
     group_filt = parser.add_argument_group('Alignment Filtering (Step 3)')
     group_filt.add_argument('--score_threshold', metavar='REAL',
