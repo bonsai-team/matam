@@ -387,7 +387,7 @@ if __name__ == '__main__':
         
     ######################################
     # STEP 2: Reads mapping against Ref DB
-    sortme_output_basename = input_fastx_basename + '.S21_vs_' + clustered_ref_db_basename
+    sortme_output_basename = input_fastx_basename + '.sortmerna_vs_' + clustered_ref_db_basename
     sortme_output_basename += '_b' + str(args.best) + '_m' + str(args.min_lis)
     
     if 2 in steps_set:
