@@ -19,6 +19,17 @@ cd $MATAMOG_DIR/sortmerna
 cd $MATAMOG_DIR/sumaclust
 make
 
+cd $MATAMOG_DIR/lib/bamtools
+mkdir build
+cd build/
+cmake ..
+make
+
+cd $MATAMOG_DIR/sga/src
+./autogen.sh
+./configure --with-bamtools=$MATAMOG_DIR/lib/bamtools
+make
+
 mkdir $MATAMOG_DIR/bin
 cd $MATAMOG_DIR/bin
 
@@ -27,3 +38,4 @@ ln -sf $MATAMOG_DIR/sumaclust/sumaclust $MATAMOG_DIR/bin/.
 ln -sf $MATAMOG_DIR/ovgraphbuild/bin/ovgraphbuild $MATAMOG_DIR/bin/.
 ln -sf $MATAMOG_DIR/sortmerna/indexdb_rna $MATAMOG_DIR/bin/.
 ln -sf $MATAMOG_DIR/sortmerna/sortmerna $MATAMOG_DIR/bin/.
+ln -sf $MATAMOG_DIR/sga/src/SGA/sga $MATAMOG_DIR/bin/.
