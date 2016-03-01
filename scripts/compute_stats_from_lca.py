@@ -56,8 +56,7 @@ if __name__ == '__main__':
         # Predicted LCA level count
         if args.count_size:
             level_count_list[len(predicted_lca)-1] += size
-        else:ll
-        
+        else:
             level_count_list[len(predicted_lca)-1] += 1
         
         # Is LCA prediction compatible with true taxonomy 
