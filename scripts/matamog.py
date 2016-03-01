@@ -22,6 +22,7 @@ compute_lca_bin = matamog_dir + '/bin/compute_lca_from_tab.py'
 compute_stats_lca_bin = matamog_dir + '/bin/compute_stats_from_lca.py'
 replace_Ns_bin = matamog_dir + '/bin/replace_Ns_by_rand_nu.py'
 sort_fasta_bin = matamog_dir + '/bin/sort_fasta_by_length.py'
+sga_assemble_bin = matamog_dir + '/bin/sga_assemble.py'
 
 
 def read_fasta_file_handle(fasta_file_handle):
@@ -505,7 +506,7 @@ if __name__ == '__main__':
         
         #
         cmd_line = 'tail -n +2 ' + contigsearch_basename + '.contigs.csv'
-        cmd_line += ' | sed "s/;/\\t/g" | sort -k2,2 | awk \'{print $2"\\t"$3"\\t"$1}\' > '
+        cmd_line += ' | sed "s/;/\\t/g" | sort -k2,2 > '
         cmd_line += contigsearch_basename + '.contigs.tab'
         
         sys.stdout.write('CMD: {0}\n'.format(cmd_line))
@@ -522,9 +523,9 @@ if __name__ == '__main__':
         #
         complete_taxo_filename = contigsearch_basename + '.read_id_metanode_contig_ref_taxo.tab'
         
-        cmd_line = 'join -11 -21 ' + ovgraphbuild_basename + '.nodes.tab '
+        cmd_line = 'join -11 -22 ' + ovgraphbuild_basename + '.nodes.tab '
         cmd_line += contigsearch_basename + '.contigs.tab '
-        cmd_line += '| sort -k2,2 | awk \'{print $1"\\t"$2"\\t"$4"\\t"$5}\' | join -12 -21 - '
+        cmd_line += '| sort -k2,2 | awk \'{print $1"\\t"$2"\\t"$5"\\t"$4}\' | join -12 -21 - '
         cmd_line += read_ref_taxo_basename + '.tab | sed "s/ /\\t/g" > '
         cmd_line += complete_taxo_filename
         
