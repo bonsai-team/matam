@@ -568,7 +568,7 @@ if __name__ == '__main__':
         cmd_line = 'echo "## STATS LCA (NODE LEVEL):\n" > ' + stats_filename
         subprocess.call(cmd_line, shell=True)
         
-        cmd_line = compute_stats_lca_bin + ' --header -l 6 -t 5 -i '
+        cmd_line = compute_stats_lca_bin + ' --header -l 6 -t 5 -s 2 -i '
         cmd_line += labelled_nodes_basename + '.csv >> '
         cmd_line += stats_filename
         
@@ -578,7 +578,17 @@ if __name__ == '__main__':
         cmd_line = 'echo "\n## STATS LCA (CONTIG LEVEL):\n" >> ' + stats_filename
         subprocess.call(cmd_line, shell=True)
         
-        cmd_line = compute_stats_lca_bin + ' --header -l 7 -t 5 -i '
+        cmd_line = compute_stats_lca_bin + ' --header -l 7 -t 5 -s 2 -i '
+        cmd_line += labelled_nodes_basename + '.csv >> '
+        cmd_line += stats_filename
+        
+        sys.stdout.write('CMD: {0}\n'.format(cmd_line))
+        subprocess.call(cmd_line, shell=True)
+        
+        cmd_line = 'echo "\n## STATS LCA (CONTIG LEVEL, BY SIZE):\n" >> ' + stats_filename
+        subprocess.call(cmd_line, shell=True)
+        
+        cmd_line = compute_stats_lca_bin + ' --header --count_size -l 7 -t 5 -s 2 -i '
         cmd_line += labelled_nodes_basename + '.csv >> '
         cmd_line += stats_filename
         
