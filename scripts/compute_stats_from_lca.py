@@ -12,16 +12,21 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('-i', '--input_file', metavar='IN', 
                         type=argparse.FileType('r', 0), default='-',
-                        help='input file')
+                        help='Input tabulated file')
     parser.add_argument('-l', '--predicted_lca', metavar='INT',
                         type=int, required=True,
-                        help='Column number containing the predicted LCA')
+                        help='Predicted LCA column number')
     parser.add_argument('-t', '--true_taxo', metavar='INT', 
                         type=int, required=True,
-                        help='Column number containing the true taxonomy')
+                        help='True taxonomy column number')
+    parser.add_argument('-s', '--size', metavar='INT', 
+                        type=int, required=True,
+                        help='Node size column number')
+    parser.add_argument('--count_size', action='store_true', 
+                        help='Compute stats based on the node size rather than the node count')
     parser.add_argument('--header', action='store_true', 
                         help='Indicate there is an header line in the input file')
-    parser.add_argument('-s', '--separator', metavar='CHAR',
+    parser.add_argument('--separator', metavar='CHAR',
                         type=str, default=';',
                         help='Input file separator character (";" by default for csv)')
     parser.add_argument('-o', '--output_file', metavar='OUT', 
@@ -32,6 +37,7 @@ if __name__ == '__main__':
     # to get indices from column numbers
     args.predicted_lca -= 1
     args.true_taxo -= 1
+    args.size -= 1
     
     # Deals with headers
     if args.header:
@@ -45,9 +51,14 @@ if __name__ == '__main__':
         tab = line.strip().split(args.separator)
         predicted_lca = tab[args.predicted_lca].split(',')
         true_taxo = tab[args.true_taxo].split(',')
+        size = int(tab[args.size])
         
         # Predicted LCA level count
-        level_count_list[len(predicted_lca)-1] += 1
+        if args.count_size:
+            level_count_list[len(predicted_lca)-1] += size
+        else:ll
+        
+            level_count_list[len(predicted_lca)-1] += 1
         
         # Is LCA prediction compatible with true taxonomy 
         if true_taxo[0] != 'NULL':
@@ -55,13 +66,27 @@ if __name__ == '__main__':
             for i in xrange(len(predicted_lca)):
                 if is_same:
                     is_same = (predicted_lca[i]==true_taxo[i])
+                
                 if is_same:
-                    stats_level_list[i][0] += 1
+                    column = 0
                 else:
-                    stats_level_list[i][1] += 1
+                    column = 1
+                
+                if args.count_size:
+                    stats_level_list[i][column] += size
+                else:
+                    stats_level_list[i][column] += 1
     
     # Output stats
-    args.output_file.write('#Nodes={0}\n\n'.format(sum(level_count_list)))
+    total = sum(level_count_list)
+    monospecific_total = sum(stats_level_list[0])
+    monospecific_percent = monospecific_total * 100.0 / total
+    
+    if args.count_size:
+        args.output_file.write('# Total size = {0}\n'.format(total))
+    else:
+        args.output_file.write('# Nodes num = {0}\n'.format(total))
+    args.output_file.write('# {0:.2f}% in mono-specific nodes\n\n'.format(monospecific_percent))
     
     args.output_file.write('Level Stats on predicted LCA:\nLevel\tNumber\n')
     for i in xrange(7):
