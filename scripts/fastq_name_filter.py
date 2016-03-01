@@ -2,13 +2,12 @@
 # -*- coding: utf-8 -*-
 
 """
-FastaNameFilter
+FastqNameFilter
 
-Description: Filter a fasta file based on a string to find in the
-               sequences headers, or given a file with a list of id
+Description: Filter a fastq file based on a string to find in the
+               sequences headers
 
-  fastaNameFilter.py -i input.fa -o output.fa -s "stringtofind"
-  fastaNameFilter.py -i input.fa -o output.fa -f sequencesnames.ids
+  fastqNameFilter.py -i input.fq -o output.fq -s "stringtofind"
 
 -----------------------------------------------------------------------
 
@@ -41,51 +40,41 @@ import argparse
 import string
 import re
 
-def read_fasta_file_handle(fasta_file_handle):
+
+def read_fastq_file_handle(fastq_file_handle):
     """
-    Parse a fasta file and return a generator
+    Parse a fastq file and return a generator
     """
     # Variables initialization
+    count = 0
     header = ''
-    seqlines = list()
-    sequence_nb = 0
+    seq = ''
+    qual = ''
     # Reading input file
-    for line in fasta_file_handle:
-        if line[0] == '>':
-            # Yield the last read header and sequence
-            if sequence_nb:
-                yield (header, ''.join(seqlines))
-                del seqlines[:]
-            # Get header
-            header = line[1:].rstrip()
-            sequence_nb += 1
-        else:
-            # Concatenate sequence
-            seqlines.append(line.strip())
-    # Yield the input file last sequence
-    yield (header, ''.join(seqlines))
+    for line in (l.strip() for l in fastq_file_handle if l.strip()):
+        count += 1
+        if count % 4 == 1:
+            if header:
+                yield header, seq, qual
+            header = line[1:]
+        elif count % 4 == 2:
+            seq = line
+        elif count % 4 == 0:
+            qual = line
+    yield header, seq, qual
     # Close input file
-    fasta_file_handle.close()
-
-def format_seq(seq, linereturn=80):
-    """
-    Format an input sequence
-    """
-    buff = list()
-    for i in xrange(0, len(seq), linereturn):
-        buff.append("{0}\n".format(seq[i:(i + linereturn)]))
-    return ''.join(buff).rstrip()
+    fastq_file_handle.close()
 
 
 if __name__ == '__main__':
     
-    parser = argparse.ArgumentParser(description='Filter a fasta file based on sequence name.')
-    parser.add_argument('-i', '--input_fasta', metavar='input', 
+    parser = argparse.ArgumentParser(description='Filter a fastq file based on sequence name.')
+    parser.add_argument('-i', '--input_fastq', metavar='input', 
                         type=argparse.FileType('r', 0), default='-',
-                        help='input fasta file')
-    parser.add_argument('-o', '--output_fasta', metavar='output', 
+                        help='input fastq file')
+    parser.add_argument('-o', '--output_fastq', metavar='output', 
                         type=argparse.FileType('w', 0), default='-',
-                        help='ouput fasta file')
+                        help='ouput fastq file')
     parser.add_argument('-s', '--stringtofind', metavar='string',
                         type=str, help='String to filter on')
     parser.add_argument('-f', '--fileids', metavar='file',
@@ -99,19 +88,16 @@ if __name__ == '__main__':
     
     if args.fileids:
         ids_list = list()
-        # read ids and store them
         for line in args.fileids:
             ids_list.append(line.strip())
-        # convert the id list to a frozenset for fast search
         ids_set = frozenset(ids_list)
-        # filter the fasta file
-        for header, sequence in read_fasta_file_handle(args.input_fasta):
-            seq_id = header.split()[0]
-            if seq_id in ids_set:
-                args.output_fasta.write(">{0}\n{1}\n".format(header, format_seq(sequence)))
+        for header, seq, qual in read_fastq_file_handle(args.input_fastq):
+            read_id = header.split()[0]
+            if read_id in ids_set:
+                args.output_fastq.write('@{0}\n{1}\n+\n{2}\n'.format(header, seq, qual))
     else:
         tofind = re.compile(args.stringtofind, flags=re.IGNORECASE)
-        for header, sequence in read_fasta_file_handle(args.input_fasta):
+        for header, seq, qual in read_fastq_file_handle(args.input_fastq):
             if tofind.search(header):
-                args.output_fasta.write(">{0}\n{1}\n".format(header, format_seq(sequence)))
+                args.output_fastq.write('@{0}\n{1}\n+\n{2}\n'.format(header, seq, qual))
 
