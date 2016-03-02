@@ -12,9 +12,11 @@ matamog_dir = matamog_bin[:-19]
 sumaclust_bin = matamog_dir + '/bin/sumaclust'
 extract_taxo_bin = matamog_dir + '/bin/extract_taxo_from_fasta.py'
 clean_name_bin = matamog_dir + '/bin/fasta_clean_name.py'
-name_filter_bin = matamog_dir + '/bin/fasta_name_filter.py'
+fasta_name_filter_bin = matamog_dir + '/bin/fasta_name_filter.py'
+fastq_name_filter_bin = matamog_dir + '/bin/fastq_name_filter.py'
 indexdb_bin = matamog_dir + '/bin/indexdb_rna'
 sortmerna_bin = matamog_dir + '/bin/sortmerna'
+sga_bin = matamog_dir + '/bin/sga'
 filter_score_bin = matamog_dir + '/bin/filter_score_multialign.py'
 ovgraphbuild_bin = matamog_dir + '/bin/ovgraphbuild'
 contigsearch_jar = matamog_dir + '/bin/ContigSearch.jar'
@@ -34,7 +36,7 @@ def read_fasta_file_handle(fasta_file_handle):
     seqlines = list()
     sequence_nb = 0
     # Reading input file
-    for line in fasta_file_handle:
+    for line in (l.strip() for l in fasta_file_handle if l.strip()):
         if line[0] == '>':
             # Yield the last read header and sequence
             if sequence_nb:
@@ -50,6 +52,41 @@ def read_fasta_file_handle(fasta_file_handle):
     yield (header, ''.join(seqlines))
     # Close input file
     fasta_file_handle.close()
+
+
+def read_tab_file_handle_sorted(tab_file_handle, factor_index):
+    """
+    Parse a tab file (sorted by a column) and return a generator
+    """
+    previous_factor_id = ''
+    factor_tab_list = list()
+    # Reading tab file
+    for line in tab_file_handle:
+        l = line.strip()
+        if l:
+            tab = l.split()
+            current_factor = tab[factor_index]
+            # Yield the previous factor tab list
+            if current_factor != previous_factor_id:
+                if previous_factor_id:
+                    yield factor_tab_list
+                    factor_tab_list = list()
+            factor_tab_list.append(tab)
+            previous_factor_id = current_factor
+    # Yield the last tab list
+    yield factor_tab_list
+    # Close tab file
+    tab_file_handle.close()
+
+
+def format_seq(seq, linereturn=80):
+    """
+    Format an input sequence
+    """
+    buff = list()
+    for i in xrange(0, len(seq), linereturn):
+        buff.append("{0}\n".format(seq[i:(i + linereturn)]))
+    return ''.join(buff).rstrip()
 
 
 class DefaultHelpParser(argparse.ArgumentParser):
@@ -158,18 +195,23 @@ def parse_arguments():
     # check if steps are in proper range
     steps_set = set(args.steps)
     if len(steps_set - set(range(0, 8))) > 0:
+        parser.print_help()
         raise Exception("steps not in range [0,7]")
     
     if args.clustering_id_threshold < 0 or args.clustering_id_threshold > 1:
+        parser.print_help()
         raise Exception("clustering id threshold not in range [0,1]")
     
     if args.score_threshold < 0 or args.score_threshold > 1:
+        parser.print_help()
         raise Exception("score threshold not in range [0,1]")
     
     if args.min_identity < 0 or args.min_identity > 1:
+        parser.print_help()
         raise Exception("min identity not in range [0,1]")
     
     if args.quorum < 0 or args.quorum > 1:
+        parser.print_help()
         raise Exception("quorum not in range [0.51,1]")
     
     #
@@ -329,7 +371,7 @@ if __name__ == '__main__':
                 cleaned_ref_db_kingdom_basename = cleaned_ref_db_basename + '.' + kingdom
                 
                 # Extracting kingdoms fasta files
-                cmd_line = name_filter_bin + ' -i ' + cleaned_ref_db_filename
+                cmd_line = fasta_name_filter_bin + ' -i ' + cleaned_ref_db_filename
                 cmd_line += ' -s \' ' + kingdom + '\' > ' # !! need to be a space before the kingdom
                 cmd_line += cleaned_ref_db_kingdom_basename + '.fasta'
                 
@@ -350,7 +392,7 @@ if __name__ == '__main__':
                 subprocess.call(sumaclust_cmd_line, shell=True)
                 
                 ## Extracting centroids
-                filter_cmd_line = name_filter_bin + ' -s "cluster_center=True" -i '
+                filter_cmd_line = fasta_name_filter_bin + ' -s "cluster_center=True" -i '
                 filter_cmd_line += sumaclust_basename + '.fasta -o '
                 filter_cmd_line += sumaclust_basename + '.centroids.fasta'
                 
@@ -599,10 +641,70 @@ if __name__ == '__main__':
     
     ##########################
     # STEP 7: Contigs Assembly
+    if args.output_contigs == 'DEFAULTNAME':
+        args.output_contigs = contigsearch_basename + '.sga_by_contig.fasta'
     
     
     
-    
+    if 7 in steps_set:
+        sys.stdout.write('## Contigs Assembly (7):\n\n')
+        
+        #
+        contig_read_filename = contigsearch_basename + '.contig_read.tab'
+        
+        cmd_line = 'cat ' + contigsearch_basename + '.contigs.tab'
+        cmd_line += ' | join -12 -21 - ' + ovgraphbuild_basename + '.nodes.tab'
+        cmd_line += ' | awk \' {print $2"\\t"$4}\' | sort -k1,1 > ' 
+        cmd_line += contig_read_filename
+        
+        sys.stdout.write('CMD: {0}\n'.format(cmd_line))
+        subprocess.call(cmd_line, shell=True)
+        
+        contig_lca_filename = contigsearch_basename + '.contig_lca' + str(quorum_int) + 'pct.tab'
+        contig_lca_dict = dict()
+        
+        with open(contig_lca_filename, 'r') as contig_lca_fh:
+            contig_lca_dict = {int(t[0]): t[1] for t in (l.split() for l in contig_lca_fh)}
+        
+        if os.path.exists('sga.log'):
+            os.remove('sga.log')
+        
+        output_fh = open(args.output_contigs, 'w')
+        contig_count = 0
+        
+        with open(contig_read_filename, 'r') as contig_read_fh:
+            for contig_tab_list in read_tab_file_handle_sorted(contig_read_fh, 0):
+                contig_id = int(contig_tab_list[0][0])
+                contig_lca = contig_lca_dict[contig_id]
+                with open('reads_one_contig.ids', 'w') as wfh:
+                    for tab in contig_tab_list:
+                        read_id = tab[1]
+                        wfh.write('{0}\n'.format(read_id))
+                
+                # Get all reads in this contig
+                cmd_line = fastq_name_filter_bin + ' -f reads_one_contig.ids'
+                cmd_line += ' -i ' + args.input_fastx
+                cmd_line += ' -o reads_one_contig.fq'
+                
+                #~ sys.stdout.write('CMD: {0}\n'.format(cmd_line))
+                subprocess.call(cmd_line, shell=True)
+                
+                # Assemble those reads with SGA
+                cmd_line = 'echo "Contig #' + str(contig_id) + '" >> sga.log && '
+                cmd_line += sga_assemble_bin + ' -i reads_one_contig.fq'
+                cmd_line += ' -o contigs.fa --sga_bin ' + sga_bin
+                cmd_line += ' --cpu ' + str(args.cpu)
+                cmd_line += ' >> sga.log 2>&1'
+                
+                #~ sys.stdout.write('CMD: {0}\n'.format(cmd_line))
+                subprocess.call(cmd_line, shell=True)
+                
+                # Concatenate in 
+                with open('contigs.fa', 'r') as sga_contigs_fh:
+                    for header, seq in read_fasta_file_handle(sga_contigs_fh):
+                        if len(seq):
+                            contig_count += 1
+                            output_fh.write('>{0}\t{1}\n{2}\n'.format(contig_count, contig_lca, format_seq(seq)))
     
     
     exit(0)
