@@ -48,7 +48,7 @@ if __name__ == '__main__':
     error_corrected_output_basename = 'error_corrected'
     
     cmd_line = args.sga_bin + ' correct -k ' + str(kmer_cutoff)
-    cmd_line += ' --discard --learn -t ' + str(args.cpu)
+    cmd_line += ' --discard -x 2 -t ' + str(args.cpu)
     cmd_line += ' -o ' + error_corrected_output_basename + '.fq'
     cmd_line += ' ' + preprocess_output
     
@@ -65,11 +65,12 @@ if __name__ == '__main__':
     subprocess.call(cmd_line, shell=True)
     
     # Remove exact-match duplicates and reads with low-frequency k-mers
+    filtered_output = error_corrected_output_basename + '.filter.pass.fa'
     min_kmer_coverage = 2
     
     cmd_line = args.sga_bin + ' filter -x ' + str(min_kmer_coverage)
     cmd_line += ' -t ' + str(args.cpu) + ' --homopolymer-check '
-    cmd_line += '--low-complexity-check'
+    cmd_line += '--low-complexity-check -o ' + filtered_output
     cmd_line += ' ' + error_corrected_output_basename + '.fq'
     
     sys.stdout.write('CMD: {0}\n'.format(cmd_line))
@@ -77,7 +78,6 @@ if __name__ == '__main__':
     
     # Merge simple, unbranched chains of vertices
     fm_merge_overlap = 55
-    filtered_output = error_corrected_output_basename + '.filter.pass.fa'
     merged_output_basename = 'merged_output'
     
     cmd_line = args.sga_bin + ' fm-merge -m ' + str(fm_merge_overlap)
@@ -114,11 +114,11 @@ if __name__ == '__main__':
     subprocess.call(cmd_line, shell=True)
     
     # Perform the contig assembly without bubble popping
-    small_repeat_param = 10
     assembly_output_basename = 'assemble'
     
     cmd_line = args.sga_bin + ' assemble -m ' + str(min_overlap)
-    cmd_line += ' -g 0 -r ' + str(small_repeat_param)
+    cmd_line += ' -g 0 -d 0.03 -g 0.01 '
+    cmd_line += ' --max-edges 10000 -b 3 -x 10 -l 50 '
     cmd_line += ' -o ' + assembly_output_basename
     cmd_line += ' ' + merged_output_basename + '.rmdup.asqg.gz'
     
