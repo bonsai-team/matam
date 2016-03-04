@@ -644,8 +644,6 @@ if __name__ == '__main__':
     if args.output_contigs == 'DEFAULTNAME':
         args.output_contigs = contigsearch_basename + '.sga_by_contig.fasta'
     
-    
-    
     if 7 in steps_set:
         sys.stdout.write('## Contigs Assembly (7):\n\n')
         
@@ -664,18 +662,32 @@ if __name__ == '__main__':
         contig_lca_dict = dict()
         
         with open(contig_lca_filename, 'r') as contig_lca_fh:
-            contig_lca_dict = {int(t[0]): t[1] for t in (l.split() for l in contig_lca_fh)}
-        
-        if os.path.exists('sga.log'):
-            os.remove('sga.log')
+            contig_lca_dict = {int(t[0]): t[1] for t in (l.split() for l in contig_lca_fh) if len(t)==2}
         
         output_fh = open(args.output_contigs, 'w')
         contig_count = 0
         
         with open(contig_read_filename, 'r') as contig_read_fh:
+            sga_directory = contigsearch_basename + '.sga'
+            
+            try:
+                if not os.path.exists(sga_directory):
+                    os.makedirs(sga_directory)
+            except OSError:
+                sys.stderr.write("\nERROR: {0} cannot be created\n\n".format(sga_directory))
+                raise
+            
+            os.chdir(sga_directory)
+            
+            if os.path.exists('sga.log'):
+                os.remove('sga.log')
+            
             for contig_tab_list in read_tab_file_handle_sorted(contig_read_fh, 0):
                 contig_id = int(contig_tab_list[0][0])
-                contig_lca = contig_lca_dict[contig_id]
+                contig_lca = ''
+                if contig_id in contig_lca_dict:
+                    contig_lca = contig_lca_dict[contig_id]
+                
                 with open('reads_one_contig.ids', 'w') as wfh:
                     for tab in contig_tab_list:
                         read_id = tab[1]
@@ -683,7 +695,7 @@ if __name__ == '__main__':
                 
                 # Get all reads in this contig
                 cmd_line = fastq_name_filter_bin + ' -f reads_one_contig.ids'
-                cmd_line += ' -i ' + args.input_fastx
+                cmd_line += ' -i ../' + args.input_fastx
                 cmd_line += ' -o reads_one_contig.fq'
                 
                 #~ sys.stdout.write('CMD: {0}\n'.format(cmd_line))
@@ -699,13 +711,15 @@ if __name__ == '__main__':
                 #~ sys.stdout.write('CMD: {0}\n'.format(cmd_line))
                 subprocess.call(cmd_line, shell=True)
                 
-                # Concatenate in 
+                # Concatenate in output
                 with open('contigs.fa', 'r') as sga_contigs_fh:
                     for header, seq in read_fasta_file_handle(sga_contigs_fh):
                         if len(seq):
                             contig_count += 1
                             output_fh.write('>{0}\t{1}\n{2}\n'.format(contig_count, contig_lca, format_seq(seq)))
-    
+            
+            # Return to upper directory
+            os.chdir('..')
     
     exit(0)
 
