@@ -642,7 +642,9 @@ if __name__ == '__main__':
     ##########################
     # STEP 7: Contigs Assembly
     if args.output_contigs == 'DEFAULTNAME':
-        args.output_contigs = contigsearch_basename + '.sga_by_contig.fasta'
+        args.output_contigs = contigsearch_basename + '.sga_by_unitig.fasta'
+    
+    sga_log_filename = contigsearch_basename + '.sga_by_unitig.log'
     
     if 7 in steps_set:
         sys.stdout.write('## Contigs Assembly (7):\n\n')
@@ -655,8 +657,10 @@ if __name__ == '__main__':
         cmd_line += ' | awk \' {print $2"\\t"$4}\' | sort -k1,1 > ' 
         cmd_line += contig_read_filename
         
-        sys.stdout.write('CMD: {0}\n'.format(cmd_line))
+        sys.stdout.write('CMD: {0}\n\n'.format(cmd_line))
         subprocess.call(cmd_line, shell=True)
+        
+        sys.stdout.write('INFO: Reading Unitigs LCA assignment\n\n')
         
         contig_lca_filename = contigsearch_basename + '.contig_lca' + str(quorum_int) + 'pct.tab'
         contig_lca_dict = dict()
@@ -666,6 +670,7 @@ if __name__ == '__main__':
         
         output_fh = open(args.output_contigs, 'w')
         contig_count = 0
+        unitig_count = 0
         
         with open(contig_read_filename, 'r') as contig_read_fh:
             sga_directory = contigsearch_basename + '.sga'
@@ -683,10 +688,14 @@ if __name__ == '__main__':
                 os.remove('sga.log')
             
             for contig_tab_list in read_tab_file_handle_sorted(contig_read_fh, 0):
-                contig_id = int(contig_tab_list[0][0])
-                contig_lca = ''
-                if contig_id in contig_lca_dict:
-                    contig_lca = contig_lca_dict[contig_id]
+                unitig_count += 1
+                
+                sys.stdout.write('\rINFO: Assembling unitig #{0}'.format(unitig_count))
+                
+                unitig_id = int(contig_tab_list[0][0])
+                unitig_lca = ''
+                if unitig_id in contig_lca_dict:
+                    unitig_lca = contig_lca_dict[unitig_id]
                 
                 with open('reads_one_contig.ids', 'w') as wfh:
                     for tab in contig_tab_list:
@@ -702,11 +711,12 @@ if __name__ == '__main__':
                 subprocess.call(cmd_line, shell=True)
                 
                 # Assemble those reads with SGA
-                cmd_line = 'echo "Contig #' + str(contig_id) + '" >> sga.log && '
+                cmd_line = 'echo "Unitig #' + str(unitig_id) + '" >> ../' 
+                cmd_line += sga_log_filename + ' && '
                 cmd_line += sga_assemble_bin + ' -i reads_one_contig.fq'
                 cmd_line += ' -o contigs.fa --sga_bin ' + sga_bin
                 cmd_line += ' --cpu ' + str(args.cpu)
-                cmd_line += ' >> sga.log 2>&1'
+                cmd_line += ' >> ../' + sga_log_filename + ' 2>&1'
                 
                 #~ sys.stdout.write('CMD: {0}\n'.format(cmd_line))
                 subprocess.call(cmd_line, shell=True)
@@ -716,7 +726,9 @@ if __name__ == '__main__':
                     for header, seq in read_fasta_file_handle(sga_contigs_fh):
                         if len(seq):
                             contig_count += 1
-                            output_fh.write('>{0}\t{1}\n{2}\n'.format(contig_count, contig_lca, format_seq(seq)))
+                            output_fh.write('>{0}\t{1}\n{2}\n'.format(contig_count, unitig_lca, format_seq(seq)))
+            
+            sys.stdout.write('\n\nINFO: Assembly contigs in {0}\n\n'.format(args.output_contigs))
             
             # Return to upper directory
             os.chdir('..')
