@@ -359,6 +359,8 @@ void computeReadsPairCompatibility(TGraph &graph,
 
     // TO DO: Envisager de parcourir la double boucle en proposant les paires
     // d'alignements de bonne qualité en premier si possible
+    int32_t min_align_num = std::min(readBamRecordBufferI.size(), readBamRecordBufferJ.size());
+    
     for (auto const &bamRecordI : readBamRecordBufferI)
     {
         for (auto const &bamRecordJ : readBamRecordBufferJ)
