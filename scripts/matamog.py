@@ -188,6 +188,12 @@ def parse_arguments():
     #
     group_ass = parser.add_argument_group('Contig Assembly (Step 7)')
     #
+    group_debug = parser.add_argument_group('Debug')
+    group_debug.add_argument('--simulate_only', action='store_true',
+                             help='Only output pipeline commands without executing them')
+    group_debug.add_argument('--test_dataset', action='store_true',
+                             help='Compute additional stats when using a test dataset')
+    #
     args = parser.parse_args()
     
     # Arguments checking
@@ -330,7 +336,8 @@ if __name__ == '__main__':
         cmd_line += ref_db_taxo_filename
         
         sys.stdout.write('CMD: {0}\n'.format(cmd_line))
-        subprocess.call(cmd_line, shell=True)
+        if not args.simulate_only:
+            subprocess.call(cmd_line, shell=True)
         
         # Trim Ns from both sides
         # Filter out small sequences
@@ -345,7 +352,8 @@ if __name__ == '__main__':
         cmd_line += cleaned_ref_db_filename
         
         sys.stdout.write('CMD: {0}\n\n'.format(cmd_line))
-        subprocess.call(cmd_line, shell=True)
+        if not args.simulate_only:
+            subprocess.call(cmd_line, shell=True)
     
     ###########################
     # STEP 1: Ref DB clustering
@@ -376,7 +384,8 @@ if __name__ == '__main__':
                 cmd_line += cleaned_ref_db_kingdom_basename + '.fasta'
                 
                 sys.stdout.write('CMD: {0}\n'.format(cmd_line))
-                subprocess.call(cmd_line, shell=True)
+                if not args.simulate_only:
+                    subprocess.call(cmd_line, shell=True)
                 
                 # Clutering with sumaclust
                 sumaclust_basename = cleaned_ref_db_kingdom_basename + '.sumaclust_' 
@@ -389,7 +398,8 @@ if __name__ == '__main__':
                 sumaclust_cmd_line += ' > ' + sumaclust_basename + '.fasta'
                 
                 sys.stdout.write('CMD: {0}\n'.format(sumaclust_cmd_line))
-                subprocess.call(sumaclust_cmd_line, shell=True)
+                if not args.simulate_only:
+                    subprocess.call(sumaclust_cmd_line, shell=True)
                 
                 ## Extracting centroids
                 filter_cmd_line = fasta_name_filter_bin + ' -s "cluster_center=True" -i '
@@ -397,21 +407,24 @@ if __name__ == '__main__':
                 filter_cmd_line += sumaclust_basename + '.centroids.fasta'
                 
                 sys.stdout.write('CMD: {0}\n'.format(filter_cmd_line))
-                subprocess.call(filter_cmd_line, shell=True)
+                if not args.simulate_only:
+                    subprocess.call(filter_cmd_line, shell=True)
                 
                 ## Concatenate kingdom centroids
                 cmd_line = 'cat ' + sumaclust_basename + '.centroids.fasta >> '
                 cmd_line += sumaclust_kingdom_filename
                 
                 sys.stdout.write('CMD: {0}\n\n'.format(cmd_line))
-                subprocess.call(cmd_line, shell=True)
+                if not args.simulate_only:
+                    subprocess.call(cmd_line, shell=True)
                 
             # Clean fasta headers
             clean_name_cmd_line = clean_name_bin + ' -i ' + sumaclust_kingdom_filename
             clean_name_cmd_line += ' -o ' + clustered_ref_db_basename + '.fasta'
             
             sys.stdout.write('CMD: {0}\n\n'.format(clean_name_cmd_line))
-            subprocess.call(clean_name_cmd_line, shell=True)
+            if not args.simulate_only:
+                subprocess.call(clean_name_cmd_line, shell=True)
         
         # SortMeRNA Ref DB indexing
         try:
@@ -425,7 +438,8 @@ if __name__ == '__main__':
         indexdb_cmd_line += '.fasta,' + sortmerna_index_basename
         
         sys.stdout.write('CMD: {0}\n\n'.format(indexdb_cmd_line))
-        subprocess.call(indexdb_cmd_line, shell=True)
+        if not args.simulate_only:
+            subprocess.call(indexdb_cmd_line, shell=True)
         sys.stdout.write('\n')
         
     ######################################
@@ -447,7 +461,8 @@ if __name__ == '__main__':
         
         # Run SortMeRNA
         sys.stdout.write('CMD: {0}\n\n'.format(sortmerna_cmd_line))
-        subprocess.call(sortmerna_cmd_line, shell=True)
+        if not args.simulate_only:
+            subprocess.call(sortmerna_cmd_line, shell=True)
         sys.stdout.write('\n')
     
     #############################
@@ -472,9 +487,9 @@ if __name__ == '__main__':
             filter_score_cmd_line += ' --geometric'
         filter_score_cmd_line += ' > ' + sam_filt_basename + '.sam'
         
-        # Run scores filtering
         sys.stdout.write('CMD: {0}\n'.format(filter_score_cmd_line))
-        subprocess.call(filter_score_cmd_line, shell=True)
+        if not args.simulate_only:
+            subprocess.call(filter_score_cmd_line, shell=True)
         
         # Generate read ref taxo file
         read_taxo_cmd_line = 'cat ' + sam_filt_basename + '.sam | cut -f1,3 | sort -k2,2'
@@ -483,7 +498,8 @@ if __name__ == '__main__':
         read_taxo_cmd_line += read_ref_taxo_basename + '.tab'
         
         sys.stdout.write('CMD: {0}\n\n'.format(read_taxo_cmd_line))
-        subprocess.call(read_taxo_cmd_line, shell=True)
+        if not args.simulate_only:
+            subprocess.call(read_taxo_cmd_line, shell=True)
     
     ################################
     # STEP 4: Overlap Graph Building
@@ -511,7 +527,8 @@ if __name__ == '__main__':
         
         # Run ovgraphbuild
         sys.stdout.write('CMD: {0}\n\n'.format(ovgraphbuild_cmd_line))
-        subprocess.call(ovgraphbuild_cmd_line, shell=True)
+        if not args.simulate_only:
+            subprocess.call(ovgraphbuild_cmd_line, shell=True)
         sys.stdout.write('\n')
     
     ##################################################
@@ -534,7 +551,8 @@ if __name__ == '__main__':
         
         # Run ContigSearch
         sys.stdout.write('CMD: {0}\n\n'.format(contigsearch_cmd_line))
-        subprocess.call(contigsearch_cmd_line, shell=True)
+        if not args.simulate_only:
+            subprocess.call(contigsearch_cmd_line, shell=True)
         sys.stdout.write('\n')
     
     #######################
@@ -552,7 +570,8 @@ if __name__ == '__main__':
         cmd_line += contigsearch_basename + '.contigs.tab'
         
         sys.stdout.write('CMD: {0}\n'.format(cmd_line))
-        subprocess.call(cmd_line, shell=True)
+        if not args.simulate_only:
+            subprocess.call(cmd_line, shell=True)
         
         #
         cmd_line = 'tail -n +2 ' + ovgraphbuild_basename + '.nodes.csv'
@@ -560,7 +579,8 @@ if __name__ == '__main__':
         cmd_line += ovgraphbuild_basename + '.nodes.tab'
         
         sys.stdout.write('CMD: {0}\n'.format(cmd_line))
-        subprocess.call(cmd_line, shell=True)
+        if not args.simulate_only:
+            subprocess.call(cmd_line, shell=True)
         
         #
         complete_taxo_filename = contigsearch_basename + '.read_id_metanode_contig_ref_taxo.tab'
@@ -572,7 +592,8 @@ if __name__ == '__main__':
         cmd_line += complete_taxo_filename
         
         sys.stdout.write('CMD: {0}\n'.format(cmd_line))
-        subprocess.call(cmd_line, shell=True)
+        if not args.simulate_only:
+            subprocess.call(cmd_line, shell=True)
         
         #
         cmd_line = 'cat ' + complete_taxo_filename + ' | sort -k3,3 | '
@@ -580,7 +601,8 @@ if __name__ == '__main__':
         cmd_line += contigsearch_basename + '.metanode_lca' + str(quorum_int) + 'pct.tab'
         
         sys.stdout.write('CMD: {0}\n'.format(cmd_line))
-        subprocess.call(cmd_line, shell=True)
+        if not args.simulate_only:
+            subprocess.call(cmd_line, shell=True)
         
         #
         cmd_line = 'cat ' + complete_taxo_filename + ' | sort -k4,4 | '
@@ -588,7 +610,8 @@ if __name__ == '__main__':
         cmd_line += contigsearch_basename + '.contig_lca' + str(quorum_int) + 'pct.tab'
         
         sys.stdout.write('CMD: {0}\n\n'.format(cmd_line))
-        subprocess.call(cmd_line, shell=True)
+        if not args.simulate_only:
+            subprocess.call(cmd_line, shell=True)
         
         #
         cmd_line = 'cat ' + contigsearch_basename + '.nodes_contracted.csv'
@@ -603,40 +626,47 @@ if __name__ == '__main__':
         cmd_line += labelled_nodes_basename + '.csv'
         
         sys.stdout.write('CMD: {0}\n'.format(cmd_line))
-        subprocess.call(cmd_line, shell=True)
+        if not args.simulate_only:
+            subprocess.call(cmd_line, shell=True)
         
         # LCA Stats (only with a known test dataset)
         stats_filename = labelled_nodes_basename + '.stats'
         
         cmd_line = 'echo "## STATS LCA (NODE LEVEL):\n" > ' + stats_filename
-        subprocess.call(cmd_line, shell=True)
+        if not args.simulate_only:
+            subprocess.call(cmd_line, shell=True)
         
         cmd_line = compute_stats_lca_bin + ' --header -l 6 -t 5 -s 2 -i '
         cmd_line += labelled_nodes_basename + '.csv >> '
         cmd_line += stats_filename
         
         sys.stdout.write('CMD: {0}\n'.format(cmd_line))
-        subprocess.call(cmd_line, shell=True)
+        if not args.simulate_only:
+            subprocess.call(cmd_line, shell=True)
         
         cmd_line = 'echo "\n## STATS LCA (CONTIG LEVEL):\n" >> ' + stats_filename
-        subprocess.call(cmd_line, shell=True)
+        if not args.simulate_only:
+            subprocess.call(cmd_line, shell=True)
         
         cmd_line = compute_stats_lca_bin + ' --header -l 7 -t 5 -s 2 -i '
         cmd_line += labelled_nodes_basename + '.csv >> '
         cmd_line += stats_filename
         
         sys.stdout.write('CMD: {0}\n'.format(cmd_line))
-        subprocess.call(cmd_line, shell=True)
+        if not args.simulate_only:
+            subprocess.call(cmd_line, shell=True)
         
         cmd_line = 'echo "\n## STATS LCA (CONTIG LEVEL, BY SIZE):\n" >> ' + stats_filename
-        subprocess.call(cmd_line, shell=True)
+        if not args.simulate_only:
+            subprocess.call(cmd_line, shell=True)
         
         cmd_line = compute_stats_lca_bin + ' --header --count_size -l 7 -t 5 -s 2 -i '
         cmd_line += labelled_nodes_basename + '.csv >> '
         cmd_line += stats_filename
         
         sys.stdout.write('CMD: {0}\n\n'.format(cmd_line))
-        subprocess.call(cmd_line, shell=True)
+        if not args.simulate_only:
+            subprocess.call(cmd_line, shell=True)
         sys.stdout.write('\n')
     
     ##########################
@@ -658,7 +688,8 @@ if __name__ == '__main__':
         cmd_line += contig_read_filename
         
         sys.stdout.write('CMD: {0}\n\n'.format(cmd_line))
-        subprocess.call(cmd_line, shell=True)
+        if not args.simulate_only:
+            subprocess.call(cmd_line, shell=True)
         
         sys.stdout.write('INFO: Reading Unitigs LCA assignment\n\n')
         
@@ -697,10 +728,11 @@ if __name__ == '__main__':
                 if unitig_id in contig_lca_dict:
                     unitig_lca = contig_lca_dict[unitig_id]
                 
-                with open('reads_one_contig.ids', 'w') as wfh:
-                    for tab in contig_tab_list:
-                        read_id = tab[1]
-                        wfh.write('{0}\n'.format(read_id))
+                if not args.simulate_only:
+                    with open('reads_one_contig.ids', 'w') as wfh:
+                        for tab in contig_tab_list:
+                            read_id = tab[1]
+                            wfh.write('{0}\n'.format(read_id))
                 
                 # Get all reads in this contig
                 cmd_line = fastq_name_filter_bin + ' -f reads_one_contig.ids'
@@ -708,7 +740,8 @@ if __name__ == '__main__':
                 cmd_line += ' -o reads_one_contig.fq'
                 
                 #~ sys.stdout.write('CMD: {0}\n'.format(cmd_line))
-                subprocess.call(cmd_line, shell=True)
+                if not args.simulate_only:
+                    subprocess.call(cmd_line, shell=True)
                 
                 # Assemble those reads with SGA
                 cmd_line = 'echo "Unitig #' + str(unitig_id) + '" >> ../' 
@@ -719,14 +752,16 @@ if __name__ == '__main__':
                 cmd_line += ' >> ../' + sga_log_filename + ' 2>&1'
                 
                 #~ sys.stdout.write('CMD: {0}\n'.format(cmd_line))
-                subprocess.call(cmd_line, shell=True)
+                if not args.simulate_only:
+                    subprocess.call(cmd_line, shell=True)
                 
                 # Concatenate in output
-                with open('contigs.fa', 'r') as sga_contigs_fh:
-                    for header, seq in read_fasta_file_handle(sga_contigs_fh):
-                        if len(seq):
-                            contig_count += 1
-                            output_fh.write('>{0}\t{1}\n{2}\n'.format(contig_count, unitig_lca, format_seq(seq)))
+                if not args.simulate_only:
+                    with open('contigs.fa', 'r') as sga_contigs_fh:
+                        for header, seq in read_fasta_file_handle(sga_contigs_fh):
+                            if len(seq):
+                                contig_count += 1
+                                output_fh.write('>{0}\t{1}\n{2}\n'.format(contig_count, unitig_lca, format_seq(seq)))
             
             sys.stdout.write('\n\nINFO: Assembly contigs in {0}\n\n'.format(args.output_contigs))
             
