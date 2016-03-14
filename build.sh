@@ -33,6 +33,7 @@ make
 mkdir $MATAMOG_DIR/bin
 cd $MATAMOG_DIR/bin
 
+ln -sf $MATAMOG_DIR/contigsearch/ContigSearch.jar $MATAMOG_DIR/bin/.
 ln -sf $MATAMOG_DIR/scripts/* $MATAMOG_DIR/bin/.
 ln -sf $MATAMOG_DIR/sumaclust/sumaclust $MATAMOG_DIR/bin/.
 ln -sf $MATAMOG_DIR/ovgraphbuild/bin/ovgraphbuild $MATAMOG_DIR/bin/.
