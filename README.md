@@ -14,6 +14,7 @@
 
 ### SGA
 
+* automake
 * google sparse hash library
 * Bamtools library (http://github.com/pezmaster31/bamtools, provided as a submodule of matamog)
 * zlib
