@@ -143,6 +143,7 @@ if __name__ == '__main__':
     # to get indices from column numbers
     args.taxo -= 1
     args.factor -= 1
+    args.group_by -= 1
     
     # Deals with headers
     if args.header:
