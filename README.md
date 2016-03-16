@@ -14,7 +14,12 @@
 
 ### SGA
 
-* google sparse hash library
+* automake
+* google sparse hash library (sparsehash paquet on debian)
 * Bamtools library (http://github.com/pezmaster31/bamtools, provided as a submodule of matamog)
 * zlib
 * (optional but suggested) the jemalloc memory allocator
+
+### bamtools
+
+* zlib
