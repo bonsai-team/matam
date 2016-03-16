@@ -22,6 +22,7 @@ ovgraphbuild_bin = matamog_dir + '/bin/ovgraphbuild'
 contigsearch_jar = matamog_dir + '/bin/ContigSearch.jar'
 compute_lca_bin = matamog_dir + '/bin/compute_lca_from_tab.py'
 compute_stats_lca_bin = matamog_dir + '/bin/compute_stats_from_lca.py'
+compute_compressed_graph_stats_bin = matamog_dir + '/bin/compute_compressed_graph_stats.py'
 replace_Ns_bin = matamog_dir + '/bin/replace_Ns_by_rand_nu.py'
 sort_fasta_bin = matamog_dir + '/bin/sort_fasta_by_length.py'
 sga_assemble_bin = matamog_dir + '/bin/sga_assemble.py'
@@ -474,7 +475,7 @@ if __name__ == '__main__':
     else:
         sam_filt_basename += 'geo_'
     sam_filt_basename += str(score_threshold_int) + 'pct'
-    read_ref_taxo_basename = sam_filt_basename + '.read_ref_taxo'
+    read_taxo_basename = sam_filt_basename + '.read_taxo'
     
     if 3 in steps_set:
         sys.stdout.write('## Alignment filtering step (3):\n\n')
@@ -494,8 +495,8 @@ if __name__ == '__main__':
         # Generate read ref taxo file
         read_taxo_cmd_line = 'cat ' + sam_filt_basename + '.sam | cut -f1,3 | sort -k2,2'
         read_taxo_cmd_line += ' | join -12 -21 - ' + ref_db_basename + '.taxo.tab'
-        read_taxo_cmd_line += ' | sort -k2,2 | awk "{print \$2,\$1,\$3}" | sed "s/ /\\t/g" > '
-        read_taxo_cmd_line += read_ref_taxo_basename + '.tab'
+        read_taxo_cmd_line += ' | sort -k2,2 | awk "{print \$2,\$3}" | sed "s/ /\\t/g" > '
+        read_taxo_cmd_line += read_taxo_basename + '.tab'
         
         sys.stdout.write('CMD: {0}\n\n'.format(read_taxo_cmd_line))
         if not args.simulate_only:
@@ -559,7 +560,7 @@ if __name__ == '__main__':
     # STEP 6: LCA Labelling
     quorum_int = int(args.quorum * 100)
     labelled_nodes_basename = contigsearch_basename + '.nodes_contracted'
-    labelled_nodes_basename += '.metanode_contig_lca' + str(quorum_int) + 'pct'
+    labelled_nodes_basename += '.unitig_lca' + str(quorum_int) + 'pct'
     
     if 6 in steps_set:
         sys.stdout.write('## LCA Labelling (6):\n\n')
@@ -583,12 +584,22 @@ if __name__ == '__main__':
             subprocess.call(cmd_line, shell=True)
         
         #
-        complete_taxo_filename = contigsearch_basename + '.read_id_metanode_contig_ref_taxo.tab'
+        read_id_metanode_unitig_filename = contigsearch_basename + '.read_id_metanode_unitig.tab'
+        complete_taxo_filename = contigsearch_basename + '.read_metanode_unitig_taxo.tab'
         
-        cmd_line = 'join -11 -22 ' + ovgraphbuild_basename + '.nodes.tab '
+        cmd_line = 'join -a1 -e"NULL" -o "1.2,0,2.3,2.1" -11 -22 ' 
+        cmd_line += ovgraphbuild_basename + '.nodes.tab '
         cmd_line += contigsearch_basename + '.contigs.tab '
-        cmd_line += '| sort -k2,2 | awk \'{print $1"\\t"$2"\\t"$5"\\t"$4}\' | join -12 -21 - '
-        cmd_line += read_ref_taxo_basename + '.tab | sed "s/ /\\t/g" > '
+        cmd_line += '| sed "s/ /\\t/g" | sort -k1,1  > '
+        cmd_line += read_id_metanode_unitig_filename
+        
+        sys.stdout.write('CMD: {0}\n'.format(cmd_line))
+        if not args.simulate_only:
+            subprocess.call(cmd_line, shell=True)
+        
+        #
+        cmd_line = 'join -11 -21 ' + read_id_metanode_unitig_filename
+        cmd_line += ' ' + read_taxo_basename + '.tab | sed "s/ /\\t/g" | cut -f2-5 > '
         cmd_line += complete_taxo_filename
         
         sys.stdout.write('CMD: {0}\n'.format(cmd_line))
@@ -596,78 +607,39 @@ if __name__ == '__main__':
             subprocess.call(cmd_line, shell=True)
         
         #
-        cmd_line = 'cat ' + complete_taxo_filename + ' | sort -k3,3 | '
-        cmd_line += compute_lca_bin + ' -t 6 -f 3 -g 1 -m ' + str(args.quorum) + ' > '
-        cmd_line += contigsearch_basename + '.metanode_lca' + str(quorum_int) + 'pct.tab'
-        
-        sys.stdout.write('CMD: {0}\n'.format(cmd_line))
-        if not args.simulate_only:
-            subprocess.call(cmd_line, shell=True)
+        #~ cmd_line = 'cat ' + complete_taxo_filename + ' | sort -k2,2 | '
+        #~ cmd_line += compute_lca_bin + ' -t 4 -f 2 -g 1 -m ' + str(args.quorum) + ' > '
+        #~ cmd_line += contigsearch_basename + '.metanode_lca' + str(quorum_int) + 'pct.tab'
+        #~ 
+        #~ sys.stdout.write('CMD: {0}\n'.format(cmd_line))
+        #~ if not args.simulate_only:
+            #~ subprocess.call(cmd_line, shell=True)
         
         #
-        cmd_line = 'cat ' + complete_taxo_filename + ' | sort -k4,4 | '
-        cmd_line += compute_lca_bin + ' -t 6 -f 4 -g 1 -m ' + str(args.quorum) + ' > '
-        cmd_line += contigsearch_basename + '.contig_lca' + str(quorum_int) + 'pct.tab'
+        cmd_line = 'cat ' + complete_taxo_filename + ' | sort -k3,3 | '
+        cmd_line += compute_lca_bin + ' -t 4 -f 3 -g 1 -m ' + str(args.quorum) + ' > '
+        cmd_line += contigsearch_basename + '.unitig_lca' + str(quorum_int) + 'pct.tab'
         
         sys.stdout.write('CMD: {0}\n\n'.format(cmd_line))
         if not args.simulate_only:
             subprocess.call(cmd_line, shell=True)
         
-        #
-        cmd_line = 'cat ' + contigsearch_basename + '.nodes_contracted.csv'
-        cmd_line += ' | tail -n +2 | sed "s/;/\\t/g" | sort -k1,1 | join -11 -21 - '
-        cmd_line += contigsearch_basename + '.metanode_lca' + str(quorum_int) + 'pct.tab'
-        cmd_line += ' | sort -k4,4 | join -14 -21 - '
-        cmd_line += contigsearch_basename + '.contig_lca' + str(quorum_int) + 'pct.tab'
-        cmd_line += ' | sort -k4,4 | join -a1 -e"NULL" -o "1.2,1.3,0,1.1,2.2,1.5,1.6" -14 -21 - '
-        cmd_line += '16sp.taxo.tab' + ' | sort -k3,3 | ' ## Filename in hard !!!!!!!
-        cmd_line += 'awk \'BEGIN{print "Id Size Specie ContigId TrueTaxo NodeLCA ContigLCA"}{print $0}\''
-        cmd_line += ' | sed "s/;/,/g" | sed "s/ /;/g" > '
-        cmd_line += labelled_nodes_basename + '.csv'
-        
-        sys.stdout.write('CMD: {0}\n'.format(cmd_line))
-        if not args.simulate_only:
-            subprocess.call(cmd_line, shell=True)
-        
-        # LCA Stats (only with a known test dataset)
+        # Compressed graph Stats
         stats_filename = labelled_nodes_basename + '.stats'
         
-        cmd_line = 'echo "## STATS LCA (NODE LEVEL):\n" > ' + stats_filename
-        if not args.simulate_only:
-            subprocess.call(cmd_line, shell=True)
-        
-        cmd_line = compute_stats_lca_bin + ' --header -l 6 -t 5 -s 2 -i '
-        cmd_line += labelled_nodes_basename + '.csv >> '
-        cmd_line += stats_filename
-        
-        sys.stdout.write('CMD: {0}\n'.format(cmd_line))
-        if not args.simulate_only:
-            subprocess.call(cmd_line, shell=True)
-        
-        cmd_line = 'echo "\n## STATS LCA (CONTIG LEVEL):\n" >> ' + stats_filename
-        if not args.simulate_only:
-            subprocess.call(cmd_line, shell=True)
-        
-        cmd_line = compute_stats_lca_bin + ' --header -l 7 -t 5 -s 2 -i '
-        cmd_line += labelled_nodes_basename + '.csv >> '
-        cmd_line += stats_filename
+        cmd_line = compute_compressed_graph_stats_bin + ' --nodes_contracted '
+        cmd_line += contigsearch_basename + '.nodes_contracted.csv --edges_contracted '
+        cmd_line += contigsearch_basename + '.edges_contracted.csv --unitigs_lca '
+        cmd_line += contigsearch_basename + '.unitig_lca' + str(quorum_int) + 'pct.tab '
+        if args.test_dataset:
+            cmd_line += '--test_dataset '
+            cmd_line += '--species_taxo 16sp.taxo.tab '
+            cmd_line += '--read_node_unitig ' + read_id_metanode_unitig_filename
+        cmd_line += ' > ' + stats_filename 
         
         sys.stdout.write('CMD: {0}\n'.format(cmd_line))
         if not args.simulate_only:
             subprocess.call(cmd_line, shell=True)
-        
-        cmd_line = 'echo "\n## STATS LCA (CONTIG LEVEL, BY SIZE):\n" >> ' + stats_filename
-        if not args.simulate_only:
-            subprocess.call(cmd_line, shell=True)
-        
-        cmd_line = compute_stats_lca_bin + ' --header --count_size -l 7 -t 5 -s 2 -i '
-        cmd_line += labelled_nodes_basename + '.csv >> '
-        cmd_line += stats_filename
-        
-        sys.stdout.write('CMD: {0}\n\n'.format(cmd_line))
-        if not args.simulate_only:
-            subprocess.call(cmd_line, shell=True)
-        sys.stdout.write('\n')
     
     ##########################
     # STEP 7: Contigs Assembly
