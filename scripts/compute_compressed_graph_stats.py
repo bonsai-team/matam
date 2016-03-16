@@ -19,7 +19,7 @@ def load_nodes_arity (edges_contracted_fh):
         nodes_arity_dict[edge_t[0]] += 1 # Source
         nodes_arity_dict[edge_t[1]] += 1 # Target
     # Close contracted edges file
-    args.edges_contracted.close()
+    edges_contracted_fh.close()
     # Debug
     #~ print sorted(nodes_arity_dict.items(), key=lambda x: x[1], reverse=True)
     #~ print
@@ -31,19 +31,50 @@ def load_unitigs_lca (unitigs_lca_fh):
     # Init unitigs lca dict
     unitigs_lca_dict = dict()
     # Load unitigs LCA
-    lca_tabs = (l.split() for l in args.unitigs_lca if l.strip())
+    lca_tabs = (l.split() for l in unitigs_lca_fh if l.strip())
     for lca_t in lca_tabs:
-        unitig_id = int(lca_t[0])
+        unitig_id = lca_t[0]
         lca = lca_t[1]
         unitigs_lca_dict[unitig_id] = lca
     # Close unitigs lca file
-    args.unitigs_lca.close()
+    unitigs_lca_fh.close()
     # Debug
     #~ print sorted(unitigs_lca_dict.items(), key=lambda x: x[0])
     #~ print
     #
     return unitigs_lca_dict
 
+
+def load_species_taxo (species_taxo_fh):
+    # Init species taxo dict
+    species_taxo_dict = dict()
+    # Load species taxo
+    species_taxo_tabs = (l.split() for l in species_taxo_fh if l.strip())
+    for specie_taxo_tab in species_taxo_tabs:
+        specie_id = specie_taxo_tab[0]
+        specie_taxo = specie_taxo_tab[1]
+        species_taxo_dict[specie_id] = specie_taxo
+    # Close species taxo file
+    species_taxo_fh.close()
+    # Debug
+    #~ print sorted(species_taxo_dict.items(), key=lambda x: x[0])
+    #~ print
+    #
+    return species_taxo_dict
+
+
+def get_node_category (node_id, nodes_arity_dict):
+    #
+    category = 2
+    #
+    node_arity = int(nodes_arity_dict[node_id])
+    #
+    if node_arity < 1:
+        category = 0
+    elif node_arity >= 3:
+        category = 1
+    #
+    return category
 
 
 if __name__ == '__main__':
@@ -62,15 +93,12 @@ if __name__ == '__main__':
     parser.add_argument('--unitigs_lca', metavar='IN_FILE',
                         type=argparse.FileType('r'), required=True,
                         help='Unitigs LCA file')
-    #~ parser.add_argument('-l', '--predicted_lca', metavar='INT',
-                        #~ type=int, required=True,
-                        #~ help='Predicted LCA column number')
-    #~ parser.add_argument('-t', '--true_taxo', metavar='INT', 
-                        #~ type=int, required=True,
-                        #~ help='True taxonomy column number')
-    #~ parser.add_argument('-s', '--size', metavar='INT', 
-                        #~ type=int, required=True,
-                        #~ help='Node size column number')
+    parser.add_argument('--species_taxo', metavar='IN_FILE',
+                        type=argparse.FileType('r'),
+                        help='Test species taxonomies')
+    parser.add_argument('--read_node_unitig', metavar='IN_FILE',
+                        type=argparse.FileType('r'),
+                        help='')
     #~ parser.add_argument('--count_size', action='store_true', 
                         #~ help='Compute stats based on the node size rather than the node count')
     #~ parser.add_argument('--header', action='store_true', 
@@ -78,11 +106,17 @@ if __name__ == '__main__':
     #~ parser.add_argument('--separator', metavar='CHAR',
                         #~ type=str, default=';',
                         #~ help='Input file separator character (";" by default for csv)')
+    parser.add_argument('--test_dataset', action='store_true',
+                        help='Ouput additional stats when using a test dataset')
     parser.add_argument('-o', '--output_file', metavar='OUT', 
                         type=argparse.FileType('w'), default='-',
                         help='ouput file')
     args = parser.parse_args()
     
+    if args.test_dataset:
+        if args.species_taxo == None:
+            sys.stderr.write('Test species taxonomies file needed when using a test dataset\n')
+            exit(1)
     
     # Load nodes arity dict
     nodes_arity_dict = load_nodes_arity(args.edges_contracted)
@@ -90,7 +124,6 @@ if __name__ == '__main__':
     # Load unitigs LCA
     unitigs_lca_dict = load_unitigs_lca(args.unitigs_lca)
     unitigs_num = len(unitigs_lca_dict)
-    
     
     # Init stats metrics
     reads_num = 0
@@ -100,7 +133,7 @@ if __name__ == '__main__':
     node_strings_num = 0
     lca_level_count_list = [0 for i in xrange(7)]
     lca_level_count_by_category_list = [[0 for j in xrange(7)] for i in xrange(3)]
-        
+    
     # Remove header
     args.nodes_contracted.readline()
     # Scan contracted nodes
@@ -108,7 +141,7 @@ if __name__ == '__main__':
     for node_t in nodes_tabs:
         node_id = node_t[0]
         node_size = int(node_t[1])
-        unitig_id = int(node_t[3])
+        unitig_id = node_t[3]
         # Get LCA
         predicted_lca_tab = unitigs_lca_dict[unitig_id].split(';')
         lca_level_count_list[len(predicted_lca_tab)-1] += node_size
@@ -116,23 +149,17 @@ if __name__ == '__main__':
         reads_num += node_size
         nodes_num += 1
         # Categorize
-        node_arity = int(nodes_arity_dict[node_id])
-        category = 2
-        if node_arity < 1:
+        node_category = get_node_category(node_id, nodes_arity_dict)
+        if node_category == 0:
             singleton_nodes_num += 1
-            category = 0
-        elif node_arity >= 3:
+        elif node_category == 1:
             hubs_num += 1
-            category = 1
-        lca_level_count_by_category_list[category][len(predicted_lca_tab)-1] += node_size
-    
-    node_strings_num = unitigs_num - singleton_nodes_num - hubs_num
-    
+        lca_level_count_by_category_list[node_category][len(predicted_lca_tab)-1] += node_size
     
     # Compute final stats
+    node_strings_num = unitigs_num - singleton_nodes_num - hubs_num
     nodes_average_size = float(reads_num) / float(nodes_num)
     unitigs_average_size = float(reads_num) / float(unitigs_num)
-    
     
     # Start outputing infos 
     args.output_file.write('Graph: {0}\n\n'.format(args.edges_contracted.name))
@@ -150,93 +177,95 @@ if __name__ == '__main__':
     
     # Print taxonomical assignment statistics
     args.output_file.write('\nTaxo assignment Stats\n\n')
-    #~ args.output_file.write('Unitigs LCA level distribution:\n')
-    #~ args.output_file.write('Level\t#Reads\n')
-    #~ for i in xrange(7):
-        #~ args.output_file.write('{0}\t{1}\n'.format(i+1, lca_level_count_list[i]))
-    #~ args.output_file.write('\n')
+    args.output_file.write('Global unitigs LCA level distribution:\n')
+    args.output_file.write('Level\t#Reads\n')
+    for i in xrange(7):
+        args.output_file.write('{0}\t{1}\n'.format(i+1, lca_level_count_list[i]))
+    args.output_file.write('\n')
     
     # And now by categories
-    for j in xrange(3):
-        if j == 0:
+    for category in xrange(3):
+        if category == 0:
             args.output_file.write('Singletons ')
-        elif j == 1:
+        elif category == 1:
             args.output_file.write('Hubs ')
         else:
             args.output_file.write('Node strings ')
         args.output_file.write('LCA level distribution:\n')
         args.output_file.write('Level\t#Reads\n')
         for i in xrange(7):
-            args.output_file.write('{0}\t{1}\n'.format(i+1, lca_level_count_by_category_list[j][i]))
+            args.output_file.write('{0}\t{1}\n'.format(i+1, lca_level_count_by_category_list[category][i]))
         args.output_file.write('\n')
-
     
-    #~ # to get indices from column numbers
-    #~ args.predicted_lca -= 1
-    #~ args.true_taxo -= 1
-    #~ args.size -= 1
-    #~ 
-    #~ # Deals with headers
-    #~ if args.header:
-        #~ args.input_file.readline()
-    #~ 
-    #~ level_count_list = [0 for i in xrange(7)]
-    #~ stats_level_list = [[0,0] for i in xrange(7)] # [PredictedLCA==TrueTaxo, PredictedLCA!=TrueTaxo]
-    #~ 
-    #~ # Count 
-    #~ for line in args.input_file:
-        #~ tab = line.strip().split(args.separator)
-        #~ predicted_lca = tab[args.predicted_lca].split(',')
-        #~ true_taxo = tab[args.true_taxo].split(',')
-        #~ size = int(tab[args.size])
-        #~ 
-        #~ # Predicted LCA level count
-        #~ if args.count_size:
-            #~ level_count_list[len(predicted_lca)-1] += size
-        #~ else:
-            #~ level_count_list[len(predicted_lca)-1] += 1
-        #~ 
-        #~ # Is LCA prediction compatible with true taxonomy 
-        #~ if true_taxo[0] != 'NULL':
-            #~ is_same = True
-            #~ for i in xrange(len(predicted_lca)):
-                #~ if is_same:
-                    #~ is_same = (predicted_lca[i]==true_taxo[i])
-                #~ 
-                #~ if is_same:
-                    #~ column = 0
-                #~ else:
-                    #~ column = 1
-                #~ 
-                #~ if args.count_size:
-                    #~ stats_level_list[i][column] += size
-                #~ else:
-                    #~ stats_level_list[i][column] += 1
-    #~ 
-    #~ # Output stats
-    #~ total = sum(level_count_list)
-    #~ monospecific_total = sum(stats_level_list[0])
-    #~ monospecific_percent = monospecific_total * 100.0 / total
-    #~ 
-    #~ if args.count_size:
-        #~ args.output_file.write('# Total size = {0}\n'.format(total))
-    #~ else:
-        #~ args.output_file.write('# Nodes num = {0}\n'.format(total))
-    #~ args.output_file.write('# {0:.2f}% in mono-specific nodes\n\n'.format(monospecific_percent))
-    #~ 
-    #~ args.output_file.write('Level Stats on predicted LCA:\nLevel\tNumber\n')
-    #~ for i in xrange(7):
-        #~ args.output_file.write('{0}\t{1}\n'.format(i+1, level_count_list[i]))
-        #~ 
-    #~ args.output_file.write('\nLCA prediction compatible with true taxo:\n')
-    #~ args.output_file.write('Level\t#Pos\t#Neg\t#Total\t%Pos\n')
-    #~ 
-    #~ for i in xrange(7):
-        #~ args.output_file.write('{}\t{}\t{}\t{}'.format(i+1, stats_level_list[i][0], stats_level_list[i][1], sum(stats_level_list[i])))
-        #~ if (sum(stats_level_list[i])):
-            #~ args.output_file.write('\t{0:.2f}%'.format(stats_level_list[i][0] * 100.0 / sum(stats_level_list[i])))
-        #~ else:
-            #~ args.output_file.write('\tNA')
-        #~ args.output_file.write('\n')
-    #~ 
+    if args.test_dataset:
+        # Load test species taxonomies
+        species_taxo_dict = load_species_taxo(args.species_taxo)
+        
+        #
+        true_taxo_level_count_list = [[0,0] for i in xrange(7)] # [PredictedLCA==TrueTaxo, PredictedLCA!=TrueTaxo]
+        true_taxo_level_count_by_category_list = [[[0,0] for i in xrange(7)] for j in xrange(3)]
+        
+        #
+        read_node_unitig_tabs = (l.split() for l in args.read_node_unitig if l.strip())
+        for read_node_unitig_tab in read_node_unitig_tabs:
+            read_name = read_node_unitig_tab[0]
+            node_id = read_node_unitig_tab[2]
+            unitig_id = read_node_unitig_tab[3]
+            #
+            if unitig_id != 'NULL':
+                specie_id = read_name[:3]
+                node_category = get_node_category(node_id, nodes_arity_dict)
+                read_taxo = species_taxo_dict[specie_id].split(';')
+                predicted_lca = unitigs_lca_dict[unitig_id].split(';')
+                # Compare true taxo vs. predicted LCA
+                is_same = True
+                for i in xrange(len(predicted_lca)):
+                    if is_same:
+                        is_same = (predicted_lca[i]==read_taxo[i])
+                    if is_same:
+                        column = 0
+                    else:
+                        column = 1
+                    true_taxo_level_count_list[i][column] += 1
+                    true_taxo_level_count_by_category_list[node_category][i][column] += 1
+        
+        # Print test dataset statistics
+        args.output_file.write('\nTest dataset Stats\n\n')
+        args.output_file.write('Global LCA prediction compatible with true taxo:\n')
+        args.output_file.write('Level\t#Pos\t#Neg\t#Total\t%Pos\n')
+        for i in xrange(7):
+            args.output_file.write('{}\t{}\t{}\t{}'.format(i+1, 
+                                                           true_taxo_level_count_list[i][0], 
+                                                           true_taxo_level_count_list[i][1], 
+                                                           sum(true_taxo_level_count_list[i])))
+            if (sum(true_taxo_level_count_list[i])):
+                true_assignment_percent = true_taxo_level_count_list[i][0] * 100.0 / sum(true_taxo_level_count_list[i])
+                args.output_file.write('\t{0:.2f}%'.format(true_assignment_percent))
+            else:
+                args.output_file.write('\tNA')
+            args.output_file.write('\n')
+        
+        # And now by categories
+        for category in xrange(3):
+            if category == 0:
+                args.output_file.write('Singletons ')
+            elif category == 1:
+                args.output_file.write('Hubs ')
+            else:
+                args.output_file.write('Node strings ')
+            args.output_file.write('LCA prediction compatible with true taxo:\n')
+            args.output_file.write('Level\t#Pos\t#Neg\t#Total\t%Pos\n')
+            for i in xrange(7):
+                args.output_file.write('{}\t{}\t{}\t{}'.format(i+1, 
+                                                               true_taxo_level_count_by_category_list[category][i][0], 
+                                                               true_taxo_level_count_by_category_list[category][i][1], 
+                                                               sum(true_taxo_level_count_by_category_list[category][i])))
+                if (sum(true_taxo_level_count_by_category_list[category][i])):
+                    true_assignment_percent = true_taxo_level_count_by_category_list[category][i][0] * 100.0 / sum(true_taxo_level_count_by_category_list[category][i])
+                    args.output_file.write('\t{0:.2f}%'.format(true_assignment_percent))
+                else:
+                    args.output_file.write('\tNA')
+                args.output_file.write('\n')
+            args.output_file.write('\n')
+    
     exit(0)
