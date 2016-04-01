@@ -28,6 +28,8 @@ if __name__ == '__main__':
                         help='Max number of CPU to use')
     args = parser.parse_args()
     
+    assembly_output_basename = 'assemble'
+    
     # Get input and output files absolute paths
     input_filepath = os.path.realpath(args.input_fastq)
     current_working_dir = os.getcwd()
@@ -49,6 +51,10 @@ if __name__ == '__main__':
     
     # Change cwd to tmp dir
     os.chdir(args.tmp_dir)
+    
+    # Cleaning last assembly contigs
+    if os.path.exists(assembly_output_basename + '-contigs.fa'):
+        os.remove(assembly_output_basename + '-contigs.fa')
     
     # Preprocessing
     preprocess_output = 'preprocess_output.fq'
