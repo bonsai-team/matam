@@ -201,9 +201,9 @@ def parse_arguments():
     
     # check if steps are in proper range
     steps_set = set(args.steps)
-    if len(steps_set - set(range(0, 8))) > 0:
+    if len(steps_set - set(range(0, 9))) > 0:
         parser.print_help()
-        raise Exception("steps not in range [0,7]")
+        raise Exception("steps not in range [0,8]")
     
     if args.clustering_id_threshold < 0 or args.clustering_id_threshold > 1:
         parser.print_help()
@@ -356,12 +356,15 @@ if __name__ == '__main__':
         if not args.simulate_only:
             subprocess.call(cmd_line, shell=True)
     
+    
     ###########################
     # STEP 1: Ref DB clustering
     cluster_id_int = int(args.clustering_id_threshold * 100)
     clustered_ref_db_basename = cleaned_ref_db_basename + '_NR{0}'.format(cluster_id_int)
     sortmerna_index_directory = 'sortmerna_index'
     sortmerna_index_basename = sortmerna_index_directory + '/' + clustered_ref_db_basename
+    blast_db_directory = 'blastdb'
+    blast_db_basename = blast_db_directory + '/' + clustered_ref_db_basename
     
     sumaclust_kingdom_filename = ref_db_basename + '.sumaclust_'
     sumaclust_kingdom_filename += '{0}'.format(cluster_id_int)
@@ -443,6 +446,22 @@ if __name__ == '__main__':
             subprocess.call(indexdb_cmd_line, shell=True)
         sys.stdout.write('\n')
         
+        # Blast Ref DB indexing
+        try:
+            if not os.path.exists(blast_db_directory):
+                os.makedirs(blast_db_directory)
+        except OSError:
+            sys.stderr.write("\nERROR: {0} cannot be created\n\n".format(blast_db_directory))
+            raise
+        
+        cmd_line = 'makeblastdb -in ' + clustered_ref_db_basename + '.fasta' 
+        cmd_line += ' -dbtype nucl -out ' + blast_db_basename
+        
+        sys.stdout.write('CMD: {0}\n'.format(cmd_line))
+        if not args.simulate_only:
+            subprocess.call(cmd_line, shell=True)
+        sys.stdout.write('\n')
+    
     ######################################
     # STEP 2: Reads mapping against Ref DB
     sortme_output_basename = input_fastx_basename + '.sortmerna_vs_' + clustered_ref_db_basename
@@ -475,7 +494,6 @@ if __name__ == '__main__':
     else:
         sam_filt_basename += 'geo_'
     sam_filt_basename += str(score_threshold_int) + 'pct'
-    read_taxo_basename = sam_filt_basename + '.read_taxo'
     
     if 3 in steps_set:
         sys.stdout.write('## Alignment filtering step (3):\n\n')
@@ -491,16 +509,7 @@ if __name__ == '__main__':
         sys.stdout.write('CMD: {0}\n'.format(filter_score_cmd_line))
         if not args.simulate_only:
             subprocess.call(filter_score_cmd_line, shell=True)
-        
-        # Generate read ref taxo file
-        read_taxo_cmd_line = 'cat ' + sam_filt_basename + '.sam | cut -f1,3 | sort -k2,2'
-        read_taxo_cmd_line += ' | join -12 -21 - ' + ref_db_basename + '.taxo.tab'
-        read_taxo_cmd_line += ' | sort -k2,2 | awk "{print \$2,\$3}" | sed "s/ /\\t/g" > '
-        read_taxo_cmd_line += read_taxo_basename + '.tab'
-        
-        sys.stdout.write('CMD: {0}\n\n'.format(read_taxo_cmd_line))
-        if not args.simulate_only:
-            subprocess.call(read_taxo_cmd_line, shell=True)
+        sys.stdout.write('\n')
     
     ################################
     # STEP 4: Overlap Graph Building
@@ -561,6 +570,7 @@ if __name__ == '__main__':
     quorum_int = int(args.quorum * 100)
     labelled_nodes_basename = contigsearch_basename + '.nodes_contracted'
     labelled_nodes_basename += '.unitig_lca' + str(quorum_int) + 'pct'
+    unitigs_lca_filename = contigsearch_basename + '.unitig_lca' + str(quorum_int) + 'pct.tab'
     
     if 6 in steps_set:
         sys.stdout.write('## LCA Labelling (6):\n\n')
@@ -598,8 +608,11 @@ if __name__ == '__main__':
             subprocess.call(cmd_line, shell=True)
         
         #
-        cmd_line = 'join -11 -21 ' + read_id_metanode_unitig_filename
-        cmd_line += ' ' + read_taxo_basename + '.tab | sed "s/ /\\t/g" | cut -f2-5 > '
+        cmd_line = 'cat ' + sam_filt_basename + '.sam | cut -f1,3 | sort -k2,2'
+        cmd_line += ' | join -12 -21 - ' + ref_db_basename + '.taxo.tab'
+        cmd_line += ' | sort -k2,2 | awk "{print \$2,\$3}" | sed "s/ /\\t/g" '
+        cmd_line += ' | join -11 -21 ' + read_id_metanode_unitig_filename
+        cmd_line += ' - | sed "s/ /\\t/g" | cut -f2-5 > '
         cmd_line += complete_taxo_filename
         
         sys.stdout.write('CMD: {0}\n'.format(cmd_line))
@@ -618,7 +631,7 @@ if __name__ == '__main__':
         #
         cmd_line = 'cat ' + complete_taxo_filename + ' | sort -k3,3 | '
         cmd_line += compute_lca_bin + ' -t 4 -f 3 -g 1 -m ' + str(args.quorum) + ' > '
-        cmd_line += contigsearch_basename + '.unitig_lca' + str(quorum_int) + 'pct.tab'
+        cmd_line += unitigs_lca_filename
         
         sys.stdout.write('CMD: {0}\n\n'.format(cmd_line))
         if not args.simulate_only:
@@ -630,16 +643,17 @@ if __name__ == '__main__':
         cmd_line = compute_compressed_graph_stats_bin + ' --nodes_contracted '
         cmd_line += contigsearch_basename + '.nodes_contracted.csv --edges_contracted '
         cmd_line += contigsearch_basename + '.edges_contracted.csv --unitigs_lca '
-        cmd_line += contigsearch_basename + '.unitig_lca' + str(quorum_int) + 'pct.tab '
+        cmd_line += unitigs_lca_filename
         if args.test_dataset:
-            cmd_line += '--test_dataset '
-            cmd_line += '--species_taxo 16sp.taxo.tab '
-            cmd_line += '--read_node_unitig ' + read_id_metanode_unitig_filename
+            cmd_line += ' --test_dataset'
+            cmd_line += ' --species_taxo 16sp.taxo.tab'
+            cmd_line += ' --read_node_unitig ' + read_id_metanode_unitig_filename
         cmd_line += ' > ' + stats_filename 
         
         sys.stdout.write('CMD: {0}\n'.format(cmd_line))
         if not args.simulate_only:
             subprocess.call(cmd_line, shell=True)
+        sys.stdout.write('\n')
     
     ##########################
     # STEP 7: Contigs Assembly
@@ -656,24 +670,26 @@ if __name__ == '__main__':
         
         cmd_line = 'cat ' + contigsearch_basename + '.contigs.tab'
         cmd_line += ' | join -12 -21 - ' + ovgraphbuild_basename + '.nodes.tab'
-        cmd_line += ' | awk \' {print $2"\\t"$4}\' | sort -k1,1 > ' 
+        cmd_line += ' | awk \' {print $2"\\t"$4}\' | sort -k1,1n > ' 
         cmd_line += contig_read_filename
         
         sys.stdout.write('CMD: {0}\n\n'.format(cmd_line))
         if not args.simulate_only:
             subprocess.call(cmd_line, shell=True)
         
-        sys.stdout.write('INFO: Reading Unitigs LCA assignment\n\n')
+        sys.stdout.write('INFO: Reading Unitigs LCA assignment from {0}\n\n'.format(unitigs_lca_filename))
         
-        contig_lca_filename = contigsearch_basename + '.contig_lca' + str(quorum_int) + 'pct.tab'
         contig_lca_dict = dict()
         
-        with open(contig_lca_filename, 'r') as contig_lca_fh:
-            contig_lca_dict = {int(t[0]): t[1] for t in (l.split() for l in contig_lca_fh) if len(t)==2}
+        with open(unitigs_lca_filename, 'r') as contig_lca_fh:
+            contig_lca_dict = {t[0]: t[1] for t in (l.split() for l in contig_lca_fh) if len(t)==2}
         
         output_fh = open(args.output_contigs, 'w')
         contig_count = 0
         unitig_count = 0
+        
+        if os.path.exists(sga_log_filename):
+            os.remove(sga_log_filename)
         
         with open(contig_read_filename, 'r') as contig_read_fh:
             sga_directory = contigsearch_basename + '.sga'
@@ -687,15 +703,24 @@ if __name__ == '__main__':
             
             os.chdir(sga_directory)
             
-            if os.path.exists('sga.log'):
-                os.remove('sga.log')
-            
             for contig_tab_list in read_tab_file_handle_sorted(contig_read_fh, 0):
                 unitig_count += 1
+                unitig_id = contig_tab_list[0][0]
                 
                 sys.stdout.write('\rINFO: Assembling unitig #{0}'.format(unitig_count))
                 
-                unitig_id = int(contig_tab_list[0][0])
+                # Cleaning previous assemblies
+                if os.path.exists('contigs.fa'):
+                    os.remove('contigs.fa')
+                if os.path.exists('tmp'):
+                    subprocess.call('rm -rf tmp', shell=True)
+                
+                # To prevent assembly of singleton reads
+                if unitig_id == 'NULL':
+                    continue
+                #~ elif unitig_id == '44' or unitig_id == '45':
+                    #~ print contig_tab_list
+                #
                 unitig_lca = ''
                 if unitig_id in contig_lca_dict:
                     unitig_lca = contig_lca_dict[unitig_id]
@@ -705,27 +730,39 @@ if __name__ == '__main__':
                         for tab in contig_tab_list:
                             read_id = tab[1]
                             wfh.write('{0}\n'.format(read_id))
+                if unitig_id == '44' or unitig_id == '45':
+                    subprocess.call('cp reads_one_contig.ids reads_one_contig.{0}.ids && ls -l'.format(unitig_id), shell=True)
+                
                 
                 # Get all reads in this contig
                 cmd_line = fastq_name_filter_bin + ' -f reads_one_contig.ids'
                 cmd_line += ' -i ../' + args.input_fastx
                 cmd_line += ' -o reads_one_contig.fq'
                 
+                #~ if unitig_id == '44' or unitig_id == '45':
+                    #~ sys.stdout.write('CMD: {0}\n'.format(cmd_line))
                 #~ sys.stdout.write('CMD: {0}\n'.format(cmd_line))
                 if not args.simulate_only:
                     subprocess.call(cmd_line, shell=True)
+                #~ if unitig_id == '44' or unitig_id == '45':
+                    #~ subprocess.call('cp reads_one_contig.fq reads_one_contig.{0}.fq && ls -l'.format(unitig_id), shell=True)
                 
                 # Assemble those reads with SGA
-                cmd_line = 'echo "Unitig #' + str(unitig_id) + '" >> ../' 
+                cmd_line = 'echo "Unitig #' + unitig_id + '" >> ../'
                 cmd_line += sga_log_filename + ' && '
                 cmd_line += sga_assemble_bin + ' -i reads_one_contig.fq'
                 cmd_line += ' -o contigs.fa --sga_bin ' + sga_bin
                 cmd_line += ' --cpu ' + str(args.cpu)
+                cmd_line += ' --tmp_dir tmp'
                 cmd_line += ' >> ../' + sga_log_filename + ' 2>&1'
                 
+                #~ if unitig_id == '44' or unitig_id == '45':
+                    #~ sys.stdout.write('CMD: {0}\n'.format(cmd_line))
                 #~ sys.stdout.write('CMD: {0}\n'.format(cmd_line))
                 if not args.simulate_only:
                     subprocess.call(cmd_line, shell=True)
+                #~ if unitig_id == '44' or unitig_id == '45':
+                    #~ subprocess.call('cp contigs.fa contigs.{0}.fa && ls -l'.format(unitig_id), shell=True)
                 
                 # Concatenate in output
                 if not args.simulate_only:
@@ -733,12 +770,60 @@ if __name__ == '__main__':
                         for header, seq in read_fasta_file_handle(sga_contigs_fh):
                             if len(seq):
                                 contig_count += 1
-                                output_fh.write('>{0}\t{1}\n{2}\n'.format(contig_count, unitig_lca, format_seq(seq)))
+                                output_fh.write('>{0}\tunitig={1}\t'.format(contig_count, unitig_id))
+                                output_fh.write('lca={0}\n{1}\n'.format(unitig_lca, format_seq(seq)))
             
-            sys.stdout.write('\n\nINFO: Assembly contigs in {0}\n\n'.format(args.output_contigs))
+        sys.stdout.write('\n\nINFO: Assembly contigs in {0}\n\n'.format(args.output_contigs))
+        
+        # Return to upper directory
+        os.chdir('..')
+    
+    #############################
+    # STEP 8: Post assembly Stats
+    contig_assembly_filename = args.output_contigs.split('/')[-1]
+    contig_assembly_basename = '.'.join(contig_assembly_filename.split('.')[:-1])
+    
+    if 8 in steps_set:
+        sys.stdout.write('## Post assembly Stats (8):\n\n')
+        
+        blast_output_filename = contig_assembly_basename + '.blastn_vs_'
+        blast_output_filename += clustered_ref_db_basename + '.tab'
+        
+        #
+        cmd_line = 'blastn -query ' + args.output_contigs
+        cmd_line += ' -task blastn -db ' + blast_db_basename
+        cmd_line += ' -out ' + blast_output_filename + ' -evalue 1e-5'
+        cmd_line += ' -outfmt "6 std qlen" -dust "no"'
+        cmd_line += ' -max_target_seqs 10 -num_threads ' + str(args.cpu)
             
-            # Return to upper directory
-            os.chdir('..')
+        sys.stdout.write('CMD: {0}\n\n'.format(cmd_line))
+        if not args.simulate_only:
+            subprocess.call(cmd_line, shell=True)
+        
+        # When using a test dataset, remapping with blastn against the original sequences
+        if args.test_dataset:
+            # Indexing original sequences
+            cmd_line = 'makeblastdb -in 16sp.fasta -dbtype nucl '
+            cmd_line += '-out ' + blast_db_directory + '/16sp'
+            
+            sys.stdout.write('CMD: {0}'.format(cmd_line))
+            if not args.simulate_only:
+                subprocess.call(cmd_line, shell=True)
+            sys.stdout.write('\n')
+            
+            # Blast assembly contigs against original sequences
+            
+            test_blast_output_filename = contig_assembly_basename + '.blastn_vs_16sp.tab'
+            
+            cmd_line = 'blastn -query ' + args.output_contigs
+            cmd_line += ' -task blastn -db ' + blast_db_directory + '/16sp'
+            cmd_line += ' -out ' + test_blast_output_filename + ' -evalue 1e-5'
+            cmd_line += ' -outfmt "6 std qlen slen" -dust "no"'
+            cmd_line += ' -max_target_seqs 1 -num_threads ' + str(args.cpu)
+            
+            sys.stdout.write('CMD: {0}\n\n'.format(cmd_line))
+            if not args.simulate_only:
+                subprocess.call(cmd_line, shell=True)
     
     exit(0)
 
