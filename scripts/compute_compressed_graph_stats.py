@@ -131,6 +131,7 @@ if __name__ == '__main__':
     singleton_nodes_num = 0
     hubs_num = 0
     node_strings_num = 0
+    reads_in_monospecific_nodes_num = 0
     lca_level_count_list = [0 for i in xrange(7)]
     lca_level_count_by_category_list = [[0 for j in xrange(7)] for i in xrange(3)]
     
@@ -141,6 +142,7 @@ if __name__ == '__main__':
     for node_t in nodes_tabs:
         node_id = node_t[0]
         node_size = int(node_t[1])
+        node_specie = node_t[2]
         unitig_id = node_t[3]
         # Get LCA
         predicted_lca_tab = unitigs_lca_dict[unitig_id].split(';')
@@ -148,6 +150,8 @@ if __name__ == '__main__':
         # Basic stats
         reads_num += node_size
         nodes_num += 1
+        if node_specie != '?':
+            reads_in_monospecific_nodes_num += node_size
         # Categorize
         node_category = get_node_category(node_id, nodes_arity_dict)
         if node_category == 0:
@@ -161,16 +165,59 @@ if __name__ == '__main__':
     nodes_average_size = float(reads_num) / float(nodes_num)
     unitigs_average_size = float(reads_num) / float(unitigs_num)
     
+    #
+    if args.test_dataset:
+        # Load test species taxonomies
+        species_taxo_dict = load_species_taxo(args.species_taxo)
+        
+        #
+        true_taxo_level_count_list = [[0,0] for i in xrange(7)] # [PredictedLCA==TrueTaxo, PredictedLCA!=TrueTaxo]
+        true_taxo_level_count_by_category_list = [[[0,0] for i in xrange(7)] for j in xrange(3)]
+        total_reads_num = 0
+        
+        #
+        read_node_unitig_tabs = (l.split() for l in args.read_node_unitig if l.strip())
+        for read_node_unitig_tab in read_node_unitig_tabs:
+            total_reads_num += 1
+            read_name = read_node_unitig_tab[0]
+            node_id = read_node_unitig_tab[2]
+            unitig_id = read_node_unitig_tab[3]
+            #
+            if unitig_id != 'NULL':
+                specie_id = read_name[:3]
+                node_category = get_node_category(node_id, nodes_arity_dict)
+                read_taxo = species_taxo_dict[specie_id].split(';')
+                predicted_lca = unitigs_lca_dict[unitig_id].split(';')
+                # Compare true taxo vs. predicted LCA
+                is_same = True
+                for i in xrange(len(predicted_lca)):
+                    if is_same:
+                        is_same = (predicted_lca[i]==read_taxo[i])
+                    if is_same:
+                        column = 0
+                    else:
+                        column = 1
+                    true_taxo_level_count_list[i][column] += 1
+                    true_taxo_level_count_by_category_list[node_category][i][column] += 1
+    
     # Start outputing infos 
     args.output_file.write('Graph: {0}\n\n'.format(args.edges_contracted.name))
     
     # Print descriptive statistics
     args.output_file.write('\nDescriptive Stats\n\n')
-    args.output_file.write('#Reads:   {0}\n'.format(reads_num))
+    args.output_file.write('#Reads:   {0} mapped reads'.format(reads_num))
+    if args.test_dataset:
+        args.output_file.write(' / {0} total reads '.format(total_reads_num))
+        mapped_reads_percent = reads_num * 100.0 / total_reads_num
+        args.output_file.write('({0:.2f}%)\n'.format(mapped_reads_percent))
+        reads_in_monospecific_nodes_percent = reads_in_monospecific_nodes_num * 100.0 / reads_num
+        args.output_file.write('#Reads in monospecific nodes: {0}'.format(reads_in_monospecific_nodes_num))
+        args.output_file.write(' ({0:.2f}% of all reads in the graph)'.format(reads_in_monospecific_nodes_percent))
+    args.output_file.write('\n')
     args.output_file.write('#Nodes:   {0} '.format(nodes_num))
-    args.output_file.write('(av. size = {0:.2f} reads)\n'.format(nodes_average_size))
+    args.output_file.write('(av. size = {0:.2f} reads / node)\n'.format(nodes_average_size))
     args.output_file.write('#Unitigs: {0} '.format(unitigs_num))
-    args.output_file.write('(av. size = {0:.2f} reads)\n'.format(unitigs_average_size))
+    args.output_file.write('(av. size = {0:.2f} reads / unitig)\n'.format(unitigs_average_size))
     args.output_file.write('\t#Singletons   = {0}\n'.format(singleton_nodes_num))
     args.output_file.write('\t#Hubs         = {0}\n'.format(hubs_num))
     args.output_file.write('\t#Node strings = {0}\n\n'.format(node_strings_num))
@@ -197,38 +244,8 @@ if __name__ == '__main__':
             args.output_file.write('{0}\t{1}\n'.format(i+1, lca_level_count_by_category_list[category][i]))
         args.output_file.write('\n')
     
+    #
     if args.test_dataset:
-        # Load test species taxonomies
-        species_taxo_dict = load_species_taxo(args.species_taxo)
-        
-        #
-        true_taxo_level_count_list = [[0,0] for i in xrange(7)] # [PredictedLCA==TrueTaxo, PredictedLCA!=TrueTaxo]
-        true_taxo_level_count_by_category_list = [[[0,0] for i in xrange(7)] for j in xrange(3)]
-        
-        #
-        read_node_unitig_tabs = (l.split() for l in args.read_node_unitig if l.strip())
-        for read_node_unitig_tab in read_node_unitig_tabs:
-            read_name = read_node_unitig_tab[0]
-            node_id = read_node_unitig_tab[2]
-            unitig_id = read_node_unitig_tab[3]
-            #
-            if unitig_id != 'NULL':
-                specie_id = read_name[:3]
-                node_category = get_node_category(node_id, nodes_arity_dict)
-                read_taxo = species_taxo_dict[specie_id].split(';')
-                predicted_lca = unitigs_lca_dict[unitig_id].split(';')
-                # Compare true taxo vs. predicted LCA
-                is_same = True
-                for i in xrange(len(predicted_lca)):
-                    if is_same:
-                        is_same = (predicted_lca[i]==read_taxo[i])
-                    if is_same:
-                        column = 0
-                    else:
-                        column = 1
-                    true_taxo_level_count_list[i][column] += 1
-                    true_taxo_level_count_by_category_list[node_category][i][column] += 1
-        
         # Print test dataset statistics
         args.output_file.write('\nTest dataset Stats\n\n')
         args.output_file.write('Global LCA prediction compatible with true taxo:\n')
