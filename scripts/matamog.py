@@ -730,8 +730,8 @@ if __name__ == '__main__':
                         for tab in contig_tab_list:
                             read_id = tab[1]
                             wfh.write('{0}\n'.format(read_id))
-                if unitig_id == '44' or unitig_id == '45':
-                    subprocess.call('cp reads_one_contig.ids reads_one_contig.{0}.ids && ls -l'.format(unitig_id), shell=True)
+                #~ if unitig_id == '44' or unitig_id == '45':
+                    #~ subprocess.call('cp reads_one_contig.ids reads_one_contig.{0}.ids && ls -l'.format(unitig_id), shell=True)
                 
                 
                 # Get all reads in this contig
@@ -770,7 +770,7 @@ if __name__ == '__main__':
                         for header, seq in read_fasta_file_handle(sga_contigs_fh):
                             if len(seq):
                                 contig_count += 1
-                                output_fh.write('>{0}\tunitig={1}\t'.format(contig_count, unitig_id))
+                                output_fh.write('>{0} unitig={1} '.format(contig_count, unitig_id))
                                 output_fh.write('lca={0}\n{1}\n'.format(unitig_lca, format_seq(seq)))
             
         sys.stdout.write('\n\nINFO: Assembly contigs in {0}\n\n'.format(args.output_contigs))
