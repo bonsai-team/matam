@@ -261,6 +261,7 @@ if __name__ == '__main__':
             else:
                 args.output_file.write('\tNA')
             args.output_file.write('\n')
+        args.output_file.write('\n')
         
         # And now by categories
         for category in xrange(3):
