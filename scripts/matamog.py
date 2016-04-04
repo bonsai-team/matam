@@ -782,19 +782,22 @@ if __name__ == '__main__':
     # STEP 8: Post assembly Stats
     contig_assembly_filename = args.output_contigs.split('/')[-1]
     contig_assembly_basename = '.'.join(contig_assembly_filename.split('.')[:-1])
+    max_target_seqs = 1
     
     if 8 in steps_set:
         sys.stdout.write('## Post assembly Stats (8):\n\n')
         
         blast_output_filename = contig_assembly_basename + '.blastn_vs_'
-        blast_output_filename += clustered_ref_db_basename + '.tab'
+        blast_output_filename += clustered_ref_db_basename + '.max_target_seqs_'
+        blast_output_filename += str(max_target_seqs) + '.tab'
         
         #
         cmd_line = 'blastn -query ' + args.output_contigs
         cmd_line += ' -task blastn -db ' + blast_db_basename
         cmd_line += ' -out ' + blast_output_filename + ' -evalue 1e-5'
         cmd_line += ' -outfmt "6 std qlen" -dust "no"'
-        cmd_line += ' -max_target_seqs 10 -num_threads ' + str(args.cpu)
+        cmd_line += ' -max_target_seqs ' + str(max_target_seqs)
+        cmd_line += ' -num_threads ' + str(args.cpu)
             
         sys.stdout.write('CMD: {0}\n\n'.format(cmd_line))
         if not args.simulate_only:
@@ -813,13 +816,15 @@ if __name__ == '__main__':
             
             # Blast assembly contigs against original sequences
             
-            test_blast_output_filename = contig_assembly_basename + '.blastn_vs_16sp.tab'
+            test_blast_output_filename = contig_assembly_basename + '.blastn_vs_16sp'
+            test_blast_output_filename += '.max_target_seqs_' + str(max_target_seqs) + '.tab'
             
             cmd_line = 'blastn -query ' + args.output_contigs
             cmd_line += ' -task blastn -db ' + blast_db_directory + '/16sp'
             cmd_line += ' -out ' + test_blast_output_filename + ' -evalue 1e-5'
             cmd_line += ' -outfmt "6 std qlen slen" -dust "no"'
-            cmd_line += ' -max_target_seqs 1 -num_threads ' + str(args.cpu)
+            cmd_line += ' -max_target_seqs ' + str(max_target_seqs)
+            cmd_line += ' -num_threads ' + str(args.cpu)
             
             sys.stdout.write('CMD: {0}\n\n'.format(cmd_line))
             if not args.simulate_only:
