@@ -569,8 +569,8 @@ if __name__ == '__main__':
     # STEP 6: LCA Labelling
     quorum_int = int(args.quorum * 100)
     labelled_nodes_basename = contigsearch_basename + '.nodes_contracted'
-    labelled_nodes_basename += '.unitig_lca' + str(quorum_int) + 'pct'
-    unitigs_lca_filename = contigsearch_basename + '.unitig_lca' + str(quorum_int) + 'pct.tab'
+    labelled_nodes_basename += '.component_lca' + str(quorum_int) + 'pct'
+    components_lca_filename = contigsearch_basename + '.component_lca' + str(quorum_int) + 'pct.tab'
     
     if 6 in steps_set:
         sys.stdout.write('## LCA Labelling (6):\n\n')
@@ -594,14 +594,14 @@ if __name__ == '__main__':
             subprocess.call(cmd_line, shell=True)
         
         #
-        read_id_metanode_unitig_filename = contigsearch_basename + '.read_id_metanode_unitig.tab'
-        complete_taxo_filename = contigsearch_basename + '.read_metanode_unitig_taxo.tab'
+        read_id_metanode_component_filename = contigsearch_basename + '.read_id_metanode_component.tab'
+        complete_taxo_filename = contigsearch_basename + '.read_metanode_component_taxo.tab'
         
         cmd_line = 'join -a1 -e"NULL" -o "1.2,0,2.3,2.1" -11 -22 ' 
         cmd_line += ovgraphbuild_basename + '.nodes.tab '
         cmd_line += contigsearch_basename + '.contigs.tab '
         cmd_line += '| sed "s/ /\\t/g" | sort -k1,1  > '
-        cmd_line += read_id_metanode_unitig_filename
+        cmd_line += read_id_metanode_component_filename
         
         sys.stdout.write('CMD: {0}\n'.format(cmd_line))
         if not args.simulate_only:
@@ -611,7 +611,7 @@ if __name__ == '__main__':
         cmd_line = 'cat ' + sam_filt_basename + '.sam | cut -f1,3 | sort -k2,2'
         cmd_line += ' | join -12 -21 - ' + ref_db_basename + '.taxo.tab'
         cmd_line += ' | sort -k2,2 | awk "{print \$2,\$3}" | sed "s/ /\\t/g" '
-        cmd_line += ' | join -11 -21 ' + read_id_metanode_unitig_filename
+        cmd_line += ' | join -11 -21 ' + read_id_metanode_component_filename
         cmd_line += ' - | sed "s/ /\\t/g" | cut -f2-5 > '
         cmd_line += complete_taxo_filename
         
@@ -631,7 +631,7 @@ if __name__ == '__main__':
         #
         cmd_line = 'cat ' + complete_taxo_filename + ' | sort -k3,3 | '
         cmd_line += compute_lca_bin + ' -t 4 -f 3 -g 1 -m ' + str(args.quorum) + ' > '
-        cmd_line += unitigs_lca_filename
+        cmd_line += components_lca_filename
         
         sys.stdout.write('CMD: {0}\n\n'.format(cmd_line))
         if not args.simulate_only:
@@ -642,12 +642,12 @@ if __name__ == '__main__':
         
         cmd_line = compute_compressed_graph_stats_bin + ' --nodes_contracted '
         cmd_line += contigsearch_basename + '.nodes_contracted.csv --edges_contracted '
-        cmd_line += contigsearch_basename + '.edges_contracted.csv --unitigs_lca '
-        cmd_line += unitigs_lca_filename
+        cmd_line += contigsearch_basename + '.edges_contracted.csv --components_lca '
+        cmd_line += components_lca_filename
         if args.test_dataset:
             cmd_line += ' --test_dataset'
             cmd_line += ' --species_taxo 16sp.taxo.tab'
-            cmd_line += ' --read_node_unitig ' + read_id_metanode_unitig_filename
+            cmd_line += ' --read_node_component ' + read_id_metanode_component_filename
         cmd_line += ' > ' + stats_filename 
         
         sys.stdout.write('CMD: {0}\n'.format(cmd_line))
@@ -658,14 +658,14 @@ if __name__ == '__main__':
     ##########################
     # STEP 7: Contigs Assembly
     if args.output_contigs == 'DEFAULTNAME':
-        args.output_contigs = contigsearch_basename + '.sga_by_unitig.fasta'
-    
-    sga_log_filename = contigsearch_basename + '.sga_by_unitig.log'
+        args.output_contigs = contigsearch_basename + '.sga_by_component.fasta'
+    sga_log_filename = contigsearch_basename + '.sga_by_component.log'
+    sga_wkdir = contigsearch_basename + '.sga'
     
     if 7 in steps_set:
         sys.stdout.write('## Contigs Assembly (7):\n\n')
         
-        #
+        # Generate the read_id-->component_id file
         contig_read_filename = contigsearch_basename + '.contig_read.tab'
         
         cmd_line = 'cat ' + contigsearch_basename + '.contigs.tab'
@@ -677,78 +677,73 @@ if __name__ == '__main__':
         if not args.simulate_only:
             subprocess.call(cmd_line, shell=True)
         
-        sys.stdout.write('INFO: Reading Unitigs LCA assignment from {0}\n\n'.format(unitigs_lca_filename))
+        # Reading components LCA and storing them in a dict
+        sys.stdout.write('INFO: Reading components LCA assignment from {0}\n\n'.format(components_lca_filename))
         
         contig_lca_dict = dict()
         
-        with open(unitigs_lca_filename, 'r') as contig_lca_fh:
+        with open(components_lca_filename, 'r') as contig_lca_fh:
             contig_lca_dict = {t[0]: t[1] for t in (l.split() for l in contig_lca_fh) if len(t)==2}
         
-        output_fh = open(args.output_contigs, 'w')
-        contig_count = 0
-        unitig_count = 0
-        
+        # Prepare sga wkdir and log file
         if os.path.exists(sga_log_filename):
             os.remove(sga_log_filename)
         
+        try:
+            if not os.path.exists(sga_wkdir):
+                os.makedirs(sga_wkdir)
+        except OSError:
+            sys.stderr.write("\nERROR: {0} cannot be created\n\n".format(sga_wkdir))
+            raise
+        
+        # Open output contigs file
+        output_fh = open(args.output_contigs, 'w')
+        
+        # Begin reading read-->component file (sorted by component)
+        contig_count = 0
+        component_count = 0
+        
         with open(contig_read_filename, 'r') as contig_read_fh:
-            sga_directory = contigsearch_basename + '.sga'
+            # We will be working in the sga wkdir because sga generates
+            # lots of files we dont want in our matam wkdir
+            os.chdir(sga_wkdir)
             
-            try:
-                if not os.path.exists(sga_directory):
-                    os.makedirs(sga_directory)
-            except OSError:
-                sys.stderr.write("\nERROR: {0} cannot be created\n\n".format(sga_directory))
-                raise
-            
-            os.chdir(sga_directory)
-            
+            # Assembling all reads of every component, one at a time
             for contig_tab_list in read_tab_file_handle_sorted(contig_read_fh, 0):
-                unitig_count += 1
-                unitig_id = contig_tab_list[0][0]
+                component_count += 1
+                component_id = contig_tab_list[0][0]
                 
-                sys.stdout.write('\rINFO: Assembling unitig #{0}'.format(unitig_count))
+                # To prevent assembly of singleton reads
+                if component_id == 'NULL':
+                    continue
                 
-                # Cleaning previous assemblies
+                # Starting component assembly
+                sys.stdout.write('\rINFO: Assembling component #{0}'.format(component_count))
+                
+                # Cleaning previous assembly
                 if os.path.exists('contigs.fa'):
                     os.remove('contigs.fa')
                 if os.path.exists('tmp'):
                     subprocess.call('rm -rf tmp', shell=True)
                 
-                # To prevent assembly of singleton reads
-                if unitig_id == 'NULL':
-                    continue
-                #~ elif unitig_id == '44' or unitig_id == '45':
-                    #~ print contig_tab_list
-                #
-                unitig_lca = ''
-                if unitig_id in contig_lca_dict:
-                    unitig_lca = contig_lca_dict[unitig_id]
-                
+                # Write the component reads ids
                 if not args.simulate_only:
                     with open('reads_one_contig.ids', 'w') as wfh:
                         for tab in contig_tab_list:
                             read_id = tab[1]
                             wfh.write('{0}\n'.format(read_id))
-                #~ if unitig_id == '44' or unitig_id == '45':
-                    #~ subprocess.call('cp reads_one_contig.ids reads_one_contig.{0}.ids && ls -l'.format(unitig_id), shell=True)
                 
-                
-                # Get all reads in this contig
+                # Generate a fastq file with this component reads
                 cmd_line = fastq_name_filter_bin + ' -f reads_one_contig.ids'
                 cmd_line += ' -i ../' + args.input_fastx
                 cmd_line += ' -o reads_one_contig.fq'
                 
-                #~ if unitig_id == '44' or unitig_id == '45':
-                    #~ sys.stdout.write('CMD: {0}\n'.format(cmd_line))
                 #~ sys.stdout.write('CMD: {0}\n'.format(cmd_line))
                 if not args.simulate_only:
                     subprocess.call(cmd_line, shell=True)
-                #~ if unitig_id == '44' or unitig_id == '45':
-                    #~ subprocess.call('cp reads_one_contig.fq reads_one_contig.{0}.fq && ls -l'.format(unitig_id), shell=True)
                 
                 # Assemble those reads with SGA
-                cmd_line = 'echo "Unitig #' + unitig_id + '" >> ../'
+                cmd_line = 'echo "component #' + component_id + '" >> ../'
                 cmd_line += sga_log_filename + ' && '
                 cmd_line += sga_assemble_bin + ' -i reads_one_contig.fq'
                 cmd_line += ' -o contigs.fa --sga_bin ' + sga_bin
@@ -756,22 +751,21 @@ if __name__ == '__main__':
                 cmd_line += ' --tmp_dir tmp'
                 cmd_line += ' >> ../' + sga_log_filename + ' 2>&1'
                 
-                #~ if unitig_id == '44' or unitig_id == '45':
-                    #~ sys.stdout.write('CMD: {0}\n'.format(cmd_line))
                 #~ sys.stdout.write('CMD: {0}\n'.format(cmd_line))
                 if not args.simulate_only:
                     subprocess.call(cmd_line, shell=True)
-                #~ if unitig_id == '44' or unitig_id == '45':
-                    #~ subprocess.call('cp contigs.fa contigs.{0}.fa && ls -l'.format(unitig_id), shell=True)
                 
-                # Concatenate in output
+                # Concatenate the component contigs in the output contigs file
                 if not args.simulate_only:
+                    component_lca = ''
+                    if component_id in contig_lca_dict:
+                        component_lca = contig_lca_dict[component_id]
                     with open('contigs.fa', 'r') as sga_contigs_fh:
                         for header, seq in read_fasta_file_handle(sga_contigs_fh):
                             if len(seq):
                                 contig_count += 1
-                                output_fh.write('>{0} unitig={1} '.format(contig_count, unitig_id))
-                                output_fh.write('lca={0}\n{1}\n'.format(unitig_lca, format_seq(seq)))
+                                output_fh.write('>{0} component={1} '.format(contig_count, component_id))
+                                output_fh.write('lca={0}\n{1}\n'.format(component_lca, format_seq(seq)))
             
         sys.stdout.write('\n\nINFO: Assembly contigs in {0}\n\n'.format(args.output_contigs))
         
@@ -831,21 +825,4 @@ if __name__ == '__main__':
                 subprocess.call(cmd_line, shell=True)
     
     exit(0)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
