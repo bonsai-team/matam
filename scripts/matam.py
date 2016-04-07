@@ -7,25 +7,25 @@ import argparse
 import re
 import subprocess
 
-matamog_bin = os.path.realpath(sys.argv[0])
-matamog_dir = matamog_bin[:-19]
-sumaclust_bin = matamog_dir + '/bin/sumaclust'
-extract_taxo_bin = matamog_dir + '/bin/extract_taxo_from_fasta.py'
-clean_name_bin = matamog_dir + '/bin/fasta_clean_name.py'
-fasta_name_filter_bin = matamog_dir + '/bin/fasta_name_filter.py'
-fastq_name_filter_bin = matamog_dir + '/bin/fastq_name_filter.py'
-indexdb_bin = matamog_dir + '/bin/indexdb_rna'
-sortmerna_bin = matamog_dir + '/bin/sortmerna'
-sga_bin = matamog_dir + '/bin/sga'
-filter_score_bin = matamog_dir + '/bin/filter_score_multialign.py'
-ovgraphbuild_bin = matamog_dir + '/bin/ovgraphbuild'
-contigsearch_jar = matamog_dir + '/bin/ContigSearch.jar'
-compute_lca_bin = matamog_dir + '/bin/compute_lca_from_tab.py'
-compute_stats_lca_bin = matamog_dir + '/bin/compute_stats_from_lca.py'
-compute_compressed_graph_stats_bin = matamog_dir + '/bin/compute_compressed_graph_stats.py'
-replace_Ns_bin = matamog_dir + '/bin/replace_Ns_by_rand_nu.py'
-sort_fasta_bin = matamog_dir + '/bin/sort_fasta_by_length.py'
-sga_assemble_bin = matamog_dir + '/bin/sga_assemble.py'
+matam_bin = os.path.realpath(sys.argv[0])
+matam_dir = matam_bin[:-17]
+sumaclust_bin = matam_dir + '/bin/sumaclust'
+extract_taxo_bin = matam_dir + '/bin/extract_taxo_from_fasta.py'
+clean_name_bin = matam_dir + '/bin/fasta_clean_name.py'
+fasta_name_filter_bin = matam_dir + '/bin/fasta_name_filter.py'
+fastq_name_filter_bin = matam_dir + '/bin/fastq_name_filter.py'
+indexdb_bin = matam_dir + '/bin/indexdb_rna'
+sortmerna_bin = matam_dir + '/bin/sortmerna'
+sga_bin = matam_dir + '/bin/sga'
+filter_score_bin = matam_dir + '/bin/filter_score_multialign.py'
+ovgraphbuild_bin = matam_dir + '/bin/ovgraphbuild'
+contigsearch_jar = matam_dir + '/bin/ContigSearch.jar'
+compute_lca_bin = matam_dir + '/bin/compute_lca_from_tab.py'
+compute_stats_lca_bin = matam_dir + '/bin/compute_stats_from_lca.py'
+compute_compressed_graph_stats_bin = matam_dir + '/bin/compute_compressed_graph_stats.py'
+replace_Ns_bin = matam_dir + '/bin/replace_Ns_by_rand_nu.py'
+sort_fasta_bin = matam_dir + '/bin/sort_fasta_by_length.py'
+sga_assemble_bin = matam_dir + '/bin/sga_assemble.py'
 
 
 def read_fasta_file_handle(fasta_file_handle):
@@ -106,7 +106,7 @@ def parse_arguments():
     Parse the command line, and check if arguments are correct
     """
     #
-    parser = DefaultHelpParser(description='Matamog',
+    parser = DefaultHelpParser(description='matam',
                                # to precisely format help display
                                formatter_class=lambda prog: argparse.HelpFormatter(prog, width=120, max_help_position=80))
     #
@@ -232,12 +232,12 @@ def print_intro(args):
     
     sys.stdout.write("""
 #################################
-           MATAMOG
+             MATAM
 #################################\n\n""")
     
     sys.stdout.write("""CMD: \
-{matamog} --cpu {cpu} --max_memory {memory} \
-""".format(matamog=matamog_bin,
+{matam} --cpu {cpu} --max_memory {memory} \
+""".format(matam=matam_bin,
            cpu=args.cpu,
            memory=args.max_memory))
     
@@ -290,7 +290,7 @@ def print_intro(args):
            o=args.output_contigs))
     
     #~ sys.stdout.write('PARAM: Executable  = {0}\n'.format(os.path.abspath(os.path.dirname(os.path.realpath(sys.argv[0])))))
-    sys.stdout.write('PARAM: Matamog dir = {0}\n'.format(matamog_dir))
+    sys.stdout.write('PARAM: Matam dir = {0}\n'.format(matam_dir))
     sys.stdout.write('PARAM: Input Fastx = {0}\n'.format(args.input_fastx))
     sys.stdout.write('PARAM: Ref DB      = {0}\n'.format(args.ref_db))
     sys.stdout.write('PARAM: Steps       = {0}\n'.format(args.steps))
