@@ -34,12 +34,15 @@ if __name__ == '__main__':
     
     # Arguments parsing
     parser = argparse.ArgumentParser(description='')
-    parser.add_argument('-i', '--input_tab', metavar='BLAST', 
+    parser.add_argument('-i', '--input_tab', metavar='INBLAST', 
                         type=argparse.FileType('r'), default='-',
                         help='Input blast tab file')
-    parser.add_argument('-o', '--output_tab', metavar='BLAST', 
+    parser.add_argument('-o', '--output_tab', metavar='OUTBLAST', 
                         type=argparse.FileType('w'), default='-',
                         help='Ouput filtered blast tab file')
+    parser.add_argument('', '--sam', metavar='OUTSAM', 
+                        type=argparse.FileType('w'),
+                        help='Ouput filtered sam file')
     args = parser.parse_args()
     
     #
