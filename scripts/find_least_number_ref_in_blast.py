@@ -169,6 +169,7 @@ if __name__ == '__main__':
         norm_average_pident = float(average_pident - min_average_pident)/max_average_pident
         
         norm_sorting_factor = norm_query_num * norm_coverage_length_percent * norm_average_pident # 9, 90.46%, 93.03%
+        #~ norm_sorting_factor = norm_query_num * norm_coverage_length_percent**1.2 * norm_average_pident**0.8 # 11, 91.03%, 93.09%
         #~ norm_sorting_factor = norm_query_num * norm_average_pident # 9, 90.46%, 92.98%
         #~ norm_sorting_factor = norm_coverage_length_percent * norm_average_pident # 14, 90.58%, 93.24%
         #~ norm_sorting_factor = norm_coverage_length_percent * norm_query_num # 16, 93.31%, 88.52%
