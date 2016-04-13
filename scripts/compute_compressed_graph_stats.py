@@ -13,7 +13,7 @@ def load_nodes_arity (edges_contracted_fh):
     nodes_arity_dict = defaultdict(int)
     # Remove header
     args.edges_contracted.readline()
-    # Count node arity --> Unitigs categorization
+    # Count node arity --> Components categorization
     edges_tabs = (l.strip().split(';') for l in edges_contracted_fh if l.strip())
     for edge_t in edges_tabs:
         nodes_arity_dict[edge_t[0]] += 1 # Source
@@ -27,22 +27,22 @@ def load_nodes_arity (edges_contracted_fh):
     return nodes_arity_dict
 
 
-def load_unitigs_lca (unitigs_lca_fh):
-    # Init unitigs lca dict
-    unitigs_lca_dict = dict()
-    # Load unitigs LCA
-    lca_tabs = (l.split() for l in unitigs_lca_fh if l.strip())
+def load_components_lca (components_lca_fh):
+    # Init components lca dict
+    components_lca_dict = dict()
+    # Load components LCA
+    lca_tabs = (l.split() for l in components_lca_fh if l.strip())
     for lca_t in lca_tabs:
         unitig_id = lca_t[0]
         lca = lca_t[1]
-        unitigs_lca_dict[unitig_id] = lca
-    # Close unitigs lca file
-    unitigs_lca_fh.close()
+        components_lca_dict[unitig_id] = lca
+    # Close components lca file
+    components_lca_fh.close()
     # Debug
-    #~ print sorted(unitigs_lca_dict.items(), key=lambda x: x[0])
+    #~ print sorted(components_lca_dict.items(), key=lambda x: x[0])
     #~ print
     #
-    return unitigs_lca_dict
+    return components_lca_dict
 
 
 def load_species_taxo (species_taxo_fh):
@@ -81,31 +81,21 @@ if __name__ == '__main__':
     
     # Arguments parsing
     parser = argparse.ArgumentParser(description='')
-    #~ parser.add_argument('-i', '--input_file', metavar='IN', 
-                        #~ type=argparse.FileType('r', 0), default='-',
-                        #~ help='Input tabulated file')
     parser.add_argument('--edges_contracted', metavar='IN_FILE',
                         type=argparse.FileType('r'), required=True,
                         help='Contracted graph edges file')
     parser.add_argument('--nodes_contracted', metavar='IN_FILE',
                         type=argparse.FileType('r'), required=True,
                         help='Contracted graph nodes file')
-    parser.add_argument('--unitigs_lca', metavar='IN_FILE',
+    parser.add_argument('--components_lca', metavar='IN_FILE',
                         type=argparse.FileType('r'), required=True,
-                        help='Unitigs LCA file')
+                        help='components LCA file')
     parser.add_argument('--species_taxo', metavar='IN_FILE',
                         type=argparse.FileType('r'),
                         help='Test species taxonomies')
     parser.add_argument('--read_node_unitig', metavar='IN_FILE',
                         type=argparse.FileType('r'),
                         help='')
-    #~ parser.add_argument('--count_size', action='store_true', 
-                        #~ help='Compute stats based on the node size rather than the node count')
-    #~ parser.add_argument('--header', action='store_true', 
-                        #~ help='Indicate there is an header line in the input file')
-    #~ parser.add_argument('--separator', metavar='CHAR',
-                        #~ type=str, default=';',
-                        #~ help='Input file separator character (";" by default for csv)')
     parser.add_argument('--test_dataset', action='store_true',
                         help='Ouput additional stats when using a test dataset')
     parser.add_argument('-o', '--output_file', metavar='OUT', 
@@ -121,9 +111,9 @@ if __name__ == '__main__':
     # Load nodes arity dict
     nodes_arity_dict = load_nodes_arity(args.edges_contracted)
     
-    # Load unitigs LCA
-    unitigs_lca_dict = load_unitigs_lca(args.unitigs_lca)
-    unitigs_num = len(unitigs_lca_dict)
+    # Load components LCA
+    components_lca_dict = load_components_lca(args.components_lca)
+    components_num = len(components_lca_dict)
     
     # Init stats metrics
     reads_num = 0
@@ -132,8 +122,9 @@ if __name__ == '__main__':
     hubs_num = 0
     node_strings_num = 0
     reads_in_monospecific_nodes_num = 0
-    lca_level_count_list = [0 for i in xrange(7)]
-    lca_level_count_by_category_list = [[0 for j in xrange(7)] for i in xrange(3)]
+    max_lca_length = 0
+    lca_level_count_list = [0 for i in xrange(100)]
+    lca_level_count_by_category_list = [[0 for j in xrange(100)] for i in xrange(3)]
     
     # Remove header
     args.nodes_contracted.readline()
@@ -145,7 +136,9 @@ if __name__ == '__main__':
         node_specie = node_t[2]
         unitig_id = node_t[3]
         # Get LCA
-        predicted_lca_tab = unitigs_lca_dict[unitig_id].split(';')
+        predicted_lca_tab = components_lca_dict[unitig_id].split(';')
+        if len(predicted_lca_tab) > max_lca_length:
+            max_lca_length = len(predicted_lca_tab)
         lca_level_count_list[len(predicted_lca_tab)-1] += node_size
         # Basic stats
         reads_num += node_size
@@ -161,9 +154,9 @@ if __name__ == '__main__':
         lca_level_count_by_category_list[node_category][len(predicted_lca_tab)-1] += node_size
     
     # Compute final stats
-    node_strings_num = unitigs_num - singleton_nodes_num - hubs_num
+    node_strings_num = components_num - singleton_nodes_num - hubs_num
     nodes_average_size = float(reads_num) / float(nodes_num)
-    unitigs_average_size = float(reads_num) / float(unitigs_num)
+    components_average_size = float(reads_num) / float(components_num)
     
     #
     if args.test_dataset:
@@ -171,8 +164,8 @@ if __name__ == '__main__':
         species_taxo_dict = load_species_taxo(args.species_taxo)
         
         #
-        true_taxo_level_count_list = [[0,0] for i in xrange(7)] # [PredictedLCA==TrueTaxo, PredictedLCA!=TrueTaxo]
-        true_taxo_level_count_by_category_list = [[[0,0] for i in xrange(7)] for j in xrange(3)]
+        true_taxo_level_count_list = [[0,0] for i in xrange(max_lca_length)] # [PredictedLCA==TrueTaxo, PredictedLCA!=TrueTaxo]
+        true_taxo_level_count_by_category_list = [[[0,0] for i in xrange(max_lca_length)] for j in xrange(3)]
         total_reads_num = 0
         
         #
@@ -187,7 +180,7 @@ if __name__ == '__main__':
                 specie_id = read_name[:3]
                 node_category = get_node_category(node_id, nodes_arity_dict)
                 read_taxo = species_taxo_dict[specie_id].split(';')
-                predicted_lca = unitigs_lca_dict[unitig_id].split(';')
+                predicted_lca = components_lca_dict[unitig_id].split(';')
                 # Compare true taxo vs. predicted LCA
                 is_same = True
                 for i in xrange(len(predicted_lca)):
@@ -216,17 +209,17 @@ if __name__ == '__main__':
     args.output_file.write('\n')
     args.output_file.write('#Nodes:   {0} '.format(nodes_num))
     args.output_file.write('(av. size = {0:.2f} reads / node)\n'.format(nodes_average_size))
-    args.output_file.write('#Unitigs: {0} '.format(unitigs_num))
-    args.output_file.write('(av. size = {0:.2f} reads / unitig)\n'.format(unitigs_average_size))
+    args.output_file.write('#components: {0} '.format(components_num))
+    args.output_file.write('(av. size = {0:.2f} reads / unitig)\n'.format(components_average_size))
     args.output_file.write('\t#Singletons   = {0}\n'.format(singleton_nodes_num))
     args.output_file.write('\t#Hubs         = {0}\n'.format(hubs_num))
     args.output_file.write('\t#Node strings = {0}\n\n'.format(node_strings_num))
     
     # Print taxonomical assignment statistics
     args.output_file.write('\nTaxo assignment Stats\n\n')
-    args.output_file.write('Global unitigs LCA level distribution:\n')
+    args.output_file.write('Global components LCA level distribution:\n')
     args.output_file.write('Level\t#Reads\n')
-    for i in xrange(7):
+    for i in xrange(max_lca_length):
         args.output_file.write('{0}\t{1}\n'.format(i+1, lca_level_count_list[i]))
     args.output_file.write('\n')
     
@@ -240,7 +233,7 @@ if __name__ == '__main__':
             args.output_file.write('Node strings ')
         args.output_file.write('LCA level distribution:\n')
         args.output_file.write('Level\t#Reads\n')
-        for i in xrange(7):
+        for i in xrange(max_lca_length):
             args.output_file.write('{0}\t{1}\n'.format(i+1, lca_level_count_by_category_list[category][i]))
         args.output_file.write('\n')
     
@@ -250,7 +243,7 @@ if __name__ == '__main__':
         args.output_file.write('\nTest dataset Stats\n\n')
         args.output_file.write('Global LCA prediction compatible with true taxo:\n')
         args.output_file.write('Level\t#Pos\t#Neg\t#Total\t%Pos\n')
-        for i in xrange(7):
+        for i in xrange(max_lca_length):
             args.output_file.write('{}\t{}\t{}\t{}'.format(i+1, 
                                                            true_taxo_level_count_list[i][0], 
                                                            true_taxo_level_count_list[i][1], 
@@ -273,7 +266,7 @@ if __name__ == '__main__':
                 args.output_file.write('Node strings ')
             args.output_file.write('LCA prediction compatible with true taxo:\n')
             args.output_file.write('Level\t#Pos\t#Neg\t#Total\t%Pos\n')
-            for i in xrange(7):
+            for i in xrange(max_lca_length):
                 args.output_file.write('{}\t{}\t{}\t{}'.format(i+1, 
                                                                true_taxo_level_count_by_category_list[category][i][0], 
                                                                true_taxo_level_count_by_category_list[category][i][1], 
