@@ -316,6 +316,7 @@ if __name__ == '__main__':
     
     input_fastx_filename = args.input_fastx.split('/')[-1]
     input_fastx_basename = '.'.join(input_fastx_filename.split('.')[:-1])
+    input_fastx_extension = input_fastx_filename.split('.')[-1]
     
     #
     steps_set = frozenset(args.steps)
@@ -738,7 +739,7 @@ if __name__ == '__main__':
                 
                 # Generate a fastq file with this component reads
                 cmd_line = fastq_name_filter_bin + ' -f reads_one_contig.ids'
-                cmd_line += ' -i ../' + sortme_output_basename + '.fastq'
+                cmd_line += ' -i ../' + sortme_output_basename + '.' + input_fastx_extension
                 cmd_line += ' -o reads_one_contig.fq'
                 
                 #~ sys.stdout.write('CMD: {0}\n'.format(cmd_line))
