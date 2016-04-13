@@ -100,7 +100,11 @@ def compute_lca(factor_taxo_list, min_proportion):
                 break
             lca_tab = cur_lca_tab
     
-    return ';'.join(lca_tab)
+    lca = ';'.join(lca_tab)
+    if not lca:
+        lca = 'Root'
+    
+    return lca
 
 
 if __name__ == '__main__':
