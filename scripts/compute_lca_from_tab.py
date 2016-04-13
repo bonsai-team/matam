@@ -151,18 +151,18 @@ if __name__ == '__main__':
         factor_title = header_tab[args.factor]
         args.output_tab.write('{0};LCA\n'.format(factor_title))
     
-    # 
+    #     
     for factor_tab_list in read_tab_file_handle_sorted(args.input_tab, args.factor, args.group_by, args.separator):
         factor_id = factor_tab_list[0][0][args.factor]
-        factor_taxo_list = list()
         #~ print factor_id
+        factor_taxo_list = list()
+        #
         for group_by_tab_list in factor_tab_list:
             group_by_taxo_list = list()
             for group_by_tab in group_by_tab_list:
                 group_by_taxo_list.append(group_by_tab[args.taxo])
             factor_taxo_list.append(group_by_taxo_list)
             #~ print "\t", group_by_taxo_list
-        #~ print factor_taxo_list, "\n\n\n"
         lca = compute_lca(factor_taxo_list, args.min_proportion)
         args.output_tab.write('{0}'.format(factor_id))
         if args.separator:
@@ -170,7 +170,6 @@ if __name__ == '__main__':
         else:
             args.output_tab.write("\t")
         args.output_tab.write('{0}\n'.format(lca))
-        #~ print
         
     exit(0)
     
