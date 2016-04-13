@@ -13,6 +13,7 @@ sumaclust_bin = matam_dir + '/bin/sumaclust'
 extract_taxo_bin = matam_dir + '/bin/extract_taxo_from_fasta.py'
 clean_name_bin = matam_dir + '/bin/fasta_clean_name.py'
 fasta_name_filter_bin = matam_dir + '/bin/fasta_name_filter.py'
+fasta_length_filter_bin = matam_dir + '/bin/fasta_length_filter.py'
 fastq_name_filter_bin = matam_dir + '/bin/fastq_name_filter.py'
 indexdb_bin = matam_dir + '/bin/indexdb_rna'
 sortmerna_bin = matam_dir + '/bin/sortmerna'
@@ -659,11 +660,22 @@ if __name__ == '__main__':
     
     ##########################
     # STEP 7: Contigs Assembly
-    if args.output_contigs == 'DEFAULTNAME':
-        args.output_contigs = contigsearch_basename + '.sga_by_component.fasta'
-    sga_log_filename = contigsearch_basename + '.sga_by_component.log'
-    sga_wkdir = contigsearch_basename + '.sga'
+    assembly_program = 'sga'
     
+    assembly_contigs_basename = contigsearch_basename + '.'
+    assembly_contigs_basename += assembly_program + '_by_component'
+    assembly_contigs_filename = assembly_contigs_basename + '.fasta'
+    assembly_log_filename = assembly_contigs_basename + '.log'
+    
+    contig_min_length = 500
+    output_contigs_basename = assembly_contigs_basename + '.max_' 
+    output_contigs_basename += str(contig_min_length) + 'bp'
+    
+    if args.output_contigs == 'DEFAULTNAME':
+        args.output_contigs = output_contigs_basename + '.fasta'
+    
+    assembly_wkdir = contigsearch_basename + '.' + assembly_program
+        
     if 7 in steps_set:
         sys.stdout.write('## Contigs Assembly (7):\n\n')
         
@@ -689,28 +701,28 @@ if __name__ == '__main__':
         with open(components_lca_filename, 'r') as contig_lca_fh:
             contig_lca_dict = {t[0]: t[1] for t in (l.split() for l in contig_lca_fh) if len(t)==2}
         
-        # Prepare sga wkdir and log file
-        if os.path.exists(sga_log_filename):
-            os.remove(sga_log_filename)
+        # Prepare assembly wkdir and log file
+        if os.path.exists(assembly_log_filename):
+            os.remove(assembly_log_filename)
         
         try:
-            if not os.path.exists(sga_wkdir):
-                os.makedirs(sga_wkdir)
+            if not os.path.exists(assembly_wkdir):
+                os.makedirs(assembly_wkdir)
         except OSError:
-            sys.stderr.write("\nERROR: {0} cannot be created\n\n".format(sga_wkdir))
+            sys.stderr.write("\nERROR: {0} cannot be created\n\n".format(assembly_wkdir))
             raise
         
         # Open output contigs file
-        output_fh = open(args.output_contigs, 'w')
+        assembly_contigs_fh = open(assembly_contigs_filename, 'w')
         
         # Begin reading read-->component file (sorted by component)
         contig_count = 0
         component_count = 0
         
         with open(contig_read_filename, 'r') as contig_read_fh:
-            # We will be working in the sga wkdir because sga generates
-            # lots of files we dont want in our matam wkdir
-            os.chdir(sga_wkdir)
+            # We will be working in the assembly wkdir because assembly tools 
+            # generate lots of files we dont want in our matam wkdir
+            os.chdir(assembly_wkdir)
             
             # Assembling all reads of every component, one at a time
             for contig_tab_list in read_tab_file_handle_sorted(contig_read_fh, 0):
@@ -748,12 +760,12 @@ if __name__ == '__main__':
                 
                 # Assemble those reads with SGA
                 cmd_line = 'echo "component #' + component_id + '" >> ../'
-                cmd_line += sga_log_filename + ' && '
+                cmd_line += assembly_log_filename + ' && '
                 cmd_line += sga_assemble_bin + ' -i reads_one_contig.fq'
                 cmd_line += ' -o contigs.fa --sga_bin ' + sga_bin
                 cmd_line += ' --cpu ' + str(args.cpu)
                 cmd_line += ' --tmp_dir tmp'
-                cmd_line += ' >> ../' + sga_log_filename + ' 2>&1'
+                cmd_line += ' >> ../' + assembly_log_filename + ' 2>&1'
                 
                 #~ sys.stdout.write('CMD: {0}\n'.format(cmd_line))
                 if not args.simulate_only:
@@ -764,17 +776,30 @@ if __name__ == '__main__':
                     component_lca = ''
                     if component_id in contig_lca_dict:
                         component_lca = contig_lca_dict[component_id]
-                    with open('contigs.fa', 'r') as sga_contigs_fh:
-                        for header, seq in read_fasta_file_handle(sga_contigs_fh):
+                    with open('contigs.fa', 'r') as contigs_fh:
+                        for header, seq in read_fasta_file_handle(contigs_fh):
                             if len(seq):
                                 contig_count += 1
-                                output_fh.write('>{0} component={1} '.format(contig_count, component_id))
-                                output_fh.write('lca={0}\n{1}\n'.format(component_lca, format_seq(seq)))
+                                assembly_contigs_fh.write('>{0} component={1} '.format(contig_count, component_id))
+                                assembly_contigs_fh.write('lca={0}\n{1}\n'.format(component_lca, format_seq(seq)))
             
-        sys.stdout.write('\n\nINFO: Assembly contigs in {0}\n\n'.format(args.output_contigs))
+            # Return to upper directory
+            os.chdir('..')
         
-        # Return to upper directory
-        os.chdir('..')
+        # Close assembly contigs file
+        assembly_contigs_fh.close()
+        
+        # Filter assembly by length
+        cmd_line = fasta_length_filter_bin + ' -m ' + str(contig_min_length)
+        cmd_line += ' -i ' + assembly_contigs_filename
+        cmd_line += ' -o ' + args.output_contigs
+        
+        sys.stdout.write('\n\nCMD: {0}\n\n'.format(cmd_line))
+        if not args.simulate_only:
+            subprocess.call(cmd_line, shell=True)
+        
+        #
+        sys.stdout.write('INFO: Assembly contigs in {0}\n\n'.format(args.output_contigs))
     
     #############################
     # STEP 8: Post assembly Stats
