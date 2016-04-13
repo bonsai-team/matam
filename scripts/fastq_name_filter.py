@@ -2,12 +2,12 @@
 # -*- coding: utf-8 -*-
 
 """
-FastqNameFilter
+fastq_name_filter
 
 Description: Filter a fastq file based on a string to find in the
                sequences headers
 
-  fastqNameFilter.py -i input.fq -o output.fq -s "stringtofind"
+  fastq_name_filter.py -i input.fq -o output.fq -s "stringtofind"
 
 -----------------------------------------------------------------------
 
