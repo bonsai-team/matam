@@ -61,6 +61,7 @@ def read_tab_file_handle_sorted(tab_file_handle, factor_index, group_by_index, s
         previous_factor_id = current_factor
         previous_group_by_id = current_group_by
     # Yield the last tab list
+    factor_tab_list.append(group_by_tab_list)
     yield factor_tab_list
     # Close tab file
     tab_file_handle.close()
