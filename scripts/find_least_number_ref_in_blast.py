@@ -37,77 +37,67 @@ if __name__ == '__main__':
     parser.add_argument('-i', '--input_tab', metavar='INBLAST', 
                         type=argparse.FileType('r'), default='-',
                         help='Input blast tab file')
+    parser.add_argument('-s', '--sorted_tab', metavar='INSORTED', 
+                        type=argparse.FileType('r'), required=True,
+                        help='Input blast tab file, sorted by subject')
     parser.add_argument('-o', '--output_tab', metavar='OUTBLAST', 
                         type=argparse.FileType('w'), default='-',
                         help='Ouput filtered blast tab file')
-    parser.add_argument('', '--sam', metavar='OUTSAM', 
+    parser.add_argument('--sam', metavar='OUTSAM', 
                         type=argparse.FileType('w'),
                         help='Ouput filtered sam file')
     args = parser.parse_args()
     
     #
-    subject_alignments_dict = defaultdict(list)
     subject_query_num_dict = defaultdict(int)
-    subject_pident_length_dict = defaultdict(list)
-    subject_length_dict = dict()
+    subject_coverage_length_dict = dict()
+    subject_average_pident_dict = dict()
     
     #
-    for tab in [l.split() for l in args.input_tab]:
-        
-        # Blast tab parsing
-        #~ qseqid = tab[0]
-        sseqid = tab[1]
-        pident = float(tab[2])
-        length = int(tab[3])
-        #~ mismatch = int(tab[4])
-        #~ gapopen = int(tab[5])
-        #~ qstart = int(tab[6])
-        #~ qend = int(tab[7])
-        sstart = int(tab[8])
-        send = int(tab[9])
-        evalue = float(tab[10])
-        #~ bitscore = float(tab[11])
-        qlen = int(tab[12])
-        slen = int(tab[13])
-        revcomp = (sstart > send)
-        
+    for tab_list in read_tab_file_handle_sorted(args.sorted_tab, 1):
+        # Get subject ID
+        sseqid = tab_list[0][1]
+        slen = int(tab_list[0][13])
+        # Variables initialization
+        alignments_list = list()
+        pident_length_list = list()
         #
-        if sseqid not in subject_length_dict:
-            subject_length_dict[sseqid] = slen
+        for tab in tab_list:
+            # Blast tab parsing
+            #~ qseqid = tab[0]
+            #~ sseqid = tab[1]
+            pident = float(tab[2])
+            length = int(tab[3])
+            #~ mismatch = int(tab[4])
+            #~ gapopen = int(tab[5])
+            #~ qstart = int(tab[6])
+            #~ qend = int(tab[7])
+            sstart = int(tab[8])
+            send = int(tab[9])
+            evalue = float(tab[10])
+            #~ bitscore = float(tab[11])
+            qlen = int(tab[12])
+            #~ slen = int(tab[13])
+            revcomp = (sstart > send)
+            
+            #
+            #~ if length >= (0.8 * qlen) and pident >= 80.0:
+            if revcomp:
+                alignments_list.append((send, sstart))
+            else:
+                alignments_list.append((sstart, send))
+            
+            subject_query_num_dict[sseqid] += 1
+            pident_length_list.append((pident, length))
         
-        #
-        #~ if length >= (0.8 * qlen) and pident >= 80.0:
-        if revcomp:
-            subject_alignments_dict[sseqid].append((send, sstart))
-        else:
-            subject_alignments_dict[sseqid].append((sstart, send))
-        
-        subject_query_num_dict[sseqid] += 1
-        
-        subject_pident_length_dict[sseqid].append((pident, length))
-    
-    
-    # Find query_num min and max
-    min_query_num = min(subject_query_num_dict.itervalues())
-    max_query_num = max(subject_query_num_dict.itervalues())
-    
-    print "min max query_num: ", min_query_num, max_query_num
-    
-    # Sort the alignments by starting position
-    for sseqid in subject_alignments_dict:
-        subject_alignments_dict[sseqid].sort(key=lambda x: x[0])
-    
-    # Compute the subjects coverage
-    subject_coverage_length_dict = dict()
-    
-    for sseqid, alignment_list in subject_alignments_dict.items():
-        slen = subject_length_dict[sseqid]
-        
+        # Compute coverage length
         interval_start_pos = 0
         interval_end_pos = 0
         coverage_length = 0
-        
-        for start_pos, end_pos in alignment_list:
+        #
+        alignments_list.sort(key=lambda x: x[0])
+        #
+        for start_pos, end_pos in alignments_list:
             #~ print start_pos, end_pos, interval_start_pos, interval_end_pos, coverage_length
             if start_pos > interval_end_pos:
                 if interval_end_pos:
@@ -118,20 +108,10 @@ if __name__ == '__main__':
                 interval_end_pos = end_pos
         coverage_length += (interval_end_pos - interval_start_pos) + 1
         coverage_length_percent = coverage_length * 100.0 / slen
-        
         #~ print sseqid, slen, coverage_length, coverage_length_percent, alignment_list
-        
         subject_coverage_length_dict[sseqid] = coverage_length_percent
-    
-    min_coverage_length = min(subject_coverage_length_dict.itervalues())
-    max_coverage_length = max(subject_coverage_length_dict.itervalues())
-    
-    print "min max coverage_length :", min_coverage_length, max_coverage_length
-    
-    # Compute the average pident for each subject
-    subject_average_pident_dict = dict()
-    
-    for sseqid, pident_length_list in subject_pident_length_dict.items():
+        
+        # Compute average pident
         sum_length = 0
         sum_weighted_pident = 0.0
         for pident, length in pident_length_list:
@@ -140,15 +120,26 @@ if __name__ == '__main__':
         average_pident = float(sum_weighted_pident) / sum_length
         subject_average_pident_dict[sseqid] = average_pident
     
-        #~ print sseqid, sum_length, sum_weighted_pident, average_pident, pident_length_list
     
+    # Find query_num min and max
+    min_query_num = min(subject_query_num_dict.itervalues())
+    max_query_num = max(subject_query_num_dict.itervalues())
+    
+    print "min max query_num: ", min_query_num, max_query_num
+    
+    #
+    min_coverage_length = min(subject_coverage_length_dict.itervalues())
+    max_coverage_length = max(subject_coverage_length_dict.itervalues())
+    
+    print "min max coverage_length :", min_coverage_length, max_coverage_length
+    
+    #
     min_average_pident = min(subject_average_pident_dict.itervalues())
     max_average_pident = max(subject_average_pident_dict.itervalues())
     
     print "min max average_pident :", min_average_pident, max_average_pident
     
     # Compute the sorting factor
-    
     subject_sorting_factor_dict = dict()
     
     for sseqid, query_num in subject_query_num_dict.items():
@@ -180,9 +171,6 @@ if __name__ == '__main__':
         #~ subject_sorting_factor_dict[sseqid] = sorting_factor
         subject_sorting_factor_dict[sseqid] = norm_sorting_factor
     
-    # Reset input file reading
-    args.input_tab.seek(0)
-    
     # Variable initialisation
     subject_list = list()
     pident_length_list = list()
@@ -190,11 +178,12 @@ if __name__ == '__main__':
     total_query_length = 0
     
     # Sort and find the best alignment
-    for tab_list in read_tab_file_handle_sorted(args.input_tab):
-        #~ tab_list.sort(key = lambda x: subject_coverage_length_dict[x[1]], reverse = True)
-        #~ tab_list.sort(key = lambda x: subject_sorting_factor_dict[x[1]], reverse = True)
+    for tab_list in read_tab_file_handle_sorted(args.input_tab, 0):
+        
+        #
         tab_list.sort(key = lambda x: (-subject_sorting_factor_dict[x[1]], float(x[10])))
         
+        #
         best_tab = tab_list[0]
         
         # Blast tab parsing
@@ -245,7 +234,3 @@ if __name__ == '__main__':
                                            #~ aligned_length_percent,
                                            #~ global_average_pident)
     
-    
-    
-
-
