@@ -44,27 +44,22 @@ def read_tab_file_handle_sorted(tab_file_handle, factor_index, group_by_index, s
     factor_tab_list = list()
     group_by_tab_list = list()
     # Reading tab file
-    for line in tab_file_handle:
-        l = line.strip()
-        if l:
-            tab = l.split(sep)
-            current_factor = tab[factor_index]
-            current_group_by = tab[group_by_index]
-            # Group by
-            if current_group_by != previous_group_by_id:
-                if previous_group_by_id:
-                    #~ print group_by_tab_list
-                    factor_tab_list.append(group_by_tab_list)
-                    group_by_tab_list = list()
-            # Yield the previous factor tab list
-            if current_factor != previous_factor_id:
-                if previous_factor_id:
-                    #~ print "\n\n\n", current_factor, previous_factor_id, "\n\n\n"
-                    yield factor_tab_list
-                    factor_tab_list = list()
-            group_by_tab_list.append(tab)
-            previous_factor_id = current_factor
-            previous_group_by_id = current_group_by
+    for tab in (l.strip().split(sep) for l in tab_file_handle if l.strip()):
+        current_factor = tab[factor_index]
+        current_group_by = tab[group_by_index]
+        # Group by
+        if current_group_by != previous_group_by_id:
+            if previous_group_by_id:
+                factor_tab_list.append(group_by_tab_list)
+                group_by_tab_list = list()
+        # Yield the previous factor tab list
+        if current_factor != previous_factor_id:
+            if previous_factor_id:
+                yield factor_tab_list
+                factor_tab_list = list()
+        group_by_tab_list.append(tab)
+        previous_factor_id = current_factor
+        previous_group_by_id = current_group_by
     # Yield the last tab list
     yield factor_tab_list
     # Close tab file
