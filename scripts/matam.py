@@ -26,6 +26,7 @@ compute_compressed_graph_stats_bin = matam_dir + '/bin/compute_compressed_graph_
 replace_Ns_bin = matam_dir + '/bin/replace_Ns_by_rand_nu.py'
 sort_fasta_bin = matam_dir + '/bin/sort_fasta_by_length.py'
 sga_assemble_bin = matam_dir + '/bin/sga_assemble.py'
+find_least_bin = matam_dir + '/bin/find_least_number_ref_in_blast.py'
 
 
 def read_fasta_file_handle(fasta_file_handle):
@@ -121,7 +122,7 @@ def parse_arguments():
                             type=str, default='DEFAULTNAME',
                             help='Output contigs file (fasta format)')
     group_main.add_argument('-s', '--steps', metavar='INT',
-                            type=int, nargs='+', default=[0,1,2,3,4,5,6,7],
+                            type=int, nargs='+', default=[0,1,2,3,4,5,6,7,8],
                             help='Steps to execute')
     #
     group_perf = parser.add_argument_group('Performance')
@@ -629,9 +630,9 @@ if __name__ == '__main__':
             #~ subprocess.call(cmd_line, shell=True)
         
         #
-        cmd_line = 'cat ' + complete_taxo_filename + ' | sort -k3,3 | '
-        cmd_line += compute_lca_bin + ' -t 4 -f 3 -g 1 -m ' + str(args.quorum) + ' > '
-        cmd_line += components_lca_filename
+        cmd_line = 'cat ' + complete_taxo_filename + ' | sort -k3,3 -k1,1 | '
+        cmd_line += compute_lca_bin + ' -t 4 -f 3 -g 1 -m ' + str(args.quorum)
+        cmd_line += ' -o ' + components_lca_filename
         
         sys.stdout.write('CMD: {0}\n\n'.format(cmd_line))
         if not args.simulate_only:
@@ -648,7 +649,7 @@ if __name__ == '__main__':
             cmd_line += ' --test_dataset'
             cmd_line += ' --species_taxo 16sp.taxo.tab'
             cmd_line += ' --read_node_component ' + read_id_metanode_component_filename
-        cmd_line += ' > ' + stats_filename 
+        cmd_line += ' -o ' + stats_filename 
         
         sys.stdout.write('CMD: {0}\n'.format(cmd_line))
         if not args.simulate_only:
@@ -666,7 +667,7 @@ if __name__ == '__main__':
         sys.stdout.write('## Contigs Assembly (7):\n\n')
         
         # Generate the read_id-->component_id file
-        contig_read_filename = contigsearch_basename + '.contig_read.tab'
+        contig_read_filename = contigsearch_basename + '.component_read.tab'
         
         cmd_line = 'cat ' + contigsearch_basename + '.contigs.tab'
         cmd_line += ' | join -12 -21 - ' + ovgraphbuild_basename + '.nodes.tab'
@@ -676,6 +677,8 @@ if __name__ == '__main__':
         sys.stdout.write('CMD: {0}\n\n'.format(cmd_line))
         if not args.simulate_only:
             subprocess.call(cmd_line, shell=True)
+        
+        # Convert input fastq to tab
         
         # Reading components LCA and storing them in a dict
         sys.stdout.write('INFO: Reading components LCA assignment from {0}\n\n'.format(components_lca_filename))
@@ -735,7 +738,7 @@ if __name__ == '__main__':
                 
                 # Generate a fastq file with this component reads
                 cmd_line = fastq_name_filter_bin + ' -f reads_one_contig.ids'
-                cmd_line += ' -i ../' + args.input_fastx
+                cmd_line += ' -i ../' + sortme_output_basename + '.fastq'
                 cmd_line += ' -o reads_one_contig.fq'
                 
                 #~ sys.stdout.write('CMD: {0}\n'.format(cmd_line))
@@ -776,23 +779,44 @@ if __name__ == '__main__':
     # STEP 8: Post assembly Stats
     contig_assembly_filename = args.output_contigs.split('/')[-1]
     contig_assembly_basename = '.'.join(contig_assembly_filename.split('.')[:-1])
-    max_target_seqs = 1
+    max_target_seqs = 100000
+    #~ blast_task = 'megablast'
+    blast_task = 'blastn'
+    
+    blast_output_basename = contig_assembly_basename + '.' + blast_task + '_vs_'
+    blast_output_basename += clustered_ref_db_basename + '.max_target_seqs_'
+    blast_output_basename += str(max_target_seqs)
     
     if 8 in steps_set:
         sys.stdout.write('## Post assembly Stats (8):\n\n')
         
-        blast_output_filename = contig_assembly_basename + '.blastn_vs_'
-        blast_output_filename += clustered_ref_db_basename + '.max_target_seqs_'
-        blast_output_filename += str(max_target_seqs) + '.tab'
+        blast_output_filename = blast_output_basename + '.tab'
         
         #
         cmd_line = 'blastn -query ' + args.output_contigs
-        cmd_line += ' -task blastn -db ' + blast_db_basename
+        cmd_line += ' -task ' + blast_task + ' -db ' + blast_db_basename
         cmd_line += ' -out ' + blast_output_filename + ' -evalue 1e-5'
-        cmd_line += ' -outfmt "6 std qlen" -dust "no"'
+        cmd_line += ' -outfmt "6 std qlen slen" -dust "no"'
         cmd_line += ' -max_target_seqs ' + str(max_target_seqs)
         cmd_line += ' -num_threads ' + str(args.cpu)
             
+        sys.stdout.write('CMD: {0}\n\n'.format(cmd_line))
+        if not args.simulate_only:
+            subprocess.call(cmd_line, shell=True)
+        
+        #
+        cmd_line = 'sort -k2,2 ' + blast_output_filename
+        cmd_line += ' > ' + blast_output_basename + '.sorted_subject.tab'
+        
+        sys.stdout.write('CMD: {0}\n\n'.format(cmd_line))
+        if not args.simulate_only:
+            subprocess.call(cmd_line, shell=True)
+        
+        #
+        cmd_line = find_least_bin + ' -i ' + blast_output_filename
+        cmd_line += ' -s ' + blast_output_basename + '.sorted_subject.tab'
+        cmd_line += ' -o ' + blast_output_basename + '.least_num_ref.tab'
+        
         sys.stdout.write('CMD: {0}\n\n'.format(cmd_line))
         if not args.simulate_only:
             subprocess.call(cmd_line, shell=True)
@@ -810,14 +834,16 @@ if __name__ == '__main__':
             
             # Blast assembly contigs against original sequences
             
-            test_blast_output_filename = contig_assembly_basename + '.blastn_vs_16sp'
-            test_blast_output_filename += '.max_target_seqs_' + str(max_target_seqs) + '.tab'
+            test_blast_output_filename = contig_assembly_basename + '.' + blast_task + '_vs_16sp'
+            #~ test_blast_output_filename += '.max_target_seqs_' + str(max_target_seqs) + '.tab'
+            test_blast_output_filename += '.max_target_seqs_1.tab'
             
             cmd_line = 'blastn -query ' + args.output_contigs
-            cmd_line += ' -task blastn -db ' + blast_db_directory + '/16sp'
+            cmd_line += ' -task ' + blast_task + ' -db ' + blast_db_directory + '/16sp'
             cmd_line += ' -out ' + test_blast_output_filename + ' -evalue 1e-5'
             cmd_line += ' -outfmt "6 std qlen slen" -dust "no"'
-            cmd_line += ' -max_target_seqs ' + str(max_target_seqs)
+            #~ cmd_line += ' -max_target_seqs ' + str(max_target_seqs)
+            cmd_line += ' -max_target_seqs 1'
             cmd_line += ' -num_threads ' + str(args.cpu)
             
             sys.stdout.write('CMD: {0}\n\n'.format(cmd_line))
