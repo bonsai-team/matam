@@ -837,13 +837,11 @@ if __name__ == '__main__':
     
     #############################
     # STEP 8: Post assembly Stats
-    contig_assembly_filename = args.output_contigs.split('/')[-1]
-    contig_assembly_basename = '.'.join(contig_assembly_filename.split('.')[:-1])
-    max_target_seqs = 100000
+    max_target_seqs = 10000
     #~ blast_task = 'megablast'
     blast_task = 'blastn'
     
-    blast_output_basename = contig_assembly_basename + '.' + blast_task + '_vs_'
+    blast_output_basename = assembly_contigs_basename + '.' + blast_task + '_vs_'
     blast_output_basename += clustered_ref_db_basename + '.max_target_seqs_'
     blast_output_basename += str(max_target_seqs)
     
@@ -853,16 +851,16 @@ if __name__ == '__main__':
         blast_output_filename = blast_output_basename + '.tab'
         
         #
-        cmd_line = 'blastn -query ' + args.output_contigs
+        cmd_line = 'blastn -query ' + assembly_contigs_filename
         cmd_line += ' -task ' + blast_task + ' -db ' + blast_db_basename
-        cmd_line += ' -out ' + blast_output_filename + ' -evalue 1e-5'
+        cmd_line += ' -out ' + blast_output_filename + ' -evalue 1e-10'
         cmd_line += ' -outfmt "6 std qlen slen" -dust "no"'
         cmd_line += ' -max_target_seqs ' + str(max_target_seqs)
         cmd_line += ' -num_threads ' + str(args.cpu)
             
-        sys.stdout.write('CMD: {0}\n\n'.format(cmd_line))
-        if not args.simulate_only:
-            subprocess.call(cmd_line, shell=True)
+        #~ sys.stdout.write('CMD: {0}\n\n'.format(cmd_line))
+        #~ if not args.simulate_only:
+            #~ subprocess.call(cmd_line, shell=True)
         
         #
         cmd_line = 'sort -k2,2 ' + blast_output_filename
@@ -887,28 +885,28 @@ if __name__ == '__main__':
             cmd_line = 'makeblastdb -in 16sp.fasta -dbtype nucl '
             cmd_line += '-out ' + blast_db_directory + '/16sp'
             
-            sys.stdout.write('CMD: {0}'.format(cmd_line))
-            if not args.simulate_only:
-                subprocess.call(cmd_line, shell=True)
+            #~ sys.stdout.write('CMD: {0}'.format(cmd_line))
+            #~ if not args.simulate_only:
+                #~ subprocess.call(cmd_line, shell=True)
             sys.stdout.write('\n')
             
             # Blast assembly contigs against original sequences
             
-            test_blast_output_filename = contig_assembly_basename + '.' + blast_task + '_vs_16sp'
+            test_blast_output_filename = assembly_contigs_basename + '.' + blast_task + '_vs_16sp'
             #~ test_blast_output_filename += '.max_target_seqs_' + str(max_target_seqs) + '.tab'
             test_blast_output_filename += '.max_target_seqs_1.tab'
             
-            cmd_line = 'blastn -query ' + args.output_contigs
+            cmd_line = 'blastn -query ' + assembly_contigs_filename
             cmd_line += ' -task ' + blast_task + ' -db ' + blast_db_directory + '/16sp'
-            cmd_line += ' -out ' + test_blast_output_filename + ' -evalue 1e-5'
+            cmd_line += ' -out ' + test_blast_output_filename + ' -evalue 1e-10'
             cmd_line += ' -outfmt "6 std qlen slen" -dust "no"'
             #~ cmd_line += ' -max_target_seqs ' + str(max_target_seqs)
             cmd_line += ' -max_target_seqs 1'
             cmd_line += ' -num_threads ' + str(args.cpu)
             
-            sys.stdout.write('CMD: {0}\n\n'.format(cmd_line))
-            if not args.simulate_only:
-                subprocess.call(cmd_line, shell=True)
+            #~ sys.stdout.write('CMD: {0}\n\n'.format(cmd_line))
+            #~ if not args.simulate_only:
+                #~ subprocess.call(cmd_line, shell=True)
     
     exit(0)
 
