@@ -120,7 +120,6 @@ if __name__ == '__main__':
         average_pident = float(sum_weighted_pident) / sum_length
         subject_average_pident_dict[sseqid] = average_pident
     
-    
     # Find query_num min and max
     min_query_num = min(subject_query_num_dict.itervalues())
     max_query_num = max(subject_query_num_dict.itervalues())
@@ -156,11 +155,11 @@ if __name__ == '__main__':
         #~ sorting_factor = query_num * average_pident # 14, 93.08%, 89.70%
         #~ sorting_factor = query_num * coverage_length_percent # 16, 93.31%, 88.52%
         #~ sorting_factor = coverage_length_percent * average_pident # 15, 90.32%, 92.17%
-        #~ sorting_factor = query_num * coverage_length_percent * average_pident # 14, 93.12%, 89.70%
+        sorting_factor = query_num * coverage_length_percent * average_pident # 14, 93.12%, 89.70%
         
-        norm_query_num = float(query_num - min_query_num)/max_query_num
-        norm_coverage_length_percent = float(coverage_length_percent - min_coverage_length)/max_coverage_length
-        norm_average_pident = float(average_pident - min_average_pident)/max_average_pident
+        norm_query_num = float(query_num - min_query_num)/(max_query_num - min_query_num)
+        norm_coverage_length_percent = float(coverage_length_percent - min_coverage_length)/(max_coverage_length - min_coverage_length)
+        norm_average_pident = float(average_pident - min_average_pident)/(max_average_pident - min_average_pident)
         
         norm_sorting_factor = norm_query_num * norm_coverage_length_percent * norm_average_pident # 9, 90.46%, 93.03%
         #~ norm_sorting_factor = norm_query_num * norm_coverage_length_percent**1.2 * norm_average_pident**0.8 # 11, 91.03%, 93.09%
