@@ -107,36 +107,70 @@ def parse_arguments():
     """
     Parse the command line, and check if arguments are correct
     """
-    #
+    # Initiate argument parser
     parser = DefaultHelpParser(description='matam',
                                # to precisely format help display
                                formatter_class=lambda prog: argparse.HelpFormatter(prog, width=120, max_help_position=80))
-    #
+    
+    # Main parameters
     group_main = parser.add_argument_group('Main Parameters')
-    group_main.add_argument('-i', '--input_fastx', metavar='FASTX', 
-                            type=str, required=True,
+    # -i / --input_fastx
+    group_main.add_argument('-i', '--input_fastx', 
+                            action='store',
+                            metavar='FASTX', 
+                            type=str, 
+                            required=True,
                             help='Input reads file (fasta or fastq format)')
-    group_main.add_argument('-d', '--ref_db', metavar='FASTA',
-                            type=str, required=True,
-                            help='Reference database (fasta format, with Silva taxo headers)')
-    group_main.add_argument('-o', '--output_contigs', metavar='OUTPUT', 
-                            type=str, default='DEFAULTNAME',
+    # -d / --ref_db
+    group_main.add_argument('-d', '--ref_db', 
+                            action='store',
+                            metavar='FASTA',
+                            type=str, 
+                            required=True,
+                            help="Reference database "
+                                 "(fasta format, with Silva taxo headers)")
+    # -o / --output_contigs
+    group_main.add_argument('-o', '--output_contigs', 
+                            action='store',
+                            metavar='OUTPUT', 
+                            type=str, 
+                            default='DEFAULTNAME',
                             help='Output contigs file (fasta format)')
-    group_main.add_argument('-s', '--steps', metavar='INT',
-                            type=int, nargs='+', default=[0,1,2,3,4,5,6,7,8],
-                            help='Steps to execute')
-    #
+    # -s / --steps
+    group_main.add_argument('-s', '--steps', 
+                            action='store',
+                            metavar='INT',
+                            type=int, 
+                            nargs='+', 
+                            default=[2,3,4,5,6,7,8],
+                            help="Steps to execute. "
+                                 "Default is %(default)s")
+    
+    # Performance parameters
     group_perf = parser.add_argument_group('Performance')
-    group_perf.add_argument('--cpu', metavar='INT',
-                            type=int, default=3,
+    # --cpu
+    group_perf.add_argument('--cpu', 
+                            action='store',
+                            metavar='CPU',
+                            type=int, 
+                            default=3,
                             help='Max number of CPU to use')
-    group_perf.add_argument('--max_memory', metavar='INT',
-                            type=int, default=4000,
-                            help='Maximum memory to use (in MBi). Default is 4000MBi')
-    #
+    # --max_memory
+    group_perf.add_argument('--max_memory', 
+                            action='store',
+                            metavar='MAXMEM',
+                            type=int, 
+                            default=4000,
+                            help="Maximum memory to use (in MBi). "
+                                 "Default is %(default)sMBi")
+    
+    # Step 0: Ref DB pre-processing
     group_db = parser.add_argument_group('Ref DB pre-processing (Step 0)')
-    group_db.add_argument('--remove_Ns', action='store_true',
-                          help='Remove sequences with Ns. (Default is replacing Ns with random nucleotides)')
+    # --remove_Ns
+    group_db.add_argument('--remove_Ns', 
+                          action='store_true',
+                          help="Remove sequences with Ns. "
+                               "Default is replacing Ns with random nucleotides")
     #
     group_clust = parser.add_argument_group('Clustering Ref DB (Step 1)')
     group_clust.add_argument('--clustering_id_threshold', metavar='REAL',
@@ -668,7 +702,7 @@ if __name__ == '__main__':
     assembly_log_filename = assembly_contigs_basename + '.log'
     
     contig_min_length = 500
-    output_contigs_basename = assembly_contigs_basename + '.max_' 
+    output_contigs_basename = assembly_contigs_basename + '.min_' 
     output_contigs_basename += str(contig_min_length) + 'bp'
     
     if args.output_contigs == 'DEFAULTNAME':
