@@ -222,9 +222,28 @@ def parse_arguments():
     group_lca.add_argument('--quorum', metavar='FLOAT',
                            type=float, default=0.51,
                            help='Quorum for LCA computing. Has to be between 0.51 and 1')
-    #
+    
+    # Contig Assembly parameters
     group_ass = parser.add_argument_group('Contig Assembly (Step 7)')
-    #
+    
+    # Post Assembly Stats parameters
+    group_stats = parser.add_argument_group('Post Assembly Stats (Step 8)')
+    # -bt / --blast_task
+    group_stats.add_argument('-bt', '--blast_task',
+                             metavar='TASK',
+                             type=str,
+                             choices=['blastn', 'megablast'],
+                             default='blastn',
+                             help='Blast task (blastn or megablast)')
+    # -be / --blast_evalue
+    group_stats.add_argument('-be', '--blast_evalue',
+                             metavar='FLOAT',
+                             type=float,
+                             default=1e-5,
+                             help='Blast evalue. '
+                                  'Default is %(default)s')
+    
+    # Debug parameters
     group_debug = parser.add_argument_group('Debug')
     group_debug.add_argument('--simulate_only', action='store_true',
                              help='Only output pipeline commands without executing them')
@@ -838,10 +857,8 @@ if __name__ == '__main__':
     #############################
     # STEP 8: Post assembly Stats
     max_target_seqs = 10000
-    #~ blast_task = 'megablast'
-    blast_task = 'blastn'
     
-    blast_output_basename = assembly_contigs_basename + '.' + blast_task + '_vs_'
+    blast_output_basename = assembly_contigs_basename + '.' + args.blast_task + '_vs_'
     blast_output_basename += clustered_ref_db_basename + '.max_target_seqs_'
     blast_output_basename += str(max_target_seqs)
     
@@ -852,15 +869,16 @@ if __name__ == '__main__':
         
         #
         cmd_line = 'blastn -query ' + assembly_contigs_filename
-        cmd_line += ' -task ' + blast_task + ' -db ' + blast_db_basename
-        cmd_line += ' -out ' + blast_output_filename + ' -evalue 1e-10'
+        cmd_line += ' -task ' + args.blast_task + ' -db ' + blast_db_basename
+        cmd_line += ' -out ' + blast_output_filename
+        cmd_line += ' -evalue ' + str(args.blast_evalue)
         cmd_line += ' -outfmt "6 std qlen slen" -dust "no"'
         cmd_line += ' -max_target_seqs ' + str(max_target_seqs)
         cmd_line += ' -num_threads ' + str(args.cpu)
             
-        #~ sys.stdout.write('CMD: {0}\n\n'.format(cmd_line))
-        #~ if not args.simulate_only:
-            #~ subprocess.call(cmd_line, shell=True)
+        sys.stdout.write('CMD: {0}\n\n'.format(cmd_line))
+        if not args.simulate_only:
+            subprocess.call(cmd_line, shell=True)
         
         #
         cmd_line = 'sort -k2,2 ' + blast_output_filename
@@ -885,9 +903,9 @@ if __name__ == '__main__':
             cmd_line = 'makeblastdb -in 16sp.fasta -dbtype nucl '
             cmd_line += '-out ' + blast_db_directory + '/16sp'
             
-            #~ sys.stdout.write('CMD: {0}'.format(cmd_line))
-            #~ if not args.simulate_only:
-                #~ subprocess.call(cmd_line, shell=True)
+            sys.stdout.write('CMD: {0}'.format(cmd_line))
+            if not args.simulate_only:
+                subprocess.call(cmd_line, shell=True)
             sys.stdout.write('\n')
             
             # Blast assembly contigs against original sequences
@@ -897,16 +915,17 @@ if __name__ == '__main__':
             test_blast_output_filename += '.max_target_seqs_1.tab'
             
             cmd_line = 'blastn -query ' + assembly_contigs_filename
-            cmd_line += ' -task ' + blast_task + ' -db ' + blast_db_directory + '/16sp'
-            cmd_line += ' -out ' + test_blast_output_filename + ' -evalue 1e-10'
+            cmd_line += ' -task ' + args.blast_task + ' -db ' + blast_db_directory + '/16sp'
+            cmd_line += ' -out ' + test_blast_output_filename
+            cmd_line += ' -evalue ' + str(args.blast_evalue)
             cmd_line += ' -outfmt "6 std qlen slen" -dust "no"'
             #~ cmd_line += ' -max_target_seqs ' + str(max_target_seqs)
             cmd_line += ' -max_target_seqs 1'
             cmd_line += ' -num_threads ' + str(args.cpu)
             
-            #~ sys.stdout.write('CMD: {0}\n\n'.format(cmd_line))
-            #~ if not args.simulate_only:
-                #~ subprocess.call(cmd_line, shell=True)
+            sys.stdout.write('CMD: {0}\n\n'.format(cmd_line))
+            if not args.simulate_only:
+                subprocess.call(cmd_line, shell=True)
     
     exit(0)
 
