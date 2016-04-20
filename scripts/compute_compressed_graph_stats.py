@@ -93,7 +93,7 @@ if __name__ == '__main__':
     parser.add_argument('--species_taxo', metavar='IN_FILE',
                         type=argparse.FileType('r'),
                         help='Test species taxonomies')
-    parser.add_argument('--read_node_unitig', metavar='IN_FILE',
+    parser.add_argument('--read_node_component', metavar='IN_FILE',
                         type=argparse.FileType('r'),
                         help='')
     parser.add_argument('--test_dataset', action='store_true',
@@ -169,12 +169,12 @@ if __name__ == '__main__':
         total_reads_num = 0
         
         #
-        read_node_unitig_tabs = (l.split() for l in args.read_node_unitig if l.strip())
-        for read_node_unitig_tab in read_node_unitig_tabs:
+        read_node_component_tabs = (l.split() for l in args.read_node_component if l.strip())
+        for read_node_component_tab in read_node_component_tabs:
             total_reads_num += 1
-            read_name = read_node_unitig_tab[0]
-            node_id = read_node_unitig_tab[2]
-            unitig_id = read_node_unitig_tab[3]
+            read_name = read_node_component_tab[0]
+            node_id = read_node_component_tab[2]
+            unitig_id = read_node_component_tab[3]
             #
             if unitig_id != 'NULL':
                 specie_id = read_name[:3]
