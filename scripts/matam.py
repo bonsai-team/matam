@@ -209,14 +209,22 @@ def parse_arguments():
                            help='Minimum length of an overlap')
     group_ovg.add_argument('--multi', action='store_true',
                            help='Use multi-ref mode')
-    #
-    group_gcomp = parser.add_argument_group('Graph Compaction & Contig Identification (Step 5)')
-    group_gcomp.add_argument('--min_read_node', metavar='INT',
-                             type=int, default=1,
+    
+    # Graph Compaction & Components Identification Parameters
+    group_gcomp = parser.add_argument_group('Graph Compaction & Components Identification (Step 5)')
+    # -N / --min_read_node
+    group_gcomp.add_argument('-N', '--min_read_node', 
+                             metavar='INT',
+                             type=int, 
+                             default=2,
                              help='Minimum number of read to keep a node')
-    group_gcomp.add_argument('--min_overlap_edge', metavar='INT',
-                             type=int, default=1,
+    # -E / --min_overlap_edge
+    group_gcomp.add_argument('-E', '--min_overlap_edge', 
+                             metavar='INT',
+                             type=int, 
+                             default=1,
                              help='Minimum number of overlap to keep an edge')
+    
     #
     group_lca = parser.add_argument_group('LCA Labelling (Step 6)')
     group_lca.add_argument('--quorum', metavar='FLOAT',
