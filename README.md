@@ -10,7 +10,7 @@
 
 ### ovgraphbuild
 
-* gcc v4.9.0 or superior (full C++11 support, <regex> included)
+* gcc v4.9.0 or superior (full C++11 support, \<regex\> included)
 * libraries: rt, pthread, zlib
 * Seqan v2.0.1 or superior (provided as a submodule of ovgraphbuild)
 
