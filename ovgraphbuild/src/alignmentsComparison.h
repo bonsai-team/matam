@@ -99,7 +99,7 @@ std::string unfoldCigar(seqan::String<seqan::CigarElement<> > const &);
 /******************************************************************************
 
 ******************************************************************************/
-void initializeUnfoldedCigarIt(std::string::const_iterator &,
+void initializeUnfoldedCigarIt(std::string::iterator &,
                                seqan::Iterator<const seqan::String<seqan::Iupac> >::Type &);
 
 /******************************************************************************
@@ -108,7 +108,7 @@ void initializeUnfoldedCigarIt(std::string::const_iterator &,
 int32_t simpleParcours(int32_t &,
 //                       seqan::Iter<const seqan::String<seqan::SimpleType<unsigned char, seqan::Iupac_>, seqan::Alloc<> >, seqan::AdaptorIterator<const seqan::SimpleType<unsigned char, seqan::Iupac_>*, seqan::Tag<seqan::Default_> > > &,
                        seqan::Iterator<const seqan::String<seqan::Iupac> >::Type &,
-                       std::string::const_iterator &,
+                       std::string::iterator &,
                        int32_t const);
 
 /******************************************************************************
@@ -118,8 +118,8 @@ void doubleParcours(OverlapStatistics &,
                     int32_t &,
                     seqan::Iterator<const seqan::String<seqan::Iupac> >::Type &,
                     seqan::Iterator<const seqan::String<seqan::Iupac> >::Type &,
-                    std::string::const_iterator &,
-                    std::string::const_iterator &,
+                    std::string::iterator &,
+                    std::string::iterator &,
                     int32_t const,
                     AlphaOptions const &);
 

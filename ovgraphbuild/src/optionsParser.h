@@ -44,7 +44,8 @@ struct AlphaOptions
     Parse the command line to retrieve the options
     as seen in http://seqan.readthedocs.org/en/seqan-v2.0.0/Tutorial/ParsingCommandLineArguments.html
 ***************************************************************************************/
-auto parseCommandLine(AlphaOptions &, int, char const **);
+seqan::ArgumentParser::ParseResult
+parseCommandLine(AlphaOptions &, int, char const **);
 
 /***************************************************************************************
     Print all the debug and verbose info at the start of the program, after

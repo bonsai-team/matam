@@ -83,10 +83,10 @@ void buildCompatibilityGraph(TGraph &graph,
     }
 
     // Start the nested loop
-    auto bamRecordBufferItI = std::cbegin(bamRecordBuffer);
-    auto const bamRecordBufferEndItI = std::cend(bamRecordBuffer)-1;
+    auto bamRecordBufferItI = std::begin(bamRecordBuffer);
+    auto const bamRecordBufferEndItI = std::end(bamRecordBuffer)-1;
     auto bamRecordBufferItJ = bamRecordBufferItI+1;
-    auto const bamRecordBufferEndItJ = std::cend(bamRecordBuffer);
+    auto const bamRecordBufferEndItJ = std::end(bamRecordBuffer);
 
     int64_t i=0, j=1;
 

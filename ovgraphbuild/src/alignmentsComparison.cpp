@@ -208,8 +208,8 @@ void computeOverlapOnSameRef(OverlapStatistics &ovStats,
     auto unfoldedCigarI = unfoldCigar(cigarI);
     auto unfoldedCigarJ = unfoldCigar(cigarJ);
 
-    auto unfoldedCigarItI = std::cbegin(unfoldedCigarI);
-    auto unfoldedCigarItJ = std::cbegin(unfoldedCigarJ);
+    auto unfoldedCigarItI = std::begin(unfoldedCigarI);
+    auto unfoldedCigarItJ = std::begin(unfoldedCigarJ);
 
     initializeUnfoldedCigarIt(unfoldedCigarItI, seqItI);
     initializeUnfoldedCigarIt(unfoldedCigarItJ, seqItJ);
@@ -282,7 +282,7 @@ std::string unfoldCigar(seqan::String<seqan::CigarElement<> > const &cigar)
 /******************************************************************************
 
 ******************************************************************************/
-void initializeUnfoldedCigarIt(std::string::const_iterator &unfoldedCigarIt,
+void initializeUnfoldedCigarIt(std::string::iterator &unfoldedCigarIt,
                                seqan::Iterator<const seqan::String<seqan::Iupac> >::Type &seqIt)
 {
     int softClippedNuclNum = 0;
@@ -302,7 +302,7 @@ void initializeUnfoldedCigarIt(std::string::const_iterator &unfoldedCigarIt,
 int32_t simpleParcours(int32_t &refPosition,
 //                       seqan::Iter<const seqan::String<seqan::SimpleType<unsigned char, seqan::Iupac_>, seqan::Alloc<> >, seqan::AdaptorIterator<const seqan::SimpleType<unsigned char, seqan::Iupac_>*, seqan::Tag<seqan::Default_> > > &seqIt,
                        seqan::Iterator<const seqan::String<seqan::Iupac> >::Type &seqIt,
-                       std::string::const_iterator &unfoldedCigarIt,
+                       std::string::iterator &unfoldedCigarIt,
                        int32_t const refPositionEnd)
 {
 //    std::cerr << "I'm in " << __FUNCTION__ << "\n";
@@ -345,8 +345,8 @@ void doubleParcours(OverlapStatistics &ovStats,
                     int32_t &refPosition,
                     seqan::Iterator<const seqan::String<seqan::Iupac> >::Type &seqItI,
                     seqan::Iterator<const seqan::String<seqan::Iupac> >::Type &seqItJ,
-                    std::string::const_iterator &unfoldedCigarItI,
-                    std::string::const_iterator &unfoldedCigarItJ,
+                    std::string::iterator &unfoldedCigarItI,
+                    std::string::iterator &unfoldedCigarItJ,
                     int32_t const refPositionEnd,
                     AlphaOptions const &options)
 {
@@ -580,8 +580,8 @@ void computeBlocOverlapOnDifferentRefs(OverlapStatistics &ovStats,
 
 //    int i=0;
 
-    auto transitionVectorIt = std::cbegin(transitionVector);
-    auto const transitionVectorItEnd = std::cend(transitionVector);
+    auto transitionVectorIt = std::begin(transitionVector);
+    auto const transitionVectorItEnd = std::end(transitionVector);
 
     while (transitionVectorIt != transitionVectorItEnd
            && ((endPosOnRefI >= transitionVectorIt->startPosA)
@@ -679,14 +679,14 @@ void computeOverlapOnDifferentRefs(OverlapStatistics &ovStats,
     auto unfoldedCigarI = unfoldCigar(bamRecordI.cigar);
     auto unfoldedCigarJ = unfoldCigar(bamRecordJ.cigar);
 
-    auto unfoldedCigarItI = std::cbegin(unfoldedCigarI);
-    auto unfoldedCigarItJ = std::cbegin(unfoldedCigarJ);
+    auto unfoldedCigarItI = std::begin(unfoldedCigarI);
+    auto unfoldedCigarItJ = std::begin(unfoldedCigarJ);
 
     initializeUnfoldedCigarIt(unfoldedCigarItI, seqItI);
     initializeUnfoldedCigarIt(unfoldedCigarItJ, seqItJ);
 
-    auto transitionVectorIt = std::cbegin(transitionVector);
-    auto const transitionVectorItEnd = std::cend(transitionVector);
+    auto transitionVectorIt = std::begin(transitionVector);
+    auto const transitionVectorItEnd = std::end(transitionVector);
 
     auto conservedBloc = *transitionVectorIt;
 

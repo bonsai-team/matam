@@ -4,7 +4,8 @@
     Parse the command line to retrieve the options
     as seen in http://seqan.readthedocs.org/en/seqan-v2.0.0/Tutorial/ParsingCommandLineArguments.html
 ***************************************************************************************/
-auto parseCommandLine(AlphaOptions &options, int argc, char const **argv)
+seqan::ArgumentParser::ParseResult
+parseCommandLine(AlphaOptions &options, int argc, char const **argv)
 {
     // Setup ArgumentParser.
     seqan::ArgumentParser parser("ovgraphbuild");
