@@ -20,7 +20,7 @@ sortmerna_bin = matam_dir + '/bin/sortmerna'
 sga_bin = matam_dir + '/bin/sga'
 filter_score_bin = matam_dir + '/bin/filter_score_multialign.py'
 ovgraphbuild_bin = matam_dir + '/bin/ovgraphbuild'
-contigsearch_jar = matam_dir + '/bin/ContigSearch.jar'
+componentsearch_jar = matam_dir + '/bin/ComponentSearch.jar'
 compute_lca_bin = matam_dir + '/bin/compute_lca_from_tab.py'
 compute_stats_lca_bin = matam_dir + '/bin/compute_stats_from_lca.py'
 compute_compressed_graph_stats_bin = matam_dir + '/bin/compute_compressed_graph_stats.py'
@@ -145,6 +145,28 @@ def parse_arguments():
                             default=[2,3,4,5,6,7,8],
                             help="Steps to execute. "
                                  "Default is %(default)s")
+    # --db_wkdir
+    group_main.add_argument('--db_wkdir',
+                            action='store',
+                            metavar='DBDIR',
+                            type=str,
+                            default='.',
+                            help='Working directory for the database.'
+                                 ' Default is cwd')
+    # --wkdir
+    group_main.add_argument('--wkdir',
+                            action='store',
+                            metavar='WKDIR',
+                            type=str,
+                            default='.',
+                            help='Working directory starting from the alignment step.'
+                                 ' Default is cwd')
+    # -v / --verbose
+    group_main.add_argument('-v', '--verbose',
+                            action='count',
+                            default=0,
+                            help='Set verbose level (from 0 to 3) using -vvv or -v -v.')
+    
     
     # Performance parameters
     group_perf = parser.add_argument_group('Performance')
@@ -284,6 +306,10 @@ def parse_arguments():
         parser.print_help()
         raise Exception("quorum not in range [0.51,1]")
     
+    # Arguments improvement
+    args.db_wkdir = os.path.abspath(args.db_wkdir)
+    args.wkdir = os.path.abspath(args.wkdir)
+    
     #
     return args
 
@@ -385,20 +411,24 @@ if __name__ == '__main__':
     
     ###############################
     # STEP 0: Ref DB pre-processing
+    
+    ref_db_taxo_filename = ref_db_basename + '.taxo.tab'
+    ref_db_taxo_filepath = args.db_wkdir + '/' + ref_db_taxo_filename
+    
     cleaned_ref_db_basename = ref_db_basename
     if args.remove_Ns:
         cleaned_ref_db_basename += '_noNs'
     else:
         cleaned_ref_db_basename += '_rdNs'
-    ref_db_taxo_filename = ref_db_basename + '.taxo.tab'
     cleaned_ref_db_filename = cleaned_ref_db_basename + '.cleaned.fasta'
+    cleaned_ref_db_filepath = args.db_wkdir + '/' + cleaned_ref_db_filename
     
     if 0 in steps_set:
         sys.stdout.write('## Ref DB pre-processing step (0):\n\n')
         
         # Extract taxo from ref DB and sort by ref id
         cmd_line = extract_taxo_bin + ' -i ' + args.ref_db + ' | sort -k1,1 > '
-        cmd_line += ref_db_taxo_filename
+        cmd_line += ref_db_taxo_filepath
         
         sys.stdout.write('CMD: {0}\n'.format(cmd_line))
         if not args.simulate_only:
@@ -414,7 +444,7 @@ if __name__ == '__main__':
         if not args.remove_Ns:
             cmd_line += ' | ' + replace_Ns_bin
         cmd_line += ' | ' + sort_fasta_bin + ' --reverse > '
-        cmd_line += cleaned_ref_db_filename
+        cmd_line += cleaned_ref_db_filepath
         
         sys.stdout.write('CMD: {0}\n\n'.format(cmd_line))
         if not args.simulate_only:
@@ -423,19 +453,26 @@ if __name__ == '__main__':
     
     ###########################
     # STEP 1: Ref DB clustering
-    cluster_id_int = int(args.clustering_id_threshold * 100)
-    clustered_ref_db_basename = cleaned_ref_db_basename + '_NR{0}'.format(cluster_id_int)
-    sortmerna_index_directory = 'sortmerna_index'
-    sortmerna_index_basename = sortmerna_index_directory + '/' + clustered_ref_db_basename
-    blast_db_directory = 'blastdb'
-    blast_db_basename = blast_db_directory + '/' + clustered_ref_db_basename
     
-    sumaclust_kingdom_filename = ref_db_basename + '.sumaclust_'
-    sumaclust_kingdom_filename += '{0}'.format(cluster_id_int)
-    sumaclust_kingdom_filename += '_by_kingdom.fasta'
+    clustering_id_threshold_int = int(args.clustering_id_threshold * 100)
+    
+    sumaclust_kingdom_basename = ref_db_basename + '.sumaclust_'
+    sumaclust_kingdom_basename += '{0}'.format(clustering_id_threshold_int) + '_by_kingdom'
+    sumaclust_kingdom_filename = sumaclust_kingdom_basename + '.fasta'
+    sumaclust_kingdom_filepath = args.db_wkdir + '/' + sumaclust_kingdom_filename
+    
+    clustered_ref_db_basename = cleaned_ref_db_basename + '_NR{0}'.format(clustering_id_threshold_int)
+    clustered_ref_db_filename = clustered_ref_db_basename + '.fasta'
+    clustered_ref_db_filepath = args.db_wkdir + '/' + clustered_ref_db_filename
+    
+    sortmerna_index_directory = args.db_wkdir + '/' + 'sortmerna_index'
+    sortmerna_index_basepath = sortmerna_index_directory + '/' + clustered_ref_db_basename
+    
+    blast_db_directory = args.db_wkdir + '/' + 'blastdb'
+    blast_db_basepath = blast_db_directory + '/' + clustered_ref_db_basename
     
     try:
-        os.remove(sumaclust_kingdom_filename)
+        os.remove(sumaclust_kingdom_filepath)
     except OSError:
         pass
     
@@ -444,26 +481,34 @@ if __name__ == '__main__':
         
         if not args.index_only:
             for kingdom in args.kingdoms:
+                
                 cleaned_ref_db_kingdom_basename = cleaned_ref_db_basename + '.' + kingdom
+                cleaned_ref_db_kingdom_filename = cleaned_ref_db_kingdom_basename + '.fasta'
+                cleaned_ref_db_kingdom_filepath = args.db_wkdir + '/' + cleaned_ref_db_kingdom_filename
+                
+                sumaclust_basename = cleaned_ref_db_kingdom_basename + '.sumaclust_' 
+                sumaclust_basename += '{0}'.format(clustering_id_threshold_int)
+                sumaclust_filename = sumaclust_basename + '.fasta'
+                sumaclust_filepath = args.db_wkdir + '/' + sumaclust_filename
+                
+                sumaclust_centroids_filename = sumaclust_basename + '.centroids.fasta'
+                sumaclust_centroids_filepath = args.db_wkdir + '/' + sumaclust_centroids_filename
                 
                 # Extracting kingdoms fasta files
-                cmd_line = fasta_name_filter_bin + ' -i ' + cleaned_ref_db_filename
+                cmd_line = fasta_name_filter_bin + ' -i ' + cleaned_ref_db_filepath
                 cmd_line += ' -s \' ' + kingdom + '\' > ' # !! need to be a space before the kingdom
-                cmd_line += cleaned_ref_db_kingdom_basename + '.fasta'
+                cmd_line += cleaned_ref_db_kingdom_filepath
                 
                 sys.stdout.write('CMD: {0}\n'.format(cmd_line))
                 if not args.simulate_only:
                     subprocess.call(cmd_line, shell=True)
                 
                 # Clutering with sumaclust
-                sumaclust_basename = cleaned_ref_db_kingdom_basename + '.sumaclust_' 
-                sumaclust_basename += '{0}'.format(cluster_id_int)
-                
                 # sumaclust -l is used to simulate semi-global alignment, since SumaClust is a global aligner
                 sumaclust_cmd_line = sumaclust_bin + ' -l -t ' + '{0:.2f}'.format(args.clustering_id_threshold)
                 sumaclust_cmd_line += ' -p ' + str(args.cpu)
-                sumaclust_cmd_line += ' ' + cleaned_ref_db_kingdom_basename + '.fasta'
-                sumaclust_cmd_line += ' > ' + sumaclust_basename + '.fasta'
+                sumaclust_cmd_line += ' ' + cleaned_ref_db_kingdom_filepath
+                sumaclust_cmd_line += ' > ' + sumaclust_filepath
                 
                 sys.stdout.write('CMD: {0}\n'.format(sumaclust_cmd_line))
                 if not args.simulate_only:
@@ -471,24 +516,24 @@ if __name__ == '__main__':
                 
                 ## Extracting centroids
                 filter_cmd_line = fasta_name_filter_bin + ' -s "cluster_center=True" -i '
-                filter_cmd_line += sumaclust_basename + '.fasta -o '
-                filter_cmd_line += sumaclust_basename + '.centroids.fasta'
+                filter_cmd_line += sumaclust_filepath + ' -o '
+                filter_cmd_line += sumaclust_centroids_filepath
                 
                 sys.stdout.write('CMD: {0}\n'.format(filter_cmd_line))
                 if not args.simulate_only:
                     subprocess.call(filter_cmd_line, shell=True)
                 
                 ## Concatenate kingdom centroids
-                cmd_line = 'cat ' + sumaclust_basename + '.centroids.fasta >> '
-                cmd_line += sumaclust_kingdom_filename
+                cmd_line = 'cat ' + sumaclust_centroids_filepath + ' >> '
+                cmd_line += sumaclust_kingdom_filepath
                 
                 sys.stdout.write('CMD: {0}\n\n'.format(cmd_line))
                 if not args.simulate_only:
                     subprocess.call(cmd_line, shell=True)
                 
             # Clean fasta headers
-            clean_name_cmd_line = clean_name_bin + ' -i ' + sumaclust_kingdom_filename
-            clean_name_cmd_line += ' -o ' + clustered_ref_db_basename + '.fasta'
+            clean_name_cmd_line = clean_name_bin + ' -i ' + sumaclust_kingdom_filepath
+            clean_name_cmd_line += ' -o ' + clustered_ref_db_filepath
             
             sys.stdout.write('CMD: {0}\n\n'.format(clean_name_cmd_line))
             if not args.simulate_only:
@@ -502,8 +547,8 @@ if __name__ == '__main__':
             sys.stderr.write("\nERROR: {0} cannot be created\n\n".format(sortmerna_index_directory))
             raise
         
-        indexdb_cmd_line = indexdb_bin + ' -v --ref ' + clustered_ref_db_basename
-        indexdb_cmd_line += '.fasta,' + sortmerna_index_basename
+        indexdb_cmd_line = indexdb_bin + ' -v --ref ' + clustered_ref_db_filepath
+        indexdb_cmd_line += ',' + sortmerna_index_basepath
         
         sys.stdout.write('CMD: {0}\n\n'.format(indexdb_cmd_line))
         if not args.simulate_only:
@@ -518,8 +563,8 @@ if __name__ == '__main__':
             sys.stderr.write("\nERROR: {0} cannot be created\n\n".format(blast_db_directory))
             raise
         
-        cmd_line = 'makeblastdb -in ' + clustered_ref_db_basename + '.fasta' 
-        cmd_line += ' -dbtype nucl -out ' + blast_db_basename
+        cmd_line = 'makeblastdb -in ' + clustered_ref_db_filepath
+        cmd_line += ' -dbtype nucl -out ' + blast_db_basepath
         
         sys.stdout.write('CMD: {0}\n'.format(cmd_line))
         if not args.simulate_only:
@@ -528,16 +573,22 @@ if __name__ == '__main__':
     
     ######################################
     # STEP 2: Reads mapping against Ref DB
-    sortme_output_basename = input_fastx_basename + '.sortmerna_vs_' + clustered_ref_db_basename
+    
+    sortme_output_basename = input_fastx_basename 
+    sortme_output_basename += '.sortmerna_vs_' + clustered_ref_db_basename
     sortme_output_basename += '_b' + str(args.best) + '_m' + str(args.min_lis)
+    
+    sortme_output_basepath = args.wkdir + '/' + sortme_output_basename
+    
+    sortme_output_fastx_filepath = sortme_output_basepath + '.' + input_fastx_extension
     
     if 2 in steps_set:
         sys.stdout.write('## Mapping step (2):\n\n')
         
         # Set SortMeRNA command line
-        sortmerna_cmd_line = sortmerna_bin + ' --ref ' + clustered_ref_db_basename
-        sortmerna_cmd_line += '.fasta,' + sortmerna_index_basename + ' --reads '
-        sortmerna_cmd_line += args.input_fastx + ' --aligned ' + sortme_output_basename
+        sortmerna_cmd_line = sortmerna_bin + ' --ref ' + clustered_ref_db_filepath
+        sortmerna_cmd_line += ',' + sortmerna_index_basepath + ' --reads '
+        sortmerna_cmd_line += args.input_fastx + ' --aligned ' + sortme_output_basepath
         sortmerna_cmd_line += ' --fastx --sam --blast "1 cigar qcov" --log --best '
         sortmerna_cmd_line += str(args.best) + ' --min_lis ' + str(args.min_lis) 
         sortmerna_cmd_line += ' -e {0:.2e}'.format(args.evalue)
@@ -551,24 +602,30 @@ if __name__ == '__main__':
     
     #############################
     # STEP 3: Alignment Filtering
+    
     score_threshold_int = int(args.score_threshold * 100)
+    
     sam_filt_basename = sortme_output_basename + '.scr_filt_'
     if args.straight_mode:
         sam_filt_basename += 'str_'
     else:
         sam_filt_basename += 'geo_'
     sam_filt_basename += str(score_threshold_int) + 'pct'
+    sam_filt_filename = sam_filt_basename + '.sam'
+    sam_filt_filepath = args.wkdir + '/' + sam_filt_filename
+    
+    sortme_output_filepath = sortme_output_basepath + '.sam'
     
     if 3 in steps_set:
         sys.stdout.write('## Alignment filtering step (3):\n\n')
         
         # Filtering scores command line
-        filter_score_cmd_line = 'cat ' + sortme_output_basename + '.sam'
+        filter_score_cmd_line = 'cat ' + sortme_output_filepath
         filter_score_cmd_line += ' | grep -v "^@" | sort -k 1,1V -k 12,12Vr'
         filter_score_cmd_line += ' | ' + filter_score_bin + ' -t ' + str(args.score_threshold)
         if not args.straight_mode:
             filter_score_cmd_line += ' --geometric'
-        filter_score_cmd_line += ' > ' + sam_filt_basename + '.sam'
+        filter_score_cmd_line += ' > ' + sam_filt_filepath
         
         sys.stdout.write('CMD: {0}\n'.format(filter_score_cmd_line))
         if not args.simulate_only:
@@ -577,13 +634,19 @@ if __name__ == '__main__':
     
     ################################
     # STEP 4: Overlap Graph Building
+    
     min_identity_int = int(args.min_identity * 100)
+    
     ovgraphbuild_basename = sam_filt_basename + '.ovgb_i' + str(min_identity_int)
     ovgraphbuild_basename += '_o' + str(args.min_overlap_length) + '_'
     if args.multi:
         ovgraphbuild_basename += 'multi'
     else:
         ovgraphbuild_basename += 'single'
+    ovgraphbuild_basepath = args.wkdir + '/' + ovgraphbuild_basename
+    
+    ovgraphbuild_nodes_csv_filepath = ovgraphbuild_basepath + '.nodes.csv'
+    ovgraphbuild_edges_csv_filepath = ovgraphbuild_basepath + '.edges.csv'
     
     if 4 in steps_set:
         sys.stdout.write('## Overlap Graph building step (4):\n\n')
@@ -595,9 +658,9 @@ if __name__ == '__main__':
         if args.multi:
             ovgraphbuild_cmd_line += ' --multi_ref'
         ovgraphbuild_cmd_line += ' --asqg --csv --output_basename '
-        ovgraphbuild_cmd_line += ovgraphbuild_basename
-        ovgraphbuild_cmd_line += ' -r ' + clustered_ref_db_basename + '.fasta'
-        ovgraphbuild_cmd_line += ' -s ' + sam_filt_basename + '.sam'
+        ovgraphbuild_cmd_line += ovgraphbuild_basepath
+        ovgraphbuild_cmd_line += ' -r ' + clustered_ref_db_filepath
+        ovgraphbuild_cmd_line += ' -s ' + sam_filt_filepath
         
         # Run ovgraphbuild
         sys.stdout.write('CMD: {0}\n\n'.format(ovgraphbuild_cmd_line))
@@ -605,114 +668,112 @@ if __name__ == '__main__':
             subprocess.call(ovgraphbuild_cmd_line, shell=True)
         sys.stdout.write('\n')
     
-    ##################################################
-    # STEP 5: Graph Compaction & Contig Identification
-    contigsearch_basename = ovgraphbuild_basename + '.ctgs'
-    contigsearch_basename += '_N' + str(args.min_read_node)
-    contigsearch_basename += '_E' + str(args.min_overlap_edge)
+    #######################################################
+    # STEP 5: Graph Compaction & Components Identification
+    
+    componentsearch_basename = ovgraphbuild_basename + '.ctgs'
+    componentsearch_basename += '_N' + str(args.min_read_node)
+    componentsearch_basename += '_E' + str(args.min_overlap_edge)
+    componentsearch_basepath = args.wkdir + '/' + componentsearch_basename
     
     if 5 in steps_set:
-        sys.stdout.write('## Graph Compaction & Contig Identification step (5):\n\n')
+        sys.stdout.write('## Graph Compaction & Components Identification step (5):\n\n')
         
-        # ContigSearch command line
-        contigsearch_cmd_line = 'java -Xmx' + str(args.max_memory) + 'M -cp "'
-        contigsearch_cmd_line += contigsearch_jar + '" main.Main'
-        contigsearch_cmd_line += ' -N ' + str(args.min_read_node)
-        contigsearch_cmd_line += ' -E ' + str(args.min_overlap_edge)
-        contigsearch_cmd_line += ' -b ' + contigsearch_basename
-        contigsearch_cmd_line += ' -n ' + ovgraphbuild_basename + '.nodes.csv'
-        contigsearch_cmd_line += ' -e ' + ovgraphbuild_basename + '.edges.csv'
+        # componentsearch command line
+        componentsearch_cmd_line = 'java -Xmx' + str(args.max_memory) + 'M -cp "'
+        componentsearch_cmd_line += componentsearch_jar + '" main.Main'
+        componentsearch_cmd_line += ' -N ' + str(args.min_read_node)
+        componentsearch_cmd_line += ' -E ' + str(args.min_overlap_edge)
+        componentsearch_cmd_line += ' -b ' + componentsearch_basepath
+        componentsearch_cmd_line += ' -n ' + ovgraphbuild_nodes_csv_filepath
+        componentsearch_cmd_line += ' -e ' + ovgraphbuild_edges_csv_filepath
         
-        # Run ContigSearch
-        sys.stdout.write('CMD: {0}\n\n'.format(contigsearch_cmd_line))
+        # Run componentsearch
+        sys.stdout.write('CMD: {0}\n\n'.format(componentsearch_cmd_line))
         if not args.simulate_only:
-            subprocess.call(contigsearch_cmd_line, shell=True)
+            subprocess.call(componentsearch_cmd_line, shell=True)
         sys.stdout.write('\n')
     
     #######################
     # STEP 6: LCA Labelling
+    
     quorum_int = int(args.quorum * 100)
-    labelled_nodes_basename = contigsearch_basename + '.nodes_contracted'
+    
+    labelled_nodes_basename = componentsearch_basename + '.nodes_contracted'
     labelled_nodes_basename += '.component_lca' + str(quorum_int) + 'pct'
-    components_lca_filename = contigsearch_basename + '.component_lca' + str(quorum_int) + 'pct.tab'
+    
+    components_lca_filename = componentsearch_basename + '.component_lca' + str(quorum_int) + 'pct.tab'
+    components_lca_filepath = args.wkdir + '/' + components_lca_filename
+    
+    stats_filename = labelled_nodes_basename + '.stats'
+    stats_filepath = args.wkdir + '/' + stats_filename
     
     if 6 in steps_set:
         sys.stdout.write('## LCA Labelling (6):\n\n')
         
         #
-        cmd_line = 'tail -n +2 ' + contigsearch_basename + '.contigs.csv'
+        cmd_line = 'tail -n +2 ' + componentsearch_basepath + '.components.csv'
         cmd_line += ' | sed "s/;/\\t/g" | sort -k2,2 > '
-        cmd_line += contigsearch_basename + '.contigs.tab'
+        cmd_line += componentsearch_basepath + '.components.tab'
         
         sys.stdout.write('CMD: {0}\n'.format(cmd_line))
         if not args.simulate_only:
             subprocess.call(cmd_line, shell=True)
         
         #
-        cmd_line = 'tail -n +2 ' + ovgraphbuild_basename + '.nodes.csv'
+        cmd_line = 'tail -n +2 ' + ovgraphbuild_nodes_csv_filepath
         cmd_line += ' | sed "s/;/\\t/g" | sort -k1,1 > '
-        cmd_line += ovgraphbuild_basename + '.nodes.tab'
+        cmd_line += ovgraphbuild_basepath + '.nodes.tab'
         
         sys.stdout.write('CMD: {0}\n'.format(cmd_line))
         if not args.simulate_only:
             subprocess.call(cmd_line, shell=True)
         
         #
-        read_id_metanode_component_filename = contigsearch_basename + '.read_id_metanode_component.tab'
-        complete_taxo_filename = contigsearch_basename + '.read_metanode_component_taxo.tab'
+        read_id_metanode_component_filepath = componentsearch_basepath + '.read_id_metanode_component.tab'
+        complete_taxo_filepath = componentsearch_basepath + '.read_metanode_component_taxo.tab'
         
         cmd_line = 'join -a1 -e"NULL" -o "1.2,0,2.3,2.1" -11 -22 ' 
-        cmd_line += ovgraphbuild_basename + '.nodes.tab '
-        cmd_line += contigsearch_basename + '.contigs.tab '
+        cmd_line += ovgraphbuild_basepath + '.nodes.tab '
+        cmd_line += componentsearch_basepath + '.components.tab '
         cmd_line += '| sed "s/ /\\t/g" | sort -k1,1  > '
-        cmd_line += read_id_metanode_component_filename
+        cmd_line += read_id_metanode_component_filepath
         
         sys.stdout.write('CMD: {0}\n'.format(cmd_line))
         if not args.simulate_only:
             subprocess.call(cmd_line, shell=True)
         
         #
-        cmd_line = 'cat ' + sam_filt_basename + '.sam | cut -f1,3 | sort -k2,2'
-        cmd_line += ' | join -12 -21 - ' + ref_db_basename + '.taxo.tab'
+        cmd_line = 'cat ' + sam_filt_filepath + ' | cut -f1,3 | sort -k2,2'
+        cmd_line += ' | join -12 -21 - ' + ref_db_taxo_filepath
         cmd_line += ' | sort -k2,2 | awk "{print \$2,\$3}" | sed "s/ /\\t/g" '
-        cmd_line += ' | join -11 -21 ' + read_id_metanode_component_filename
+        cmd_line += ' | join -11 -21 ' + read_id_metanode_component_filepath
         cmd_line += ' - | sed "s/ /\\t/g" | cut -f2-5 > '
-        cmd_line += complete_taxo_filename
+        cmd_line += complete_taxo_filepath
         
         sys.stdout.write('CMD: {0}\n'.format(cmd_line))
         if not args.simulate_only:
             subprocess.call(cmd_line, shell=True)
         
         #
-        #~ cmd_line = 'cat ' + complete_taxo_filename + ' | sort -k2,2 | '
-        #~ cmd_line += compute_lca_bin + ' -t 4 -f 2 -g 1 -m ' + str(args.quorum) + ' > '
-        #~ cmd_line += contigsearch_basename + '.metanode_lca' + str(quorum_int) + 'pct.tab'
-        #~ 
-        #~ sys.stdout.write('CMD: {0}\n'.format(cmd_line))
-        #~ if not args.simulate_only:
-            #~ subprocess.call(cmd_line, shell=True)
-        
-        #
-        cmd_line = 'cat ' + complete_taxo_filename + ' | sort -k3,3 -k1,1 | '
+        cmd_line = 'cat ' + complete_taxo_filepath + ' | sort -k3,3 -k1,1 | '
         cmd_line += compute_lca_bin + ' -t 4 -f 3 -g 1 -m ' + str(args.quorum)
-        cmd_line += ' -o ' + components_lca_filename
+        cmd_line += ' -o ' + components_lca_filepath
         
         sys.stdout.write('CMD: {0}\n\n'.format(cmd_line))
         if not args.simulate_only:
             subprocess.call(cmd_line, shell=True)
         
         # Compressed graph Stats
-        stats_filename = labelled_nodes_basename + '.stats'
-        
         cmd_line = compute_compressed_graph_stats_bin + ' --nodes_contracted '
-        cmd_line += contigsearch_basename + '.nodes_contracted.csv --edges_contracted '
-        cmd_line += contigsearch_basename + '.edges_contracted.csv --components_lca '
-        cmd_line += components_lca_filename
+        cmd_line += componentsearch_basepath + '.nodes_contracted.csv --edges_contracted '
+        cmd_line += componentsearch_basepath + '.edges_contracted.csv --components_lca '
+        cmd_line += components_lca_filepath
         if args.test_dataset:
             cmd_line += ' --test_dataset'
-            cmd_line += ' --species_taxo 16sp.taxo.tab'
-            cmd_line += ' --read_node_component ' + read_id_metanode_component_filename
-        cmd_line += ' -o ' + stats_filename 
+            cmd_line += ' --species_taxo ' + args.db_wkdir + '/16sp.taxo.tab'
+            cmd_line += ' --read_node_component ' + read_id_metanode_component_filepath
+        cmd_line += ' -o ' + stats_filepath 
         
         sys.stdout.write('CMD: {0}\n'.format(cmd_line))
         if not args.simulate_only:
@@ -720,33 +781,40 @@ if __name__ == '__main__':
         sys.stdout.write('\n')
     
     ##########################
-    # STEP 7: Contigs Assembly
+    # STEP 7: Components Assembly
+    
     assembly_program = 'sga'
     
-    assembly_contigs_basename = contigsearch_basename + '.'
-    assembly_contigs_basename += assembly_program + '_by_component'
-    assembly_contigs_filename = assembly_contigs_basename + '.fasta'
-    assembly_log_filename = assembly_contigs_basename + '.log'
+    components_assembly_basename = componentsearch_basename + '.'
+    components_assembly_basename += assembly_program + '_by_component'
+    components_assembly_filename = components_assembly_basename + '.fasta'
+    components_assembly_filepath = args.wkdir + '/' + components_assembly_filename
+    
+    components_assembly_log_filename = components_assembly_basename + '.log'
+    components_assembly_log_filepath = args.wkdir + '/' + components_assembly_log_filename
     
     contig_min_length = 500
-    output_contigs_basename = assembly_contigs_basename + '.min_' 
+    
+    output_contigs_basename = components_assembly_basename + '.min_' 
     output_contigs_basename += str(contig_min_length) + 'bp'
+    output_contigs_filename = output_contigs_basename + '.fasta'
+    output_contigs_filepath = args.wkdir + '/' + output_contigs_filename
     
     if args.output_contigs == 'DEFAULTNAME':
-        args.output_contigs = output_contigs_basename + '.fasta'
+        args.output_contigs = output_contigs_filepath
     
-    assembly_wkdir = contigsearch_basename + '.' + assembly_program
+    assembly_wkdir = componentsearch_basepath + '.' + assembly_program
         
     if 7 in steps_set:
         sys.stdout.write('## Contigs Assembly (7):\n\n')
         
         # Generate the read_id-->component_id file
-        contig_read_filename = contigsearch_basename + '.component_read.tab'
+        component_read_filepath = componentsearch_basepath + '.component_read.tab'
         
-        cmd_line = 'cat ' + contigsearch_basename + '.contigs.tab'
-        cmd_line += ' | join -12 -21 - ' + ovgraphbuild_basename + '.nodes.tab'
+        cmd_line = 'cat ' + componentsearch_basepath + '.components.tab'
+        cmd_line += ' | join -12 -21 - ' + ovgraphbuild_basepath + '.nodes.tab'
         cmd_line += ' | awk \' {print $2"\\t"$4}\' | sort -k1,1n > ' 
-        cmd_line += contig_read_filename
+        cmd_line += component_read_filepath
         
         sys.stdout.write('CMD: {0}\n\n'.format(cmd_line))
         if not args.simulate_only:
@@ -755,16 +823,16 @@ if __name__ == '__main__':
         # Convert input fastq to tab
         
         # Reading components LCA and storing them in a dict
-        sys.stdout.write('INFO: Reading components LCA assignment from {0}\n\n'.format(components_lca_filename))
+        sys.stdout.write('INFO: Reading components LCA assignment from {0}\n\n'.format(components_lca_filepath))
         
-        contig_lca_dict = dict()
+        component_lca_dict = dict()
         
-        with open(components_lca_filename, 'r') as contig_lca_fh:
-            contig_lca_dict = {t[0]: t[1] for t in (l.split() for l in contig_lca_fh) if len(t)==2}
+        with open(components_lca_filepath, 'r') as component_lca_fh:
+            component_lca_dict = {t[0]: t[1] for t in (l.split() for l in component_lca_fh) if len(t)==2}
         
         # Prepare assembly wkdir and log file
-        if os.path.exists(assembly_log_filename):
-            os.remove(assembly_log_filename)
+        if os.path.exists(components_assembly_log_filepath):
+            os.remove(components_assembly_log_filepath)
         
         try:
             if not os.path.exists(assembly_wkdir):
@@ -774,21 +842,22 @@ if __name__ == '__main__':
             raise
         
         # Open output contigs file
-        assembly_contigs_fh = open(assembly_contigs_filename, 'w')
+        components_assembly_fh = open(components_assembly_filepath, 'w')
         
         # Begin reading read-->component file (sorted by component)
         contig_count = 0
         component_count = 0
         
-        with open(contig_read_filename, 'r') as contig_read_fh:
+        with open(component_read_filepath, 'r') as component_read_fh:
             # We will be working in the assembly wkdir because assembly tools 
             # generate lots of files we dont want in our matam wkdir
+            previous_wkdir = os.getcwd()
             os.chdir(assembly_wkdir)
             
             # Assembling all reads of every component, one at a time
-            for contig_tab_list in read_tab_file_handle_sorted(contig_read_fh, 0):
+            for component_tab_list in read_tab_file_handle_sorted(component_read_fh, 0):
                 component_count += 1
-                component_id = contig_tab_list[0][0]
+                component_id = component_tab_list[0][0]
                 
                 # To prevent assembly of singleton reads
                 if component_id == 'NULL':
@@ -805,28 +874,27 @@ if __name__ == '__main__':
                 
                 # Write the component reads ids
                 if not args.simulate_only:
-                    with open('reads_one_contig.ids', 'w') as wfh:
-                        for tab in contig_tab_list:
+                    with open('reads_single_component.ids', 'w') as wfh:
+                        for tab in component_tab_list:
                             read_id = tab[1]
                             wfh.write('{0}\n'.format(read_id))
                 
                 # Generate a fastq file with this component reads
-                cmd_line = fastq_name_filter_bin + ' -f reads_one_contig.ids'
-                cmd_line += ' -i ../' + sortme_output_basename + '.' + input_fastx_extension
-                cmd_line += ' -o reads_one_contig.fq'
+                cmd_line = fastq_name_filter_bin + ' -f reads_single_component.ids'
+                cmd_line += ' -i ' + sortme_output_fastx_filepath + ' -o reads_single_component.fq'
                 
                 #~ sys.stdout.write('CMD: {0}\n'.format(cmd_line))
                 if not args.simulate_only:
                     subprocess.call(cmd_line, shell=True)
                 
                 # Assemble those reads with SGA
-                cmd_line = 'echo "component #' + component_id + '" >> ../'
-                cmd_line += assembly_log_filename + ' && '
-                cmd_line += sga_assemble_bin + ' -i reads_one_contig.fq'
+                cmd_line = 'echo "component #' + component_id + '" >> '
+                cmd_line += components_assembly_log_filepath + ' && '
+                cmd_line += sga_assemble_bin + ' -i reads_single_component.fq'
                 cmd_line += ' -o contigs.fa --sga_bin ' + sga_bin
                 cmd_line += ' --cpu ' + str(args.cpu)
                 cmd_line += ' --tmp_dir tmp'
-                cmd_line += ' >> ../' + assembly_log_filename + ' 2>&1'
+                cmd_line += ' >> ' + components_assembly_log_filepath + ' 2>&1'
                 
                 #~ sys.stdout.write('CMD: {0}\n'.format(cmd_line))
                 if not args.simulate_only:
@@ -835,24 +903,24 @@ if __name__ == '__main__':
                 # Concatenate the component contigs in the output contigs file
                 if not args.simulate_only:
                     component_lca = ''
-                    if component_id in contig_lca_dict:
-                        component_lca = contig_lca_dict[component_id]
+                    if component_id in component_lca_dict:
+                        component_lca = component_lca_dict[component_id]
                     with open('contigs.fa', 'r') as contigs_fh:
                         for header, seq in read_fasta_file_handle(contigs_fh):
                             if len(seq):
                                 contig_count += 1
-                                assembly_contigs_fh.write('>{0} component={1} '.format(contig_count, component_id))
-                                assembly_contigs_fh.write('lca={0}\n{1}\n'.format(component_lca, format_seq(seq)))
+                                components_assembly_fh.write('>{0} component={1} '.format(contig_count, component_id))
+                                components_assembly_fh.write('lca={0}\n{1}\n'.format(component_lca, format_seq(seq)))
             
-            # Return to upper directory
-            os.chdir('..')
+            # Return to previous directory
+            os.chdir(previous_wkdir)
         
         # Close assembly contigs file
-        assembly_contigs_fh.close()
+        components_assembly_fh.close()
         
         # Filter assembly by length
         cmd_line = fasta_length_filter_bin + ' -m ' + str(contig_min_length)
-        cmd_line += ' -i ' + assembly_contigs_filename
+        cmd_line += ' -i ' + components_assembly_filepath
         cmd_line += ' -o ' + args.output_contigs
         
         sys.stdout.write('\n\nCMD: {0}\n\n'.format(cmd_line))
@@ -864,21 +932,24 @@ if __name__ == '__main__':
     
     #############################
     # STEP 8: Post assembly Stats
+    
     max_target_seqs = 10000
     
-    blast_output_basename = assembly_contigs_basename + '.' + args.blast_task + '_vs_'
+    blast_output_basename = components_assembly_basename + '.' + args.blast_task + '_vs_'
     blast_output_basename += clustered_ref_db_basename + '.max_target_seqs_'
     blast_output_basename += str(max_target_seqs)
+    blast_output_basepath = args.wkdir + '/' + blast_output_basename
+    
+    blast_output_filename = blast_output_basename + '.tab'
+    blast_output_filepath = args.wkdir + '/' + blast_output_filename
     
     if 8 in steps_set:
         sys.stdout.write('## Post assembly Stats (8):\n\n')
         
-        blast_output_filename = blast_output_basename + '.tab'
-        
         #
-        cmd_line = 'blastn -query ' + assembly_contigs_filename
-        cmd_line += ' -task ' + args.blast_task + ' -db ' + blast_db_basename
-        cmd_line += ' -out ' + blast_output_filename
+        cmd_line = 'blastn -query ' + components_assembly_filepath
+        cmd_line += ' -task ' + args.blast_task + ' -db ' + blast_db_basepath
+        cmd_line += ' -out ' + blast_output_filepath
         cmd_line += ' -evalue ' + str(args.blast_evalue)
         cmd_line += ' -outfmt "6 std qlen slen" -dust "no"'
         cmd_line += ' -max_target_seqs ' + str(max_target_seqs)
@@ -889,17 +960,17 @@ if __name__ == '__main__':
             subprocess.call(cmd_line, shell=True)
         
         #
-        cmd_line = 'sort -k2,2 ' + blast_output_filename
-        cmd_line += ' > ' + blast_output_basename + '.sorted_subject.tab'
+        cmd_line = 'sort -k2,2 ' + blast_output_filepath
+        cmd_line += ' > ' + blast_output_basepath + '.sorted_subject.tab'
         
         sys.stdout.write('CMD: {0}\n\n'.format(cmd_line))
         if not args.simulate_only:
             subprocess.call(cmd_line, shell=True)
         
         #
-        cmd_line = find_least_bin + ' -i ' + blast_output_filename
-        cmd_line += ' -s ' + blast_output_basename + '.sorted_subject.tab'
-        cmd_line += ' -o ' + blast_output_basename + '.least_num_ref.tab'
+        cmd_line = find_least_bin + ' -i ' + blast_output_filepath
+        cmd_line += ' -s ' + blast_output_basepath + '.sorted_subject.tab'
+        cmd_line += ' -o ' + blast_output_basepath + '.least_num_ref.tab'
         
         sys.stdout.write('CMD: {0}\n\n'.format(cmd_line))
         if not args.simulate_only:
@@ -918,13 +989,14 @@ if __name__ == '__main__':
             
             # Blast assembly contigs against original sequences
             
-            test_blast_output_filename = assembly_contigs_basename + '.' + blast_task + '_vs_16sp'
+            test_blast_output_filename = components_assembly_basename + '.' + blast_task + '_vs_16sp'
             #~ test_blast_output_filename += '.max_target_seqs_' + str(max_target_seqs) + '.tab'
             test_blast_output_filename += '.max_target_seqs_1.tab'
+            test_blast_output_filepath = args.wkdir + '/' + test_blast_output_filename
             
-            cmd_line = 'blastn -query ' + assembly_contigs_filename
+            cmd_line = 'blastn -query ' + components_assembly_filepath
             cmd_line += ' -task ' + args.blast_task + ' -db ' + blast_db_directory + '/16sp'
-            cmd_line += ' -out ' + test_blast_output_filename
+            cmd_line += ' -out ' + test_blast_output_filepath
             cmd_line += ' -evalue ' + str(args.blast_evalue)
             cmd_line += ' -outfmt "6 std qlen slen" -dust "no"'
             #~ cmd_line += ' -max_target_seqs ' + str(max_target_seqs)
