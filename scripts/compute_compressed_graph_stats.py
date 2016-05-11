@@ -114,6 +114,9 @@ if __name__ == '__main__':
     # Load components LCA
     components_lca_dict = load_components_lca(args.components_lca)
     components_num = len(components_lca_dict)
+    if 'NULL' in components_lca_dict:
+        # Null is not a component, it is the LCA from all the singletons
+        components_num -= 1
     
     # Init stats metrics
     reads_num = 0
