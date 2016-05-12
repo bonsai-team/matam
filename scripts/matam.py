@@ -98,7 +98,7 @@ class DefaultHelpParser(argparse.ArgumentParser):
     on parser error instead of only usage
     """
     def error(self, message):
-        sys.stderr.write('\nerror: %s\n\n' % message)
+        sys.stderr.write('\nError: %s\n\n' % message)
         self.print_help()
         sys.exit(2)
 
@@ -167,7 +167,6 @@ def parse_arguments():
                             default=0,
                             help='Set verbose level (from 0 to 3) using -vvv or -v -v.')
     
-    
     # Performance parameters
     group_perf = parser.add_argument_group('Performance')
     # --cpu
@@ -176,7 +175,8 @@ def parse_arguments():
                             metavar='CPU',
                             type=int, 
                             default=3,
-                            help='Max number of CPU to use')
+                            help='Max number of CPU to use. '
+                                 'Default is %(default)s cpu')
     # --max_memory
     group_perf.add_argument('--max_memory', 
                             action='store',
@@ -193,80 +193,143 @@ def parse_arguments():
                           action='store_true',
                           help="Remove sequences with Ns. "
                                "Default is replacing Ns with random nucleotides")
-    #
+    
+    # Step 1: Clustering Ref DB
     group_clust = parser.add_argument_group('Clustering Ref DB (Step 1)')
-    group_clust.add_argument('--clustering_id_threshold', metavar='REAL',
-                             type=float, default=0.95,
-                             help='Identity threshold for clustering')
-    group_clust.add_argument('--kingdoms', metavar='STR',
-                             type=str, nargs='+', default=['archaea','bacteria','eukaryota'],
-                             help='Kingdoms to clusterize the DB for. Default is: archaea bacteria eukaryota')
-    group_clust.add_argument('--index_only', action='store_true',
+    # --clustering_id_threshold
+    group_clust.add_argument('--clustering_id_threshold',
+                             action='store',
+                             metavar='REAL',
+                             type=float, 
+                             default=0.95,
+                             help='Identity threshold for clustering. '
+                                  'Default is %(default)s')
+    # --kingdoms
+    group_clust.add_argument('--kingdoms', 
+                             action='store',
+                             metavar='STR',
+                             type=str, 
+                             nargs='+', 
+                             default=['archaea','bacteria','eukaryota'],
+                             help='Kingdoms to clusterize the DB for. '
+                                  'Default is %(default)s')
+    # --index_only
+    group_clust.add_argument('--index_only', 
+                             action='store_true',
                              help=argparse.SUPPRESS)
-    #
+    
+    # Step 2: Mapping
     group_mapping = parser.add_argument_group('Mapping (Step 2)')
-    group_mapping.add_argument('--best', metavar='INT',
-                               type=int, default=10,
-                               help='Get up to --best good alignments per read')
-    group_mapping.add_argument('--min_lis', metavar='INT',
-                               type=int, default=10,
+    # --best
+    group_mapping.add_argument('--best', 
+                               action='store',
+                               metavar='INT',
+                               type=int, 
+                               default=10,
+                               help='Get up to --best good alignments per read. '
+                                    'Default is %(default)s')
+    # --min_lis
+    group_mapping.add_argument('--min_lis', 
+                               action='store',
+                               metavar='INT',
+                               type=int, 
+                               default=10,
                                help=argparse.SUPPRESS)
-    group_mapping.add_argument('--evalue', metavar='REAL',
-                               type=float, default=1e-5,
-                               help='Max e-value to keep an alignment for (default: 1e-5)')
-    #
+    # --evalue
+    group_mapping.add_argument('--evalue', 
+                               action='store',
+                               metavar='REAL',
+                               type=float, 
+                               default=1e-5,
+                               help='Max e-value to keep an alignment for. '
+                                    'Default is %(default)s')
+    
+    # Step 3: Alignment Filtering
     group_filt = parser.add_argument_group('Alignment Filtering (Step 3)')
-    group_filt.add_argument('--score_threshold', metavar='REAL',
-                            type=float, default=0.9,
-                            help='Score threshold (real between 0 and 1)')
-    group_filt.add_argument('--straight_mode', action='store_true',
-                            help='Use straight mode filtering. Default is geometric mode')
-    #
+    # --score_threshold
+    group_filt.add_argument('--score_threshold', 
+                            action='store',
+                            metavar='REAL',
+                            type=float, 
+                            default=0.9,
+                            help='Score threshold (real between 0 and 1). '
+                                 'Default is %(default)s')
+    # --straight_mode
+    group_filt.add_argument('--straight_mode', 
+                            action='store_true',
+                            help='Use straight mode filtering. '
+                                 'Default is geometric mode')
+    
+    # Step 4: Overlap Graph Building
     group_ovg = parser.add_argument_group('Overlap Graph Building (Step 4)')
-    group_ovg.add_argument('--min_identity', metavar='REAL',
-                           type=float, default=1.0,
-                           help='Minimum identity of an overlap between 2 reads')
-    group_ovg.add_argument('--min_overlap_length', metavar='INT',
-                           type=int, default=50,
-                           help='Minimum length of an overlap')
-    group_ovg.add_argument('--multi', action='store_true',
+    # --min_identity
+    group_ovg.add_argument('--min_identity', 
+                           action='store',
+                           metavar='REAL',
+                           type=float, 
+                           default=1.0,
+                           help='Minimum identity of an overlap between 2 reads. '
+                                'Default is %(default)s')
+    # --min_overlap_length
+    group_ovg.add_argument('--min_overlap_length', 
+                           action='store',
+                           metavar='INT',
+                           type=int, 
+                           default=50,
+                           help='Minimum length of an overlap. '
+                                'Default is %(default)s')
+    # --multi
+    group_ovg.add_argument('--multi', 
+                           action='store_true',
                            help='Use multi-ref mode')
     
-    # Graph Compaction & Components Identification Parameters
+    # Step 5: Graph Compaction & Components Identification
     group_gcomp = parser.add_argument_group('Graph Compaction & Components Identification (Step 5)')
     # -N / --min_read_node
     group_gcomp.add_argument('-N', '--min_read_node', 
+                             action='store',
                              metavar='INT',
                              type=int, 
                              default=2,
-                             help='Minimum number of read to keep a node')
+                             help='Minimum number of read to keep a node. '
+                                  'Default is %(default)s')
     # -E / --min_overlap_edge
     group_gcomp.add_argument('-E', '--min_overlap_edge', 
+                             action='store',
                              metavar='INT',
                              type=int, 
-                             default=1,
-                             help='Minimum number of overlap to keep an edge')
+                             default=20,
+                             help='Minimum number of overlap to keep an edge. '
+                                  'Default is %(default)s')
     
-    #
+    # Step 6: LCA Labelling
     group_lca = parser.add_argument_group('LCA Labelling (Step 6)')
-    group_lca.add_argument('--quorum', metavar='FLOAT',
-                           type=float, default=0.51,
-                           help='Quorum for LCA computing. Has to be between 0.51 and 1')
+    # --quorum
+    group_lca.add_argument('--quorum', 
+                           action='store',
+                           metavar='FLOAT',
+                           type=float, 
+                           default=0.51,
+                           help='Quorum for LCA computing. Has to be between 0.51 and 1. '
+                                'Default is %(default)s')
     
-    # Contig Assembly parameters
+    # Step 7: Contig Assembly
     group_ass = parser.add_argument_group('Contig Assembly (Step 7)')
     
-    # Post Assembly Stats parameters
+    # Step 8: Post Assembly Stats
     group_stats = parser.add_argument_group('Post Assembly Stats (Step 8)')
     # -bt / --blast_task
     group_stats.add_argument('-bt', '--blast_task',
+                             action='store',
                              metavar='TASK',
                              type=str,
                              choices=['blastn', 'megablast'],
                              default='blastn',
-                             help='Blast task (blastn or megablast)')
+                             help='Blast task (blastn or megablast). '
+                                  'Default is %(default)s')
     # -be / --blast_evalue
     group_stats.add_argument('-be', '--blast_evalue',
+                             action='store',
                              metavar='FLOAT',
                              type=float,
                              default=1e-5,
@@ -275,10 +338,15 @@ def parse_arguments():
     
     # Debug parameters
     group_debug = parser.add_argument_group('Debug')
-    group_debug.add_argument('--simulate_only', action='store_true',
+    # --simulate_only
+    group_debug.add_argument('--simulate_only', 
+                             action='store_true',
                              help='Only output pipeline commands without executing them')
-    group_debug.add_argument('--test_dataset', action='store_true',
+    # --test_dataset
+    group_debug.add_argument('--test_dataset', 
+                             action='store_true',
                              help='Compute additional stats when using a test dataset')
+    
     #
     args = parser.parse_args()
     
@@ -306,7 +374,11 @@ def parse_arguments():
         parser.print_help()
         raise Exception("quorum not in range [0.51,1]")
     
-    # Arguments improvement
+    # Get absolute path for all arguments
+    args.input_fastx = os.path.abspath(args.input_fastx)
+    args.ref_db = os.path.abspath(args.ref_db)
+    if args.output_contigs != 'DEFAULTNAME':
+        args.output_contigs = os.path.abspath(args.output_contigs)
     args.db_wkdir = os.path.abspath(args.db_wkdir)
     args.wkdir = os.path.abspath(args.wkdir)
     
@@ -324,15 +396,35 @@ def print_intro(args):
              MATAM
 #################################\n\n""")
     
+    # MATAM bin
     sys.stdout.write("""CMD: \
-{matam} --cpu {cpu} --max_memory {memory} \
-""".format(matam=matam_bin,
-           cpu=args.cpu,
+{matam} \
+""".format(matam=matam_bin))
+    
+    # Verbose
+    if args.verbose > 0:
+        sys.stdout.write('-')
+        for i in xrange(args.verbose):
+            sys.stdout.write('v')
+        sys.stdout.write(' ')
+    
+    # Debug
+    if args.simulate_only:
+        sys.stdout.write('--simulate_only ')
+    if args.test_dataset:
+        sys.stdout.write('--test_dataset ')
+    
+    # Performance
+    sys.stdout.write("""\
+--cpu {cpu} --max_memory {memory} \
+""".format(cpu=args.cpu,
            memory=args.max_memory))
     
+    # Step 0
     if args.remove_Ns:
         sys.stdout.write('--remove_Ns ')
     
+    # Step 1
     sys.stdout.write("""\
 --clustering_id_threshold {clustid} --kingdoms \
 """.format(clustid=args.clustering_id_threshold))
@@ -343,17 +435,22 @@ def print_intro(args):
     if args.index_only:
         sys.stdout.write('--index_only ')
     
+    # Step 2
     sys.stdout.write("""\
 --best {best} --min_lis {min_lis} --evalue {evalue} \
---score_threshold {scr_th} \
 """.format(best=args.best,
            min_lis=args.min_lis,
-           evalue=args.evalue,
-           scr_th=args.score_threshold))
+           evalue=args.evalue))
     
+    # Step 3
+    sys.stdout.write("""\
+--score_threshold {scr_th} \
+""".format(scr_th=args.score_threshold))
+
     if args.straight_mode:
         sys.stdout.write('--straight_mode')
     
+    # Step 4
     sys.stdout.write("""\
 --min_identity {min_id} --min_overlap_length {min_ov_lgth} \
 """.format(min_id=args.min_identity,
@@ -362,12 +459,30 @@ def print_intro(args):
     if args.multi:
         sys.stdout.write('--multi ')
     
+    # Step 5
     sys.stdout.write("""\
 --min_read_node {N} --min_overlap_edge {E} \
---quorum {quorum} --steps \
 """.format(N=args.min_read_node,
-           E=args.min_overlap_edge,
-           quorum=args.quorum))
+           E=args.min_overlap_edge))
+    
+    # Step 6
+    sys.stdout.write("""\
+--quorum {quorum} \
+""".format(quorum=args.quorum))
+    
+    # Step 8
+    sys.stdout.write("""\
+--blast_task {btask} \
+--blast_evalue {beval} \
+""".format(btask=args.blast_task,
+           beval=args.blast_evalue))
+    
+    # Main parameters
+    sys.stdout.write("""\
+--db_wkdir {dw} --wkdir {w} \
+--steps \
+""".format(dw=args.db_wkdir,
+           w=args.wkdir))
     
     for step in args.steps:
         sys.stdout.write('{0} '.format(step))
@@ -378,8 +493,7 @@ def print_intro(args):
            d=args.ref_db,
            o=args.output_contigs))
     
-    #~ sys.stdout.write('PARAM: Executable  = {0}\n'.format(os.path.abspath(os.path.dirname(os.path.realpath(sys.argv[0])))))
-    sys.stdout.write('PARAM: Matam dir = {0}\n'.format(matam_dir))
+    # Important parameters, to write very evidently
     sys.stdout.write('PARAM: Input Fastx = {0}\n'.format(args.input_fastx))
     sys.stdout.write('PARAM: Ref DB      = {0}\n'.format(args.ref_db))
     sys.stdout.write('PARAM: Steps       = {0}\n'.format(args.steps))
@@ -979,17 +1093,17 @@ if __name__ == '__main__':
         # When using a test dataset, remapping with blastn against the original sequences
         if args.test_dataset:
             # Indexing original sequences
-            cmd_line = 'makeblastdb -in 16sp.fasta -dbtype nucl '
+            cmd_line = 'makeblastdb -in ' + args.db_wkdir + '/16sp.fasta -dbtype nucl '
             cmd_line += '-out ' + blast_db_directory + '/16sp'
             
-            sys.stdout.write('CMD: {0}'.format(cmd_line))
+            sys.stdout.write('\nCMD: {0}'.format(cmd_line))
             if not args.simulate_only:
                 subprocess.call(cmd_line, shell=True)
             sys.stdout.write('\n')
             
             # Blast assembly contigs against original sequences
             
-            test_blast_output_filename = components_assembly_basename + '.' + blast_task + '_vs_16sp'
+            test_blast_output_filename = components_assembly_basename + '.' + args.blast_task + '_vs_16sp'
             #~ test_blast_output_filename += '.max_target_seqs_' + str(max_target_seqs) + '.tab'
             test_blast_output_filename += '.max_target_seqs_1.tab'
             test_blast_output_filepath = args.wkdir + '/' + test_blast_output_filename
