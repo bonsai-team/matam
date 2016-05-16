@@ -298,7 +298,7 @@ def parse_arguments():
                              action='store',
                              metavar='INT',
                              type=int, 
-                             default=20,
+                             default=10,
                              help='Minimum number of overlap to keep an edge. '
                                   'Default is %(default)s')
     
@@ -563,8 +563,7 @@ if __name__ == '__main__':
         sys.stdout.write('CMD: {0}\n\n'.format(cmd_line))
         if not args.simulate_only:
             subprocess.call(cmd_line, shell=True)
-    
-    
+        
     ###########################
     # STEP 1: Ref DB clustering
     
@@ -777,7 +776,7 @@ if __name__ == '__main__':
         ovgraphbuild_cmd_line += ' -s ' + sam_filt_filepath
         
         # Run ovgraphbuild
-        sys.stdout.write('CMD: {0}\n\n'.format(ovgraphbuild_cmd_line))
+        sys.stdout.write('CMD: {0}\n'.format(ovgraphbuild_cmd_line))
         if not args.simulate_only:
             subprocess.call(ovgraphbuild_cmd_line, shell=True)
         sys.stdout.write('\n')
