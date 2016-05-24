@@ -6,6 +6,7 @@ import sys
 import argparse
 import re
 import subprocess
+import time
 
 matam_bin = os.path.realpath(sys.argv[0])
 matam_dir = matam_bin[:-17]
@@ -537,6 +538,12 @@ if __name__ == '__main__':
     cleaned_ref_db_filename = cleaned_ref_db_basename + '.cleaned.fasta'
     cleaned_ref_db_filepath = args.db_wkdir + '/' + cleaned_ref_db_filename
     
+    sortmerna_index_directory = args.db_wkdir + '/' + 'sortmerna_index'
+    sortmerna_index_ref_db_basepath = sortmerna_index_directory + '/' + cleaned_ref_db_basename
+
+    blast_db_directory = args.db_wkdir + '/' + 'blastdb'
+    blast_index_ref_db_basepath = blast_db_directory + '/' + cleaned_ref_db_basename
+    
     if 0 in steps_set:
         sys.stdout.write('## Ref DB pre-processing step (0):\n\n')
         
@@ -564,6 +571,22 @@ if __name__ == '__main__':
         if not args.simulate_only:
             subprocess.call(cmd_line, shell=True)
         
+        # SortMeRNA Ref DB indexing
+        try:
+            if not os.path.exists(sortmerna_index_directory):
+                os.makedirs(sortmerna_index_directory)
+        except OSError:
+            sys.stderr.write("\nERROR: {0} cannot be created\n\n".format(sortmerna_index_directory))
+            raise
+        
+        indexdb_cmd_line = indexdb_bin + ' -v --ref ' + cleaned_ref_db_filepath
+        indexdb_cmd_line += ',' + sortmerna_index_ref_db_basepath
+        
+        sys.stdout.write('CMD: {0}\n\n'.format(indexdb_cmd_line))
+        if not args.simulate_only:
+            subprocess.call(indexdb_cmd_line, shell=True)
+        sys.stdout.write('\n')
+        
     ###########################
     # STEP 1: Ref DB clustering
     
@@ -578,11 +601,9 @@ if __name__ == '__main__':
     clustered_ref_db_filename = clustered_ref_db_basename + '.fasta'
     clustered_ref_db_filepath = args.db_wkdir + '/' + clustered_ref_db_filename
     
-    sortmerna_index_directory = args.db_wkdir + '/' + 'sortmerna_index'
-    sortmerna_index_basepath = sortmerna_index_directory + '/' + clustered_ref_db_basename
+    sortmerna_index_clustered_ref_db_basepath = sortmerna_index_directory + '/' + clustered_ref_db_basename
     
-    blast_db_directory = args.db_wkdir + '/' + 'blastdb'
-    blast_db_basepath = blast_db_directory + '/' + clustered_ref_db_basename
+    blast_index_clustered_ref_db_basepath = blast_db_directory + '/' + clustered_ref_db_basename
     
     try:
         os.remove(sumaclust_kingdom_filepath)
@@ -652,7 +673,7 @@ if __name__ == '__main__':
             if not args.simulate_only:
                 subprocess.call(clean_name_cmd_line, shell=True)
         
-        # SortMeRNA Ref DB indexing
+        # SortMeRNA Clustered Ref DB indexing
         try:
             if not os.path.exists(sortmerna_index_directory):
                 os.makedirs(sortmerna_index_directory)
@@ -661,7 +682,7 @@ if __name__ == '__main__':
             raise
         
         indexdb_cmd_line = indexdb_bin + ' -v --ref ' + clustered_ref_db_filepath
-        indexdb_cmd_line += ',' + sortmerna_index_basepath
+        indexdb_cmd_line += ',' + sortmerna_index_clustered_ref_db_basepath
         
         sys.stdout.write('CMD: {0}\n\n'.format(indexdb_cmd_line))
         if not args.simulate_only:
@@ -677,7 +698,7 @@ if __name__ == '__main__':
             raise
         
         cmd_line = 'makeblastdb -in ' + clustered_ref_db_filepath
-        cmd_line += ' -dbtype nucl -out ' + blast_db_basepath
+        cmd_line += ' -dbtype nucl -out ' + blast_index_clustered_ref_db_basepath
         
         sys.stdout.write('CMD: {0}\n'.format(cmd_line))
         if not args.simulate_only:
@@ -700,7 +721,7 @@ if __name__ == '__main__':
         
         # Set SortMeRNA command line
         sortmerna_cmd_line = sortmerna_bin + ' --ref ' + clustered_ref_db_filepath
-        sortmerna_cmd_line += ',' + sortmerna_index_basepath + ' --reads '
+        sortmerna_cmd_line += ',' + sortmerna_index_clustered_ref_db_basepath + ' --reads '
         sortmerna_cmd_line += args.input_fastx + ' --aligned ' + sortme_output_basepath
         sortmerna_cmd_line += ' --fastx --sam --blast "1 cigar qcov" --log --best '
         sortmerna_cmd_line += str(args.best) + ' --min_lis ' + str(args.min_lis) 
@@ -1061,16 +1082,20 @@ if __name__ == '__main__':
         
         #
         cmd_line = 'blastn -query ' + components_assembly_filepath
-        cmd_line += ' -task ' + args.blast_task + ' -db ' + blast_db_basepath
+        cmd_line += ' -task ' + args.blast_task + ' -db ' + blast_index_clustered_ref_db_basepath
         cmd_line += ' -out ' + blast_output_filepath
         cmd_line += ' -evalue ' + str(args.blast_evalue)
         cmd_line += ' -outfmt "6 std qlen slen" -dust "no"'
         cmd_line += ' -max_target_seqs ' + str(max_target_seqs)
         cmd_line += ' -num_threads ' + str(args.cpu)
             
-        sys.stdout.write('CMD: {0}\n\n'.format(cmd_line))
+        sys.stdout.write('CMD: {0}\n'.format(cmd_line))
         if not args.simulate_only:
+            start_time = time.time()
             subprocess.call(cmd_line, shell=True)
+            end_time = time.time()
+            elapsed_time = end_time - start_time
+            sys.stdout.write('TIME: {0:.2f} sec elapsed\n\n'.format(elapsed_time))
         
         #
         cmd_line = 'sort -k2,2 ' + blast_output_filepath
