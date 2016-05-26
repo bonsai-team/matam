@@ -29,6 +29,8 @@ replace_Ns_bin = matam_dir + '/bin/replace_Ns_by_rand_nu.py'
 sort_fasta_bin = matam_dir + '/bin/sort_fasta_by_length.py'
 sga_assemble_bin = matam_dir + '/bin/sga_assemble.py'
 find_least_bin = matam_dir + '/bin/find_least_number_ref_in_blast.py'
+get_best_matches_bin = matam_dir + '/bin/get_best_matches_from_blast.py'
+compute_assembly_stats_bin = matam_dir + '/bin/compute_assembly_stats.py'
 
 
 def read_fasta_file_handle(fasta_file_handle):
@@ -343,10 +345,14 @@ def parse_arguments():
     group_debug.add_argument('--simulate_only', 
                              action='store_true',
                              help='Only output pipeline commands without executing them')
-    # --test_dataset
-    group_debug.add_argument('--test_dataset', 
-                             action='store_true',
-                             help='Compute additional stats when using a test dataset')
+    # --true_references
+    group_debug.add_argument('--true_references',
+                             action='store',
+                             metavar='TRUEREF',
+                             type=str,
+                             required=False,
+                             help='Fasta file with the true references. '
+                                  'Compute additional stats.')
     
     #
     args = parser.parse_args()
@@ -382,6 +388,8 @@ def parse_arguments():
         args.output_contigs = os.path.abspath(args.output_contigs)
     args.db_wkdir = os.path.abspath(args.db_wkdir)
     args.wkdir = os.path.abspath(args.wkdir)
+    if args.true_references:
+        args.true_references = os.path.abspath(args.true_references)
     
     #
     return args
@@ -412,8 +420,10 @@ def print_intro(args):
     # Debug
     if args.simulate_only:
         sys.stdout.write('--simulate_only ')
-    if args.test_dataset:
-        sys.stdout.write('--test_dataset ')
+    if args.true_references:
+        sys.stdout.write("""\
+--true_references {trueref} \
+""".format(trueref=args.true_references))
     
     # Performance
     sys.stdout.write("""\
@@ -521,6 +531,15 @@ if __name__ == '__main__':
     input_fastx_basename = '.'.join(input_fastx_filename.split('.')[:-1])
     input_fastx_extension = input_fastx_filename.split('.')[-1]
     
+    true_ref_basename = ''
+    true_ref_basepath = ''
+    true_ref_taxo_filepath = ''
+    if args.true_references:
+        true_ref_filename = args.true_references.split('/')[-1]
+        true_ref_basename = '.'.join(true_ref_filename.split('.')[:-1])
+        true_ref_basepath = '.'.join(args.true_references.split('.')[:-1])
+        true_ref_taxo_filepath = true_ref_basepath + '.taxo.tab'
+    
     #
     steps_set = frozenset(args.steps)
     
@@ -585,6 +604,22 @@ if __name__ == '__main__':
         sys.stdout.write('CMD: {0}\n\n'.format(indexdb_cmd_line))
         if not args.simulate_only:
             subprocess.call(indexdb_cmd_line, shell=True)
+        sys.stdout.write('\n')
+        
+        # Blast Ref DB indexing
+        try:
+            if not os.path.exists(blast_db_directory):
+                os.makedirs(blast_db_directory)
+        except OSError:
+            sys.stderr.write("\nERROR: {0} cannot be created\n\n".format(blast_db_directory))
+            raise
+        
+        cmd_line = 'makeblastdb -in ' + cleaned_ref_db_filepath
+        cmd_line += ' -dbtype nucl -out ' + blast_index_ref_db_basepath
+        
+        sys.stdout.write('CMD: {0}\n'.format(cmd_line))
+        if not args.simulate_only:
+            subprocess.call(cmd_line, shell=True)
         sys.stdout.write('\n')
         
     ###########################
@@ -903,9 +938,8 @@ if __name__ == '__main__':
         cmd_line += componentsearch_basepath + '.nodes_contracted.csv --edges_contracted '
         cmd_line += componentsearch_basepath + '.edges_contracted.csv --components_lca '
         cmd_line += components_lca_filepath
-        if args.test_dataset:
-            cmd_line += ' --test_dataset'
-            cmd_line += ' --species_taxo ' + args.db_wkdir + '/16sp.taxo.tab'
+        if args.true_references:
+            cmd_line += ' --species_taxo ' + true_ref_taxo_filepath
             cmd_line += ' --read_node_component ' + read_id_metanode_component_filepath
         cmd_line += ' -o ' + stats_filepath 
         
@@ -1067,83 +1101,105 @@ if __name__ == '__main__':
     #############################
     # STEP 8: Post assembly Stats
     
-    max_target_seqs = 10000
+    #~ max_target_seqs = 10000
     
-    blast_output_basename = components_assembly_basename + '.' + args.blast_task + '_vs_'
-    blast_output_basename += clustered_ref_db_basename + '.max_target_seqs_'
-    blast_output_basename += str(max_target_seqs)
-    blast_output_basepath = args.wkdir + '/' + blast_output_basename
+    sortme_output_basename = components_assembly_basename + '.sortmerna_vs_'
+    sortme_output_basename += cleaned_ref_db_basename + '_num_align_0' 
+    sortme_output_basename += '_evalue_{0:.2e}'.format(args.evalue)
+    sortme_output_basepath = args.wkdir + '/' + sortme_output_basename
     
-    blast_output_filename = blast_output_basename + '.tab'
-    blast_output_filepath = args.wkdir + '/' + blast_output_filename
+    sortmerna_index_true_ref_basepath = sortmerna_index_directory + '/' + true_ref_basename
+    
+    sortme_true_ref_output_basename = components_assembly_basename + '.sortmerna_vs_'
+    sortme_true_ref_output_basename += true_ref_basename + '_num_align_0'
+    sortme_true_ref_output_basename += '_evalue_{0:.2e}'.format(args.evalue)
+    sortme_true_ref_output_basepath = args.wkdir + '/' + sortme_true_ref_output_basename
     
     if 8 in steps_set:
         sys.stdout.write('## Post assembly Stats (8):\n\n')
         
-        #
-        cmd_line = 'blastn -query ' + components_assembly_filepath
-        cmd_line += ' -task ' + args.blast_task + ' -db ' + blast_index_clustered_ref_db_basepath
-        cmd_line += ' -out ' + blast_output_filepath
-        cmd_line += ' -evalue ' + str(args.blast_evalue)
-        cmd_line += ' -outfmt "6 std qlen slen" -dust "no"'
-        cmd_line += ' -max_target_seqs ' + str(max_target_seqs)
-        cmd_line += ' -num_threads ' + str(args.cpu)
-            
+        # SortMeRNA command line
+        cmd_line = sortmerna_bin + ' --ref ' + cleaned_ref_db_filepath
+        cmd_line += ',' + sortmerna_index_ref_db_basepath + ' --reads '
+        cmd_line += components_assembly_filepath + ' --aligned ' + sortme_output_basepath
+        cmd_line += ' --sam --blast \'1\' --log --num_alignments 0'
+        cmd_line += ' -e {0:.2e}'.format(args.evalue)
+        cmd_line += ' -a ' + str(args.cpu) + ' -v'
+        
         sys.stdout.write('CMD: {0}\n'.format(cmd_line))
         if not args.simulate_only:
-            start_time = time.time()
             subprocess.call(cmd_line, shell=True)
-            end_time = time.time()
-            elapsed_time = end_time - start_time
-            sys.stdout.write('TIME: {0:.2f} sec elapsed\n\n'.format(elapsed_time))
+        sys.stdout.write('\n')
         
-        #
-        cmd_line = 'sort -k2,2 ' + blast_output_filepath
-        cmd_line += ' > ' + blast_output_basepath + '.sorted_subject.tab'
+        # sort blast file
+        cmd_line = 'sort -k1,1V -k12,12nr ' + sortme_output_basepath + '.blast'
+        cmd_line += ' > ' + sortme_output_basepath + '.blast.sorted.tab'
         
-        sys.stdout.write('CMD: {0}\n\n'.format(cmd_line))
+        sys.stdout.write('CMD: {0}\n'.format(cmd_line))
         if not args.simulate_only:
             subprocess.call(cmd_line, shell=True)
         
         #
-        cmd_line = find_least_bin + ' -i ' + blast_output_filepath
-        cmd_line += ' -s ' + blast_output_basepath + '.sorted_subject.tab'
-        cmd_line += ' -o ' + blast_output_basepath + '.least_num_ref.tab'
+        cmd_line = get_best_matches_bin + ' -c ' + components_assembly_filepath
+        cmd_line += ' -i ' + sortme_output_basepath + '.blast.sorted.tab'
+        cmd_line += ' -o ' + sortme_output_basepath + '.blast.best_only.tab'
+        cmd_line += ' -p 1.0 '
         
-        sys.stdout.write('CMD: {0}\n\n'.format(cmd_line))
+        sys.stdout.write('CMD: {0}\n'.format(cmd_line))
         if not args.simulate_only:
             subprocess.call(cmd_line, shell=True)
+        sys.stdout.write('\n')
         
         # When using a test dataset, remapping with blastn against the original sequences
-        if args.test_dataset:
-            # Indexing original sequences
-            cmd_line = 'makeblastdb -in ' + args.db_wkdir + '/16sp.fasta -dbtype nucl '
-            cmd_line += '-out ' + blast_db_directory + '/16sp'
+        if args.true_references:
             
-            sys.stdout.write('\nCMD: {0}'.format(cmd_line))
-            if not args.simulate_only:
-                subprocess.call(cmd_line, shell=True)
+            # SortMeRNA Clustered Ref DB indexing
+            cmd_line = indexdb_bin + ' -v --ref ' + args.true_references
+            cmd_line += ',' + sortmerna_index_true_ref_basepath
+            
+            sys.stdout.write('CMD: {0}\n'.format(cmd_line))
+            #~ if not args.simulate_only:
+                #~ subprocess.call(cmd_line, shell=True)
+            subprocess.call(cmd_line, shell=True)
+            
+            #
+            cmd_line = sortmerna_bin + ' --ref ' + args.true_references
+            cmd_line += ',' + sortmerna_index_true_ref_basepath + ' --reads '
+            cmd_line += components_assembly_filepath + ' --aligned ' 
+            cmd_line += sortme_true_ref_output_basepath
+            cmd_line += ' --blast \'1\' --log --num_alignments 0 '
+            cmd_line += ' -e {0:.2e}'.format(args.evalue)
+            cmd_line += ' -a ' + str(args.cpu) + ' -v'
+            
+            sys.stdout.write('CMD: {0}\n'.format(cmd_line))
+            #~ if not args.simulate_only:
+                #~ subprocess.call(cmd_line, shell=True)
+            subprocess.call(cmd_line, shell=True)
             sys.stdout.write('\n')
             
-            # Blast assembly contigs against original sequences
+            #
+            cmd_line = 'sort -k1,1V -k12,12nr ' + sortme_true_ref_output_basepath + '.blast'
+            cmd_line += ' | ' + get_best_matches_bin + ' -c ' + components_assembly_filepath
+            cmd_line += ' -o ' + sortme_true_ref_output_basepath + '.blast.best_only.tab'
+            cmd_line += ' -p 1.0 '
             
-            test_blast_output_filename = components_assembly_basename + '.' + args.blast_task + '_vs_16sp'
-            #~ test_blast_output_filename += '.max_target_seqs_' + str(max_target_seqs) + '.tab'
-            test_blast_output_filename += '.max_target_seqs_1.tab'
-            test_blast_output_filepath = args.wkdir + '/' + test_blast_output_filename
+            sys.stdout.write('CMD: {0}\n'.format(cmd_line))
+            if not args.simulate_only:
+                subprocess.call(cmd_line, shell=True)
+            subprocess.call(cmd_line, shell=True)
             
-            cmd_line = 'blastn -query ' + components_assembly_filepath
-            cmd_line += ' -task ' + args.blast_task + ' -db ' + blast_db_directory + '/16sp'
-            cmd_line += ' -out ' + test_blast_output_filepath
-            cmd_line += ' -evalue ' + str(args.blast_evalue)
-            cmd_line += ' -outfmt "6 std qlen slen" -dust "no"'
-            #~ cmd_line += ' -max_target_seqs ' + str(max_target_seqs)
-            cmd_line += ' -max_target_seqs 1'
-            cmd_line += ' -num_threads ' + str(args.cpu)
+            #
+            cmd_line = compute_assembly_stats_bin + ' -c ' + components_assembly_filepath
+            cmd_line += ' -r ' + args.true_references
+            cmd_line += ' -i ' + sortme_true_ref_output_basepath + '.blast.best_only.tab'
+            cmd_line += ' > ' + sortme_true_ref_output_basepath + '.blast.assembly.stats'
             
             sys.stdout.write('CMD: {0}\n\n'.format(cmd_line))
             if not args.simulate_only:
                 subprocess.call(cmd_line, shell=True)
+            subprocess.call(cmd_line, shell=True)
+            sys.stdout.write('\n')
+            
     
     exit(0)
 
