@@ -92,21 +92,15 @@ if __name__ == '__main__':
                         help='components LCA file')
     parser.add_argument('--species_taxo', metavar='IN_FILE',
                         type=argparse.FileType('r'),
-                        help='Test species taxonomies')
+                        help='Test species taxonomies. '
+                             'Ouput additional stats')
     parser.add_argument('--read_node_component', metavar='IN_FILE',
                         type=argparse.FileType('r'),
                         help='')
-    parser.add_argument('--test_dataset', action='store_true',
-                        help='Ouput additional stats when using a test dataset')
     parser.add_argument('-o', '--output_file', metavar='OUT', 
                         type=argparse.FileType('w'), default='-',
                         help='ouput file')
     args = parser.parse_args()
-    
-    if args.test_dataset:
-        if args.species_taxo == None:
-            sys.stderr.write('Test species taxonomies file needed when using a test dataset\n')
-            exit(1)
     
     # Load nodes arity dict
     nodes_arity_dict = load_nodes_arity(args.edges_contracted)
@@ -162,7 +156,7 @@ if __name__ == '__main__':
     components_average_size = float(reads_num) / float(components_num)
     
     #
-    if args.test_dataset:
+    if args.species_taxo:
         # Load test species taxonomies
         species_taxo_dict = load_species_taxo(args.species_taxo)
         
@@ -202,7 +196,7 @@ if __name__ == '__main__':
     # Print descriptive statistics
     args.output_file.write('\nDescriptive Stats\n\n')
     args.output_file.write('#Reads:   {0} mapped reads'.format(reads_num))
-    if args.test_dataset:
+    if args.species_taxo:
         args.output_file.write(' / {0} total reads '.format(total_reads_num))
         mapped_reads_percent = reads_num * 100.0 / total_reads_num
         args.output_file.write('({0:.2f}%)\n'.format(mapped_reads_percent))
@@ -241,7 +235,7 @@ if __name__ == '__main__':
         args.output_file.write('\n')
     
     #
-    if args.test_dataset:
+    if args.species_taxo:
         # Print test dataset statistics
         args.output_file.write('\nTest dataset Stats\n\n')
         args.output_file.write('Global LCA prediction compatible with true taxo:\n')
