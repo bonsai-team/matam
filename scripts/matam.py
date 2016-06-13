@@ -579,6 +579,7 @@ if __name__ == '__main__':
         
         # Convert Us in Ts
         # Option: Either filter out seq with Ns or replace Ns with random nucl
+        # Sort sequences by decreasing length
         cmd_line = 'cat ' + args.ref_db
         cmd_line += ' | sed "/^>/!s/U/T/g" | sed "/^>/!s/u/t/g"'
         if not args.remove_Ns:
@@ -675,7 +676,7 @@ if __name__ == '__main__':
                 # Clutering with sumaclust
                 # sumaclust -l is used to simulate semi-global alignment, since SumaClust is a global aligner
                 sumaclust_cmd_line = sumaclust_bin + ' -l -t ' + '{0:.2f}'.format(args.clustering_id_threshold)
-                sumaclust_cmd_line += ' -p ' + str(args.cpu)
+                sumaclust_cmd_line += ' -s None -p ' + str(args.cpu)
                 sumaclust_cmd_line += ' ' + cleaned_ref_db_kingdom_filepath
                 sumaclust_cmd_line += ' > ' + sumaclust_filepath
                 
