@@ -71,5 +71,5 @@ if __name__ == '__main__':
                         help='ouput tab file')
     args = parser.parse_args()
     
-	for header, seq, qual in read_fastq_file_handle(args.input_fastq):
-		args.output_tab.write('{0}\t{1}\t{2}\n'.format(header, seq, qual))
+    for header, seq, qual in read_fastq_file_handle(args.input_fastq):
+        args.output_tab.write('{0}\t{1}\t{2}\n'.format(header, seq, qual))
