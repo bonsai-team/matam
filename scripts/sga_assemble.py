@@ -11,21 +11,50 @@ if __name__ == '__main__':
     
     # Arguments parsing
     parser = argparse.ArgumentParser(description='')
-    parser.add_argument('-i', '--input_fastq', metavar='FASTQ', 
-                        type=str, required=True,
+    # -i / --input_fastq
+    parser.add_argument('-i', '--input_fastq', 
+                        action='store',
+                        metavar='FASTQ', 
+                        type=str, 
+                        required=True,
                         help='Input fastq file')
-    parser.add_argument('-o', '--output_contigs', metavar='FASTA', 
-                        type=str, default='contigs.fa',
-                        help='Ouput contigs fasta file')
-    parser.add_argument('--sga_bin', metavar='PATH', 
-                        type=str, default='sga',
+    # --paired_end
+    parser.add_argument('--paired_end',
+                        action='store_true',
+                        help='Input fastq is made of '
+                             'interleaved paired-end reads')
+    # -o / --output_contigs
+    parser.add_argument('-o', '--output_contigs', 
+                        action='store',
+                        metavar='FASTA', 
+                        type=str, 
+                        default='contigs.fa',
+                        help='Ouput contigs fasta file. '
+                             'Default is ${default}')
+    # --sga_bin
+    parser.add_argument('--sga_bin', 
+                        action='store',
+                        metavar='PATH', 
+                        type=str, 
+                        default='sga',
                         help='SGA bin path (by default sga is searched in $PATH)')
-    parser.add_argument('--tmp_dir', metavar='DIR',
-                        type=str, default='/tmp',
-                        help='Tmp dir (/tmp by default)')
-    parser.add_argument('--cpu', metavar='INT',
-                        type=int, default=3,
-                        help='Max number of CPU to use')
+    # --tmp_dir
+    parser.add_argument('--tmp_dir', 
+                        action='store',
+                        metavar='DIR',
+                        type=str, 
+                        default='/tmp',
+                        help='Tmp directory. '
+                             'Default is ${default}')
+    # --cpu
+    parser.add_argument('--cpu', 
+                        action='store',
+                        metavar='INT',
+                        type=int, 
+                        default=3,
+                        help='Max number of CPU to use. '
+                             'Default is ${default}')
+    #
     args = parser.parse_args()
     
     assembly_output_basename = 'assemble'
@@ -147,6 +176,7 @@ if __name__ == '__main__':
     
     # Perform the contig assembly without bubble popping
     assembly_output_basename = 'assemble'
+    assembly_contigs_filename = assembly_output_basename + '-contigs.fa'
     
     cmd_line = args.sga_bin + ' assemble -m ' + str(min_overlap)
     #~ cmd_line += ' -b 3 -d 0.03 -g 0.01 '
@@ -160,8 +190,22 @@ if __name__ == '__main__':
     sys.stdout.write('\nCMD: {0}\n\n'.format(cmd_line))
     subprocess.call(cmd_line, shell=True)
     
+    # Scaffolding
+    assembly_scaffolds_filename = assembly_output_basename + '-scaffolds.fa'
+    
+    if args.paired_end:
+        cmd_line = 'bwa index ' + assembly_contigs_filename
+        #~ cmd_line
+    
     ## Final post-processing
-    cmd_line = 'cp ' + assembly_output_basename + '-contigs.fa '
+    assembly_output_filename = assembly_output_basename
+    if args.paired_end:
+        assembly_output_filename += '-scaffolds.fa'
+    else:
+        assembly_output_filename += '-contigs.fa'
+    
+    #~ cmd_line = 'cp ' + assembly_output_filename + ' '
+    cmd_line = 'cp ' + assembly_contigs_filename + ' '
     cmd_line += output_filepath
     
     sys.stdout.write('\nCMD: {0}\n\n'.format(cmd_line))
