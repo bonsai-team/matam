@@ -152,9 +152,28 @@ if __name__ == '__main__':
         scaffolds_list.append(scaffold_seq)
     
     
+    scaffolds_list.sort(key=lambda x: len(x))
+    
+    #~ print scaffolds_list
+    
+    scaffolds_to_keep_list = list()
+    
+    for i in xrange(len(scaffolds_list)-1):
+        short_scaff = scaffolds_list[i]
+        to_keep = True
+        for j in xrange(i+1, len(scaffolds_list)):
+            long_scaff = scaffolds_list[j]
+            if short_scaff in long_scaff:
+                to_keep = False
+                break
+        if to_keep:
+            scaffolds_to_keep_list.append(short_scaff)
+    scaffolds_to_keep_list.append(scaffolds_list[-1])
+    
+    
     # Write scaffolds
     scaffold_num = 0
-    for scaffold_seq in scaffolds_list:
+    for scaffold_seq in scaffolds_to_keep_list:
         scaffold_num += 1
         args.output_scaffolds.write('>{0}\n{1}\n'.format(scaffold_num, 
                                                          format_seq(scaffold_seq)))
