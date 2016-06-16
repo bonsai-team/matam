@@ -60,7 +60,7 @@ def tab_to_sam(query_id, subject_id, reverse_complement, query_start,
     """
     sam_tab = list()
     
-    query_seq = contig_seq_dict[query_id]
+    query_seq = contig_seq_dict[query_id].upper()
     
     # QNAME
     sam_tab.append(query_id)
@@ -108,7 +108,7 @@ def tab_to_sam(query_id, subject_id, reverse_complement, query_start,
     sam_tab.append('0')
     
     # SEQ
-    revcompl = lambda x: ''.join([{'A':'T','C':'G','G':'C','T':'A'}[B] for B in x][::-1])
+    revcompl = lambda x: ''.join([{'A':'T','C':'G','G':'C','T':'A','N':'N'}[B] for B in x][::-1])
     if reverse_complement:
         sam_tab.append(revcompl(query_seq))
     else:
