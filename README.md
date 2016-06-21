@@ -6,6 +6,10 @@
 
 `./build.sh`
 
+## Run
+
+`matam.py -i reads.fastq -d SILVA_123_SSURef.fasta`
+
 ## Dependencies
 
 ### ovgraphbuild
