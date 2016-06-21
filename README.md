@@ -8,7 +8,7 @@
 
 ## Run
 
-`matam.py -i reads.fastq -d SILVA_123_SSURef.fasta`
+`matam.py -s 0 1 2 3 4 5 6 7 8 -i reads.fastq -d SILVA_123_SSURef.fasta`
 
 ## Dependencies
 
