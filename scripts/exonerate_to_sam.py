@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import sys
@@ -64,7 +64,7 @@ def tab_to_sam(query_id, subject_id, reverse_complemented,
     # RNAME
     sam_tab.append(subject_id)
 
-    # POS
+    # POS # 1-based leftmost ref position of the first mapped read nucl
     sam_tab.append(str(subject_start + 1))
 
     # MAPQ
@@ -78,14 +78,14 @@ def tab_to_sam(query_id, subject_id, reverse_complemented,
 
     exo_cigar_tab = exo_cigar.split()
 
-    for i in xrange(0, len(exo_cigar_tab), 2):
+    for i in range(0, len(exo_cigar_tab), 2):
         label = exo_cigar_tab[i]
         label_count = int(exo_cigar_tab[i+1])
         cigar += '{0}{1}'.format(label_count, label)
 
     if query_end < len(query_seq):
         cigar += '{0}S'.format(len(query_seq) - query_end)
-    
+
     sam_tab.append(cigar)
 
     # RNEXT
@@ -108,7 +108,7 @@ def tab_to_sam(query_id, subject_id, reverse_complemented,
 
 
 if __name__ == '__main__':
-    
+
     # Arguments parsing
     parser = argparse.ArgumentParser(description='')
     # -i / --input_exo
@@ -129,33 +129,35 @@ if __name__ == '__main__':
                         type=argparse.FileType('r'),
                         required=True,
                         help='Queries fasta file')
-    
+
     args = parser.parse_args()
-    
-    # Get queries sequenceq
+
+    # Get queries sequences
     queries_seq_dict = dict()
     for header, seq in read_fasta_file_handle(args.queries):
         seqid = header.split()[0]
         queries_seq_dict[seqid] = seq
-    
+
     # Reading exonerate tab file
     for tab in (l.split('\t') for l in args.input_exo if l.strip()):
-        
+
         # Parse exonerate tab
         query_id = tab[0]
         subject_id = tab[1]
-        
+
+        # Exonerate uses an in-between coordinate system.
+        # see: https://www.ebi.ac.uk/about/vertebrate-genomics/software/exonerate-manual
         query_start = int(tab[2])
         query_end = int(tab[3])
         subject_start = int(tab[4])
         subject_end = int(tab[5])
-        
+
         exo_cigar = tab[6]
-        
+
         # Get query seq
         query_seq = queries_seq_dict[query_id]
         query_len = len(query_seq)
-        
+
         # Deal with reverse complementation
         reverse_complemented = False
         if query_end < query_start:
@@ -165,11 +167,11 @@ if __name__ == '__main__':
             query_end = query_len - query_end
             # Reverse complement seq
             query_seq = reverse_complement(query_seq)
-        
+
         # Write sam output
         sam_line = tab_to_sam(query_id, subject_id, reverse_complemented,
-                              query_start, query_end, 
+                              query_start, query_end,
                               subject_start, subject_end,
                               exo_cigar, query_seq)
-        
+
         args.output_sam.write('{0}\n'.format(sam_line))
