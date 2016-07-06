@@ -32,150 +32,58 @@ def read_fasta_file_handle(fasta_file_handle):
     fasta_file_handle.close()
 
 
-def analyse_exo_cigar(exo_cigar):
+def parse_cigar(cigar):
     """
-    
+    Parse a CIGAR string and return a list of (operation, count) tuples
     """
-    exo_cigar_tab = exo_cigar.split()
-    
-    matches_or_mismatches = 0
-    indel = 0
-    
-    for i in xrange(0, len(exo_cigar_tab), 2):
-        label = exo_cigar_tab[i]
-        label_count = int(exo_cigar_tab[i+1])
-        
-        if label == 'M':
-            matches_or_mismatches += label_count
-        elif label == 'D' or label == 'I':
-            indel += label_count
-    
-    return matches_or_mismatches, indel
-
-
-def tab_to_sam(query_id, subject_id, reverse_complement, query_start, 
-               query_end, subject_start, subject_end, exo_cigar, 
-               contig_seq_dict):
-    """
-    """
-    sam_tab = list()
-    
-    query_seq = contig_seq_dict[query_id].upper()
-    
-    # QNAME
-    sam_tab.append(query_id)
-    
-    # FLAG
-    flag = 0
-    if reverse_complement:
-        flag = 16
-    sam_tab.append(str(flag))
-    
-    # RNAME
-    sam_tab.append(subject_id)
-    
-    # POS
-    sam_tab.append(str(subject_start + 1))
-    
-    # MAPQ
-    sam_tab.append('255')
-    
-    # CIGAR
-    cigar = str()
-    
-    if query_start > 0:
-        cigar += '{0}S'.format(query_start)
-    
-    exo_cigar_tab = exo_cigar.split()
-    
-    for i in xrange(0, len(exo_cigar_tab), 2):
-        label = exo_cigar_tab[i]
-        label_count = int(exo_cigar_tab[i+1])
-        cigar += '{0}{1}'.format(label_count, label)
-    
-    if query_end > len(query_seq):
-        cigar += '{0}S'.format(len(query_seq) - query_end)
-    
-    sam_tab.append(cigar)
-    
-    # RNEXT
-    sam_tab.append('*')
-    
-    # PNEXT
-    sam_tab.append('0')
-    
-    # TLEN
-    sam_tab.append('0')
-    
-    # SEQ
-    revcompl = lambda x: ''.join([{'A':'T','C':'G','G':'C','T':'A','N':'N'}[B] for B in x][::-1])
-    if reverse_complement:
-        sam_tab.append(revcompl(query_seq))
-    else:
-        sam_tab.append(query_seq)
-    
-    # QUAL
-    sam_tab.append('*')
-    
+    cigar_tab = list()
+    count_str = ''
+    for c in cigar:
+        if c.isdigit():
+            count_str += c
+        else:
+            operation = c
+            count = 1
+            if count_str:
+                count = int(count_str)
+            cigar_tab.append((operation, count))
+            count_str = ''
     #
-    return '\t'.join(sam_tab)
+    return cigar_tab
 
 
 if __name__ == '__main__':
-    
+
     # Arguments parsing
     parser = argparse.ArgumentParser(description='')
-    # -i / --input_tab
-    parser.add_argument('-i', '--input_tab', 
-                        metavar='INEXOTAB', 
-                        type=argparse.FileType('r'), 
+    # -i / --input_sam
+    parser.add_argument('-i', '--input_sam',
+                        metavar='INSAM',
+                        type=argparse.FileType('r'),
                         required=True,
-                        help='Input exonerate tab file, sorted by subject. '
+                        help='Input sam file, sorted by subject. '
                              'Only best alignments are expected.')
-    # -c / --contigs
-    parser.add_argument('-c', '--contigs', 
-                        metavar='CONTIGS', 
-                        type=argparse.FileType('r'), 
-                        required=True,
-                        help='Assembly contigs fasta file')
     # -r / --references
-    parser.add_argument('-r', '--references', 
-                        metavar='REF', 
-                        type=argparse.FileType('r'), 
+    parser.add_argument('-r', '--references',
+                        metavar='REF',
+                        type=argparse.FileType('r'),
                         required=True,
                         help='References fasta file (optional). '
                              'If used, the blast file should only '
                              'contain the best alignments')
-    # -s / --output_sam
-    parser.add_argument('-s', '--output_sam', 
-                        metavar='OUTSAM', 
-                        type=argparse.FileType('w'), 
-                        required=False,
-                        help='Optional output sam file')
-    
+
     args = parser.parse_args()
-    
-    
-    # Get contigs length
-    contig_length_dict = dict()
-    contig_seq_dict = dict()
-    for header, seq in read_fasta_file_handle(args.contigs):
-        seqid = header.split()[0]
-        contig_seq_dict[seqid] = seq
-        contig_length_dict[seqid] = len(seq)
-    
-    
-    # Get ref length and initialize positions count
-    ref_length_dict = dict()
+
+    # Get ref seqs and initialize positions count
+    ref_seq_dict = dict()
     ref_positions_count_dict = dict()
     total_ref_length = 0
     for header, seq in read_fasta_file_handle(args.references):
         seqid = header.split()[0]
         total_ref_length += len(seq)
-        ref_length_dict[seqid] = len(seq)
+        ref_seq_dict[seqid] = seq.upper()
         ref_positions_count_dict[seqid] = [0 for x in xrange(len(seq))]
-    
-    
+
     # Variables initialization
     previous_query_id = ''
     total_aligned_contigs_num = 0
@@ -184,46 +92,63 @@ if __name__ == '__main__':
     total_mismatches_num = 0
     total_indel_num = 0
     total_overhang_num = 0
-    
-    
-    # Reading exonerate tab file
-    for tab in (l.split('\t') for l in args.input_tab if l.strip()):
-        
-        # Parse exonerate tab
+
+    # Reading sam file
+    for tab in (l.split() for l in args.input_sam if l.strip()):
+        # Parse sam tab
         query_id = tab[0]
-        subject_id = tab[1]
-        
-        query_start = int(tab[2])
-        query_end = int(tab[3])
-        subject_start = int(tab[4])
-        subject_end = int(tab[5])
-        
-        exo_cigar = tab[6]
-        mismatches_num = int(tab[7])
-        
-        # Compute additional metrics
-        reverse_complement = False
-        if query_end < query_start:
-            reverse_complement = True
-            # Reverse query start and end if reversed complemented
-            tmp = query_start
-            query_start = query_end
-            query_end = tmp
-        
-        matches_or_mismatches, indel_num = analyse_exo_cigar(exo_cigar)
-        matches_num = matches_or_mismatches - mismatches_num
-        
-        alignment_on_query_length = query_end - query_start
-        
-        query_length = contig_length_dict[query_id]
-        
+        flag = int(tab[1])
+        subject_id = tab[2]
+        first_pos = int(tab[3]) # 1-based leftmost mapping position of the first matching base
+        mapping_qual = int(tab[4])
+        cigar = tab[5]
+        rnext = tab[6]
+        pnext = tab[7]
+        tlen = tab[8]
+        query_seq = tab[9].upper()
+        qual = tab[10]
+
+        # Compute additional variables
+        # Is read reverse complemented ?
+        reverse_complemented = flag & 0x10  # Bitwise AND. True if flag == 16
+        subject_seq = ref_seq_dict[subject_id]
+        subject_start = first_pos - 1 # 0-based
+        query_length = len(query_seq)
+
+        cigar_tab = parse_cigar(cigar)
+
+        # Deal with soft clipping and get the query start (0-based)
+        query_start = 0
         overhang_num = 0
-        
-        if query_start > 0:
-            overhang_num += query_start
-        if query_end < query_length:
-            overhang_num += query_length - query_end
-        
+        if cigar_tab[0][0] == 'S':
+            count = cigar_tab[0][1]
+            query_start += count
+            overhang_num += count
+            del cigar_tab[0]
+
+        # Parse CIGAR
+        query_end = query_start - 1
+        subject_end = subject_start - 1
+        indel_num = 0
+        matches_num = 0
+        mismatches_num = 0
+        for operation, count in cigar_tab:
+            if operation == 'M':
+                # Compute the number of matches on this block
+                local_matches_num = sum((query_seq[query_end + 1 + i] == subject_seq[subject_end + 1 + i] for i in xrange(0, count)))
+                matches_num += local_matches_num
+                mismatches_num += count - local_matches_num
+                subject_end += count
+                query_end += count
+            elif operation == 'I':
+                query_end += count
+                indel_num += count
+            elif operation == 'D':
+                subject_end += count
+                indel_num += count
+            elif operation == 'S':
+                overhang_num += count
+
         # Store metrics
         if query_id != previous_query_id:
             total_aligned_contigs_num += 1
@@ -232,30 +157,22 @@ if __name__ == '__main__':
             total_mismatches_num += mismatches_num
             total_indel_num += indel_num
             total_overhang_num += overhang_num
-        
+
         #
         ref_positions_count = ref_positions_count_dict[subject_id]
-        for i in xrange(subject_start-1, subject_end):
+        for i in xrange(subject_start, subject_end + 1):
             ref_positions_count[i] += 1
-        
-        # Write optional sam output
-        if args.output_sam:
-            sam_line = tab_to_sam(query_id, subject_id, reverse_complement,
-                                  query_start, query_end,
-                                  subject_start, subject_end,
-                                  exo_cigar, contig_seq_dict)
-            args.output_sam.write('{0}\n'.format(sam_line))
-        
+
         # Store previous subject id and score
         previous_query_id = query_id
-    
+
     # Final stats
     total_leven_distance = total_mismatches_num + total_indel_num + total_overhang_num
     errors_num_per_kbp = total_leven_distance * 1000.0 / total_aligned_contigs_length
-    
+
     total_covered_positions_count = 0
     coverage_count_list = [0 for i in xrange(11)]
-    for ref_id, ref_length in ref_length_dict.items():
+    for ref_id in ref_seq_dict:
         covered_positions_count = 0
         ref_positions_count = ref_positions_count_dict[ref_id]
         for pos_coverage in ref_positions_count:
@@ -266,7 +183,7 @@ if __name__ == '__main__':
             else:
                 coverage_count_list[pos_coverage] += 1
         total_covered_positions_count += covered_positions_count
-    
+
     max_coverage = 0
     percent_coverage_list = [0.0 for i in xrange(11)]
     for i in xrange(11):
@@ -275,23 +192,23 @@ if __name__ == '__main__':
             max_coverage = i
         coverage_percent = coverage_count * 100.0 / total_ref_length
         percent_coverage_list[i] = coverage_percent
-    
+
     total_ref_coverage = total_covered_positions_count * 100.0 / total_ref_length
-    
+
     # Output
     sys.stdout.write('Total aligned contigs num  = {0}\n'.format(total_aligned_contigs_num))
     sys.stdout.write('Total aligned contigs len  = {0}\n\n'.format(total_aligned_contigs_length))
-    
+
     sys.stdout.write('Total ref length     = {0}\n\n'.format(total_ref_length))
-    
+
     sys.stdout.write('Total matches num    = {0}\n'.format(total_matches_num))
     sys.stdout.write('Total mismatches num = {0}\n'.format(total_mismatches_num))
     sys.stdout.write('Total indel num      = {0}\n'.format(total_indel_num))
     sys.stdout.write('Total overhang num   = {0}\n\n'.format(total_overhang_num))
-    
+
     sys.stdout.write('Total leven distance = {0}\n'.format(total_leven_distance))
     sys.stdout.write('Assembly error rate  = {0:.2f} errors / kbp\n\n'.format(errors_num_per_kbp))
-    
+
     sys.stdout.write('Total ref coverage   = {0:.2f}%\n'.format(total_ref_coverage))
     sys.stdout.write('\tCov')
     for i in xrange(max_coverage + 1):
@@ -300,33 +217,3 @@ if __name__ == '__main__':
     for i in xrange(max_coverage + 1):
         sys.stdout.write('\t{0:.2f}%'.format(percent_coverage_list[i]))
     sys.stdout.write('\n')
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
