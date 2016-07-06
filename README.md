@@ -1,5 +1,7 @@
 # MATAM
 
+*Mapping-Assisted Targeted-Assembly for Metagenomics* 
+
 ## Install
 
 `git submodule update --init --recursive`
