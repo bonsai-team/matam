@@ -69,6 +69,12 @@ if __name__ == '__main__':
     dealt_contigs_num = 0
     dealt_contigs_id = set()
 
+    # Count refs
+    ref_count_dict = defaultdict(int)
+    for tab_list in tab_list_list:
+        for tab in tab_list:
+            ref_count_dict[tab[1]] += 1
+
     # Start iterating
     while (len(tab_list_list)):
 
@@ -92,13 +98,6 @@ if __name__ == '__main__':
                     tab_list_buffer.append(tab_list)
         # Multiple-choices specific contigs
         else:
-
-            # Count refs in remaining specific contigs alignments
-            ref_count_dict = defaultdict(int)
-            for tab_list in tab_list_list:
-                for tab in tab_list:
-                    ref_count_dict[tab[1]] += 1
-
             # Get most specific contig so far
             selected_tab_list = tab_list_list[0]
             #~ print selected_tab_list
