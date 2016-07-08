@@ -77,12 +77,16 @@ if __name__ == '__main__':
     # Get ref seqs and initialize positions count
     ref_seq_dict = dict()
     ref_positions_count_dict = dict()
+    ref_metrics_dict = dict()
     total_ref_length = 0
     for header, seq in read_fasta_file_handle(args.references):
         seqid = header.split()[0]
         total_ref_length += len(seq)
         ref_seq_dict[seqid] = seq.upper()
         ref_positions_count_dict[seqid] = [0 for x in xrange(len(seq))]
+        # aligned_contigs_num, aligned_contigs_length, matches_num
+        # mismatches_num, indel_num, overhang_num
+        ref_metrics_dict[seqid] = [0, 0, 0, 0, 0, 0]
 
     # Variables initialization
     previous_query_id = ''
@@ -158,6 +162,14 @@ if __name__ == '__main__':
             total_indel_num += indel_num
             total_overhang_num += overhang_num
 
+        # Store metrics for each ref
+        ref_metrics_dict[subject_id][0] += 1
+        ref_metrics_dict[subject_id][1] += query_length
+        ref_metrics_dict[subject_id][2] += matches_num
+        ref_metrics_dict[subject_id][3] += mismatches_num
+        ref_metrics_dict[subject_id][4] += indel_num
+        ref_metrics_dict[subject_id][5] += overhang_num
+
         #
         ref_positions_count = ref_positions_count_dict[subject_id]
         for i in xrange(subject_start, subject_end + 1):
@@ -172,9 +184,10 @@ if __name__ == '__main__':
 
     total_covered_positions_count = 0
     coverage_count_list = [0 for i in xrange(11)]
+    ref_stats_dict = dict()
     for ref_id in ref_seq_dict:
-        covered_positions_count = 0
         ref_positions_count = ref_positions_count_dict[ref_id]
+        covered_positions_count = 0
         for pos_coverage in ref_positions_count:
             if pos_coverage > 0:
                 covered_positions_count += 1
@@ -182,6 +195,10 @@ if __name__ == '__main__':
                 coverage_count_list[10] += 1
             else:
                 coverage_count_list[pos_coverage] += 1
+        covered_positions_percent = covered_positions_count * 100.0 / len(ref_positions_count)
+        mean_coverage = sum(ref_positions_count)/float(len(ref_positions_count))
+        median_coverage = sorted(ref_positions_count, key=int)[len(ref_positions_count)/2]
+        ref_stats_dict[ref_id] = (covered_positions_percent, mean_coverage, median_coverage)
         total_covered_positions_count += covered_positions_count
 
     max_coverage = 0
@@ -196,24 +213,36 @@ if __name__ == '__main__':
     total_ref_coverage = total_covered_positions_count * 100.0 / total_ref_length
 
     # Output
-    sys.stdout.write('Total aligned contigs num  = {0}\n'.format(total_aligned_contigs_num))
-    sys.stdout.write('Total aligned contigs len  = {0}\n\n'.format(total_aligned_contigs_length))
+    #~ sys.stdout.write('Total ref length     = {0}\n\n'.format(total_ref_length))
 
-    sys.stdout.write('Total ref length     = {0}\n\n'.format(total_ref_length))
+    sys.stdout.write('1 MATCH PER READ:\n')
+    sys.stdout.write('\tTotal aligned contigs num  = {0}\n'.format(total_aligned_contigs_num))
+    sys.stdout.write('\tTotal aligned contigs len  = {0}\n\n'.format(total_aligned_contigs_length))
 
-    sys.stdout.write('Total matches num    = {0}\n'.format(total_matches_num))
-    sys.stdout.write('Total mismatches num = {0}\n'.format(total_mismatches_num))
-    sys.stdout.write('Total indel num      = {0}\n'.format(total_indel_num))
-    sys.stdout.write('Total overhang num   = {0}\n\n'.format(total_overhang_num))
+    sys.stdout.write('\tTotal matches num    = {0}\n'.format(total_matches_num))
+    sys.stdout.write('\tTotal mismatches num = {0}\n'.format(total_mismatches_num))
+    sys.stdout.write('\tTotal indel num      = {0}\n'.format(total_indel_num))
+    sys.stdout.write('\tTotal overhang num   = {0}\n\n'.format(total_overhang_num))
 
-    sys.stdout.write('Total leven distance = {0}\n'.format(total_leven_distance))
-    sys.stdout.write('Assembly error rate  = {0:.2f} errors / kbp\n\n'.format(errors_num_per_kbp))
+    sys.stdout.write('\tTotal leven distance = {0}\n'.format(total_leven_distance))
+    sys.stdout.write('\tAssembly error rate  = {0:.2f} errors / kbp\n\n'.format(errors_num_per_kbp))
 
-    sys.stdout.write('Total ref coverage   = {0:.2f}%\n'.format(total_ref_coverage))
-    sys.stdout.write('\tCov')
+    sys.stdout.write('ALL BEST MATCHES:\n')
+    sys.stdout.write('\tTotal ref coverage   = {0:.2f}%\n'.format(total_ref_coverage))
+    sys.stdout.write('\t\tCov')
     for i in xrange(max_coverage + 1):
         sys.stdout.write('\t{0}'.format(i))
-    sys.stdout.write('+\n\t%align')
+    sys.stdout.write('+\n\t\t%align')
     for i in xrange(max_coverage + 1):
         sys.stdout.write('\t{0:.2f}%'.format(percent_coverage_list[i]))
-    sys.stdout.write('\n')
+    sys.stdout.write('\n\n')
+
+    sys.stdout.write('\tPer-reference Stats:\n')
+    sys.stdout.write('\t\tRefID\tCov. Pos. %\tMean Cov.\tMedian Cov.'
+                     '\t#Align. Contigs\tAlign. Contigs Lgth\t#Matches'
+                     '\t#Mismatches\t#Indel\t#Overhang\n')
+    for ref_id, stats_list in sorted(ref_stats_dict.items(), key=lambda x: x[1][1], reverse=True):
+        # Store metrics for each ref
+        rl = ref_metrics_dict[ref_id]
+        sys.stdout.write('\t\t{0}\t{1:.2f}%\t{2:.2f}\t{3}'.format(ref_id, stats_list[0], stats_list[1], stats_list[2]))
+        sys.stdout.write('\t{0}\t{1}\t{2}\t{3}\t{4}\t{5}\n'.format(rl[0], rl[1], rl[2], rl[3], rl[4], rl[5]))
