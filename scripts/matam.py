@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import os
@@ -9,7 +9,7 @@ import subprocess
 import time
 
 matam_bin = os.path.realpath(sys.argv[0])
-matam_dir = matam_bin[:-17]
+matam_dir = os.path.dirname(matam_bin)
 sumaclust_bin = matam_dir + '/bin/sumaclust'
 extract_taxo_bin = matam_dir + '/bin/extract_taxo_from_fasta.py'
 clean_name_bin = matam_dir + '/bin/fasta_clean_name.py'
@@ -509,6 +509,7 @@ def print_intro(args):
     sys.stdout.write('PARAM: Ref DB      = {0}\n'.format(args.ref_db))
     sys.stdout.write('PARAM: Steps       = {0}\n'.format(args.steps))
     sys.stdout.write('\n')
+    sys.stdout.flush()
 
     return 0
 
