@@ -145,6 +145,7 @@ if __name__ == '__main__':
             elif operation == 'S':
                 overhang_num += count
 
-       identity = float(matches_num) / (matches_num + mismatches_num + indel_num)
+        identity = float(matches_num) / (matches_num + mismatches_num + indel_num)
 
-       if identity > args.id_threshold:
+        if identity > args.id_threshold:
+            args.output_sam.write('{0}\n'.format('\t'.join(tab)))
