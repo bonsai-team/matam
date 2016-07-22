@@ -1,5 +1,9 @@
 cmake_minimum_required (VERSION 2.8)
-project (ovgraphbuild)
+
+find_program(CMAKE_C_COMPILER NAMES $ENV{CC} gcc PATHS ENV PATH NO_DEFAULT_PATH)
+find_program(CMAKE_CXX_COMPILER NAMES $ENV{CXX} g++ PATHS ENV PATH NO_DEFAULT_PATH)
+
+project (ovgraphbuild C CXX)
 
 include_directories ("lib/seqan/include")
 set (PROJECT_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
