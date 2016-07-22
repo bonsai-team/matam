@@ -129,7 +129,7 @@ def parse_arguments():
                            help = 'Kingdoms to clusterize the DB for. '
                                   'Default is %(default)s')
     # -o / --out_db_name
-    group_adv.add_argument('-o', '--out_db_name',
+    group_adv.add_argument('--out_db_name',
                            action = 'store',
                            metavar = 'OUTNAME',
                            type = str,
