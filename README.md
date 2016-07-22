@@ -2,13 +2,9 @@
 
 *Mapping-Assisted Targeted-Assembly for Metagenomics* 
 
-## Install
-
-`git submodule update --init --recursive`
+## Getting Started
 
 `./build.sh`
-
-## Run
 
 `matam.py -s 0 1 2 3 4 5 6 7 8 -i reads.fastq -d SILVA_123_SSURef.fasta`
 
@@ -16,9 +12,9 @@
 
 ### ovgraphbuild
 
-* gcc v4.9.0 or superior (full C++11 support, \<regex\> included)
+* gcc v4.9.0 or superior (full C++11 support, \<regex\> included, and partial C++14 support)
 * libraries: rt, pthread, zlib
-* Seqan v2.0.1 or superior (provided as a submodule of ovgraphbuild)
+* Seqan v2.0.1 or superior (v2.2.0 is provided as a submodule of ovgraphbuild)
 
 ### SGA
 
