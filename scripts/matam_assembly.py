@@ -33,6 +33,12 @@ sortmerna_bin_dir = os.path.join(matam_root_dir, 'sortmerna')
 sortmerna_bin = os.path.join(sortmerna_bin_dir, 'sortmerna')
 indexdb_bin = os.path.join(sortmerna_bin_dir, 'indexdb_rna')
 
+ovgraphbuild_bin_dir = os.path.join(matam_root_dir, 'ovgraphbuild', 'bin')
+ovgraphbuild_bin = os.path.join(ovgraphbuild_bin_dir, 'ovgraphbuild')
+
+componentsearch_bin_dir = os.path.join(matam_root_dir, 'componentsearch')
+componentsearch_jar = os.path.join(componentsearch_bin_dir, 'ComponentSearch.jar')
+
 # Define a null file handle
 FNULL = open(os.devnull, 'w')
 
@@ -234,9 +240,10 @@ def parse_arguments():
         parser.print_help()
         raise Exception("quorum not in range [0.51,1]")
 
-    # Set verbose if debug
+    # Set debug parameters
     if args.debug:
         args.verbose = True
+        args.keep_tmp = True
 
     # Set default ref db
     if not args.ref_db:
@@ -347,21 +354,25 @@ if __name__ == '__main__':
     # Init error code
     error_code = 0
 
-    # Set logging level
+    # Set logging
+    # create console handler
+    ch = logging.StreamHandler()
+    #
     if args.debug:
         logger.setLevel(logging.DEBUG)
-        # create console handler with a debug log level
-        ch = logging.StreamHandler()
-        ch.setLevel(logging.DEBUG)
-        # create formatter and add it to the handler
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        ch.setFormatter(formatter)
-        # add the handler to logger
-        logger.addHandler(ch)
-    elif args.verbose:
-        logger.setLevel(logging.INFO)
+        # create formatter for debug level
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     else:
-        logger.setLevel(logging.WARNING)
+        if args.verbose:
+            logger.setLevel(logging.INFO)
+        else:
+            logger.setLevel(logging.WARNING)
+        # create default formatter
+        formatter = logging.Formatter('%(levelname)s - %(message)s')
+    # add the formatter to the console handler
+    ch.setFormatter(formatter)
+    # add the handler to logger
+    logger.addHandler(ch)
 
     # Init list of tmp files to delete at the end
     to_rm_filepath_list = list()
@@ -425,6 +436,11 @@ if __name__ == '__main__':
     ovgraphbuild_nodes_csv_filepath = ovgraphbuild_basepath + '.nodes.csv'
     ovgraphbuild_edges_csv_filepath = ovgraphbuild_basepath + '.edges.csv'
 
+    componentsearch_basename = ovgraphbuild_basename + '.ctgs'
+    componentsearch_basename += '_N' + str(args.min_read_node)
+    componentsearch_basename += '_E' + str(args.min_overlap_edge)
+    componentsearch_basepath = os.path.join(args.out_dir, componentsearch_basename)
+
     ###############################
     # Reads mapping against ref db
 
@@ -442,7 +458,7 @@ if __name__ == '__main__':
         cmd_line += ' -v '
 
     logger.debug('CMD: {0}'.format(cmd_line))
-    error_code += subprocess.call(cmd_line, shell=True)
+    #~ error_code += subprocess.call(cmd_line, shell=True)
     if args.verbose:
         sys.stdout.write('\n')
 
@@ -459,11 +475,10 @@ if __name__ == '__main__':
     cmd_line += ' > ' + sam_filt_filepath
 
     logger.debug('CMD: {0}'.format(cmd_line))
-    error_code += subprocess.call(cmd_line, shell=True)
-    #~ if args.verbose:
-        #~ sys.stdout.write('\n')
+    #~ error_code += subprocess.call(cmd_line, shell=True)
 
     # Tag tmp files for removal
+    to_rm_filepath_list.append(sortme_output_sam_filepath)
     to_rm_filepath_list.append(sortme_output_basepath + '.log')
     to_rm_filepath_list.append(sortme_output_basepath + '.blast')
 
@@ -472,18 +487,48 @@ if __name__ == '__main__':
 
     logger.info('Overlap-graph building')
 
-    cmd_line = ovgraphbuild_bin + ' -v --debug'
+    cmd_line = ovgraphbuild_bin
     cmd_line += ' -i ' + str(args.min_identity)
     cmd_line += ' -m ' + str(args.min_overlap_length)
-    cmd_line += ' --asqg --csv --output_basename '
+    cmd_line += ' --csv --output_basename '
     cmd_line += ovgraphbuild_basepath
     cmd_line += ' -r ' + clustered_ref_db_filepath
     cmd_line += ' -s ' + sam_filt_filepath
+    if args.verbose:
+        cmd_line += ' -v'
+    if args.debug:
+        cmd_line += ' --debug'
 
     logger.debug('CMD: {0}'.format(cmd_line))
-    error_code += subprocess.call(cmd_line, shell=True)
-    #~ if args.verbose:
-        #~ sys.stdout.write('\n')
+    #~ error_code += subprocess.call(cmd_line, shell=True)
+
+    # Tag tmp files for removal
+    to_rm_filepath_list.append(sam_filt_filepath)
+
+    ###############################################
+    # Graph compaction & Components identification
+
+    logger.info('Graph compaction & Components identification')
+
+    cmd_line = 'java -Xmx' + str(args.max_memory) + 'M -cp "'
+    cmd_line += componentsearch_jar + '" main.Main'
+    cmd_line += ' -N ' + str(args.min_read_node)
+    cmd_line += ' -E ' + str(args.min_overlap_edge)
+    cmd_line += ' -b ' + componentsearch_basepath
+    cmd_line += ' -n ' + ovgraphbuild_nodes_csv_filepath
+    cmd_line += ' -e ' + ovgraphbuild_edges_csv_filepath
+
+    logger.debug('CMD: {0}'.format(cmd_line))
+    if args.verbose:
+        error_code += subprocess.call(cmd_line, shell=True)
+    else:
+        # Needed because ComponentSearch doesnt have a verbose option
+        # and output everything to stderr
+        error_code += subprocess.call(cmd_line, shell=True, stdout=FNULL)
+
+    # Tag tmp files for removal
+    to_rm_filepath_list.append(ovgraphbuild_nodes_csv_filepath)
+    to_rm_filepath_list.append(ovgraphbuild_edges_csv_filepath)
 
     ###############
     # Exit program
