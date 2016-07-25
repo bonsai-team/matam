@@ -79,10 +79,10 @@ parseCommandLine(AlphaOptions &options, int argc, char const **argv)
     seqan::getOptionValue(options.mySamFile, parser, "sam");
 
     seqan::getOptionValue(options.outputBasename, parser, "output_basename");
-//    options.outputASQG = seqan::isSet(parser, "asqg");
-    options.outputASQG = true;
-//    options.outputCSV = seqan::isSet(parser, "csv");
-    options.outputCSV = true;
+    options.outputASQG = seqan::isSet(parser, "asqg");
+//    options.outputASQG = true;
+    options.outputCSV = seqan::isSet(parser, "csv");
+//    options.outputCSV = true;
 
     seqan::getOptionValue(options.minRefPairwisePercentId, parser, "min_ref_pairwise_pid");
     seqan::getOptionValue(options.minOverlapLength, parser, "min_overlap");
