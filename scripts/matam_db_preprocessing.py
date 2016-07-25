@@ -267,6 +267,14 @@ if __name__ == '__main__':
     complete_ref_db_filename = os.path.basename(complete_ref_db_filepath)
     complete_ref_db_basename = os.path.splitext(complete_ref_db_filename)[0]
 
+    try:
+        if not os.path.exists(args.db_dir):
+            logger.debug('mkdir {0}'.format(args.db_dir))
+            os.makedirs(args.db_dir)
+    except OSError:
+        logger.exception('Could not create output directory {0}'.format(args.db_dir))
+        raise
+
     complete_ref_db_taxo_filename = complete_ref_db_basename + '.taxo.tab'
     complete_ref_db_taxo_filepath = os.path.join(args.db_dir, complete_ref_db_taxo_filename)
 
