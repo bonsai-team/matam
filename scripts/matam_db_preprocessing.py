@@ -152,9 +152,10 @@ def parse_arguments():
         parser.print_help()
         raise Exception("clustering id threshold not in range [0,1]")
 
-    # Set verbose if debug
+    # Set debug parameters
     if args.debug:
         args.verbose = True
+        args.keep_tmp = True
 
     # Get absolute path for all arguments
     args.input_ref = os.path.abspath(args.input_ref)
@@ -241,21 +242,25 @@ if __name__ == '__main__':
     # Init error code
     error_code = 0
 
-    # Set logging level
+    # Set logging
+    # create console handler
+    ch = logging.StreamHandler()
+    #
     if args.debug:
         logger.setLevel(logging.DEBUG)
-        # create console handler with a debug log level
-        ch = logging.StreamHandler()
-        ch.setLevel(logging.DEBUG)
-        # create formatter and add it to the handler
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        ch.setFormatter(formatter)
-        # add the handler to logger
-        logger.addHandler(ch)
-    elif args.verbose:
-        logger.setLevel(logging.INFO)
+        # create formatter for debug level
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     else:
-        logger.setLevel(logging.WARNING)
+        if args.verbose:
+            logger.setLevel(logging.INFO)
+        else:
+            logger.setLevel(logging.WARNING)
+        # create default formatter
+        formatter = logging.Formatter('%(levelname)s - %(message)s')
+    # add the formatter to the console handler
+    ch.setFormatter(formatter)
+    # add the handler to logger
+    logger.addHandler(ch)
 
     # Init list of tmp files to delete at the end
     to_rm_filepath_list = list()
