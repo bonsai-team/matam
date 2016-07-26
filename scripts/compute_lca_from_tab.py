@@ -125,7 +125,8 @@ if __name__ == '__main__':
                         help='Column number on wich to group by (eg. reads). Taxo are weighted')
     parser.add_argument('-m', '--min_proportion', metavar='FLOAT', 
                         type=float, default=1.0,
-                        help='Find the most recent LCA covered by at least min_proportion of the total population (between 0 and 1, canonic LCA by default)')
+                        help='Find the most recent LCA covered by at least min_proportion '
+                             'of the total population (between 0 and 1, canonic LCA by default)')
     parser.add_argument('--header', action='store_true', 
                         help='Indicate there is an header line in the input file')
     parser.add_argument('-s', '--separator', metavar='CHAR',
