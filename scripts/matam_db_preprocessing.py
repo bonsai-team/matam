@@ -407,7 +407,7 @@ if __name__ == '__main__':
             cmd_line = sumaclust_bin + ' -l -t ' + '{0:.2f}'.format(args.clustering_id_threshold)
             cmd_line += ' -s None -p ' + str(args.cpu)
             cmd_line += ' ' + cleaned_complete_ref_db_kingdom_filepath
-            cmd_line += ' > ' + sumaclust_output_kingdom_filepath
+            cmd_line += ' -F ' + sumaclust_output_kingdom_filepath
 
             logger.debug('CMD: {0}'.format(cmd_line))
             if args.verbose:
@@ -437,7 +437,7 @@ if __name__ == '__main__':
         cmd_line = sumaclust_bin + ' -l -t ' + '{0:.2f}'.format(args.clustering_id_threshold)
         cmd_line += ' -s None -p ' + str(args.cpu)
         cmd_line += ' ' + cleaned_complete_ref_db_filepath
-        cmd_line += ' > ' + sumaclust_output_filepath
+        cmd_line += ' -F ' + sumaclust_output_filepath
 
         logger.debug('CMD: {0}'.format(cmd_line))
         if args.verbose:
