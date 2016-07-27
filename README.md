@@ -6,7 +6,9 @@
 
 `./build.sh`
 
-`matam.py -s 0 1 2 3 4 5 6 7 8 -i reads.fastq -d SILVA_123_SSURef.fasta`
+`./scripts/index_ref_db.py -v`
+
+`./bin/matam_assembly.py -i reads.fastq --cpu 4 -v`
 
 ## Dependencies
 
