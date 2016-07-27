@@ -28,6 +28,8 @@ default_ref_db = os.path.join(matam_db_dir, 'SILVA_123_SSURef_rdNs_NR95')
 matam_script_dir = os.path.join(matam_root_dir, 'scripts')
 clean_name_bin = os.path.join(matam_script_dir, 'fasta_clean_name.py')
 filter_score_bin = os.path.join(matam_script_dir, 'filter_score_multialign.py')
+compute_lca_bin = os.path.join(matam_script_dir, 'compute_lca_from_tab.py')
+compute_compressed_graph_stats_bin = os.path.join(matam_script_dir, 'compute_compressed_graph_stats.py')
 
 sortmerna_bin_dir = os.path.join(matam_root_dir, 'sortmerna')
 sortmerna_bin = os.path.join(sortmerna_bin_dir, 'sortmerna')
@@ -214,9 +216,16 @@ def parse_arguments():
                             action = 'store_true',
                             help = 'Do not remove tmp files')
     # --true_references
+    # Fasta sequences of the known true references
     group_adv.add_argument('--true_references',
                            action = 'store',
-                           metavar = 'TRUEREF',
+                           type = str,
+                           help = argparse.SUPPRESS)
+    # --true_ref_taxo
+    # Taxonomies of the true ref (represented by a 3 character id)
+    # This is only needed when using a simulated dataset
+    group_adv.add_argument('--true_ref_taxo',
+                           action = 'store',
                            type = str,
                            help = argparse.SUPPRESS)
     # --debug
@@ -260,6 +269,8 @@ def parse_arguments():
     args.out_dir = os.path.abspath(args.out_dir)
     if args.true_references:
         args.true_references = os.path.abspath(args.true_references)
+    if args.true_ref_taxo:
+        args.true_ref_taxo = os.path.abspath(args.true_ref_taxo)
 
     #
     return args
@@ -441,6 +452,24 @@ if __name__ == '__main__':
     componentsearch_basename += '_E' + str(args.min_overlap_edge)
     componentsearch_basepath = os.path.join(args.out_dir, componentsearch_basename)
 
+    contracted_nodes_basepath = componentsearch_basepath + '.nodes_contracted'
+    contracted_nodes_filepath = contracted_nodes_basepath + '.csv'
+    contracted_edges_filepath = componentsearch_basepath + '.edges_contracted.csv'
+
+    read_id_metanode_component_filepath = componentsearch_basepath + '.read_id_metanode_component.tab'
+    complete_taxo_filepath = componentsearch_basepath + '.read_metanode_component_taxo.tab'
+
+    quorum_int = int(args.quorum * 100)
+
+    labelled_nodes_basename = componentsearch_basename + '.nodes_contracted'
+    labelled_nodes_basename += '.component_lca' + str(quorum_int) + 'pct'
+
+    components_lca_filename = componentsearch_basename + '.component_lca' + str(quorum_int) + 'pct.tab'
+    components_lca_filepath = os.path.join(args.out_dir, components_lca_filename)
+
+    stats_filename = componentsearch_basename + '.graph.stats'
+    stats_filepath = os.path.join(args.out_dir, stats_filename)
+
     ###############################
     # Reads mapping against ref db
 
@@ -478,7 +507,7 @@ if __name__ == '__main__':
     #~ error_code += subprocess.call(cmd_line, shell=True)
 
     # Tag tmp files for removal
-    to_rm_filepath_list.append(sortme_output_sam_filepath)
+    #~ to_rm_filepath_list.append(sortme_output_sam_filepath)
     to_rm_filepath_list.append(sortme_output_basepath + '.log')
     to_rm_filepath_list.append(sortme_output_basepath + '.blast')
 
@@ -503,7 +532,7 @@ if __name__ == '__main__':
     #~ error_code += subprocess.call(cmd_line, shell=True)
 
     # Tag tmp files for removal
-    to_rm_filepath_list.append(sam_filt_filepath)
+    #~ to_rm_filepath_list.append(sam_filt_filepath)
 
     ###############################################
     # Graph compaction & Components identification
@@ -519,16 +548,104 @@ if __name__ == '__main__':
     cmd_line += ' -e ' + ovgraphbuild_edges_csv_filepath
 
     logger.debug('CMD: {0}'.format(cmd_line))
-    if args.verbose:
-        error_code += subprocess.call(cmd_line, shell=True)
-    else:
-        # Needed because ComponentSearch doesnt have a verbose option
-        # and output everything to stderr
-        error_code += subprocess.call(cmd_line, shell=True, stdout=FNULL)
+    #~ if args.verbose:
+        #~ error_code += subprocess.call(cmd_line, shell=True)
+    #~ else:
+        #~ # Needed because ComponentSearch doesnt have a verbose option
+        #~ # and output everything to stderr
+        #~ error_code += subprocess.call(cmd_line, shell=True, stdout=FNULL)
 
     # Tag tmp files for removal
-    to_rm_filepath_list.append(ovgraphbuild_nodes_csv_filepath)
-    to_rm_filepath_list.append(ovgraphbuild_edges_csv_filepath)
+    #~ to_rm_filepath_list.append(ovgraphbuild_nodes_csv_filepath)
+    #~ to_rm_filepath_list.append(ovgraphbuild_edges_csv_filepath)
+
+    ################
+    # LCA labelling
+
+    logger.info('LCA labelling')
+
+    # Note: some of the manipulations here are needed because ComponentSearch
+    # works with read ids rather than read names. The goal of this part is to
+    # regroup all the infos in one file (component, metanode, read, ref taxo)
+    # in order to compute LCA at metanode or component level
+
+    # Convert CSV component file to TAB format and sort by read id
+    cmd_line = 'tail -n +2 ' + componentsearch_basepath + '.components.csv'
+    cmd_line += ' | sed "s/;/\\t/g" | sort -k2,2 > '
+    cmd_line += componentsearch_basepath + '.components.tab'
+
+    logger.debug('CMD: {0}'.format(cmd_line))
+    error_code += subprocess.call(cmd_line, shell=True)
+
+    # Convert CSV node file to TAB format and sort by read id
+    cmd_line = 'tail -n +2 ' + ovgraphbuild_nodes_csv_filepath
+    cmd_line += ' | sed "s/;/\\t/g" | sort -k1,1 > '
+    cmd_line += ovgraphbuild_basepath + '.nodes.tab'
+
+    logger.debug('CMD: {0}'.format(cmd_line))
+    error_code += subprocess.call(cmd_line, shell=True)
+
+    # Join component and node files on read id, and sort by read name
+    cmd_line = 'join -a1 -e"NULL" -o "1.2,0,2.3,2.1" -11 -22 '
+    cmd_line += ovgraphbuild_basepath + '.nodes.tab '
+    cmd_line += componentsearch_basepath + '.components.tab '
+    cmd_line += '| sed "s/ /\\t/g" | sort -k1,1  > '
+    cmd_line += read_id_metanode_component_filepath
+
+    logger.debug('CMD: {0}'.format(cmd_line))
+    error_code += subprocess.call(cmd_line, shell=True)
+
+    # Join sam file with ref taxo on ref name, and join it to the
+    # component-node file on read name.
+    # Output is (read, metanode, component, taxo) file
+    cmd_line = 'cat ' + sam_filt_filepath + ' | cut -f1,3 | sort -k2,2'
+    cmd_line += ' | join -12 -21 - ' + complete_ref_db_taxo_filepath
+    cmd_line += ' | sort -k2,2 | awk "{print \$2,\$3}" | sed "s/ /\\t/g" '
+    cmd_line += ' | join -11 -21 ' + read_id_metanode_component_filepath
+    cmd_line += ' - | sed "s/ /\\t/g" | cut -f2-5 > '
+    cmd_line += complete_taxo_filepath
+
+    logger.debug('CMD: {0}'.format(cmd_line))
+    error_code += subprocess.call(cmd_line, shell=True)
+
+    # Compute LCA at component level using quorum threshold
+    cmd_line = 'cat ' + complete_taxo_filepath + ' | sort -k3,3 -k1,1 | '
+    cmd_line += compute_lca_bin + ' -t 4 -f 3 -g 1 -m ' + str(args.quorum)
+    cmd_line += ' -o ' + components_lca_filepath
+
+    logger.debug('CMD: {0}'.format(cmd_line))
+    error_code += subprocess.call(cmd_line, shell=True)
+
+    # Tag tmp files for removal
+    to_rm_filepath_list.append(componentsearch_basepath + '.components.tab')
+    to_rm_filepath_list.append(ovgraphbuild_basepath + '.nodes.tab')
+    to_rm_filepath_list.append(complete_taxo_filepath)
+
+    ###################################
+    # Computing compressed graph stats
+
+    logger.info('Computing compressed graph stats')
+
+    cmd_line = compute_compressed_graph_stats_bin + ' --nodes_contracted '
+    cmd_line += contracted_nodes_filepath + ' --edges_contracted '
+    cmd_line += contracted_edges_filepath + ' --components_lca '
+    cmd_line += components_lca_filepath
+    if args.true_ref_taxo:
+        cmd_line += ' --species_taxo ' + args.true_ref_taxo
+        cmd_line += ' --read_node_component ' + read_id_metanode_component_filepath
+    cmd_line += ' -o ' + stats_filepath
+
+    logger.debug('CMD: {0}'.format(cmd_line))
+    error_code += subprocess.call(cmd_line, shell=True)
+
+    # Tag tmp files for removal
+    to_rm_filepath_list.append(read_id_metanode_component_filepath)
+
+    ###################
+    # Contigs assembly
+
+
+
 
     ###############
     # Exit program
