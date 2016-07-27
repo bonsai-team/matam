@@ -489,6 +489,7 @@ if __name__ == '__main__':
 
     cmd_line = indexdb_bin + ' --ref ' + output_complete_ref_db_filepath
     cmd_line += ',' + output_complete_ref_db_basepath
+    cmd_line += ' -m {0}'.format(args.max_memory)
     if args.verbose:
         cmd_line += ' -v '
 
@@ -502,6 +503,7 @@ if __name__ == '__main__':
 
     cmd_line = indexdb_bin + ' --ref ' + output_clustered_ref_db_filepath
     cmd_line += ',' + output_clustered_ref_db_basepath
+    cmd_line += ' -m {0}'.format(args.max_memory)
     if args.verbose:
         cmd_line += ' -v '
 
