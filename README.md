@@ -4,15 +4,15 @@
 
 ## Getting Started
 
-*Compiling MATAM and dependencies*
+Compiling MATAM and dependencies
 
 `./build.sh`
 
-*Indexing default reference database*
+Indexing default reference database
 
 `./scripts/index_ref_db.py -v`
 
-*Assembling*
+Assembling
 
 `./bin/matam_assembly.py -i reads.fastq --cpu 4 -v`
 
