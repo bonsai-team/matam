@@ -41,12 +41,10 @@ mkdir $MATAMOG_DIR/bin
 cd $MATAMOG_DIR/bin
 
 echo "-- Creating links into bin dir --"
-ln -sf $MATAMOG_DIR/componentsearch/ComponentSearch.jar $MATAMOG_DIR/bin/.
-ln -sf $MATAMOG_DIR/scripts/* $MATAMOG_DIR/bin/.
-ln -sf $MATAMOG_DIR/sumaclust/sumaclust $MATAMOG_DIR/bin/.
-ln -sf $MATAMOG_DIR/ovgraphbuild/bin/ovgraphbuild $MATAMOG_DIR/bin/.
-ln -sf $MATAMOG_DIR/sortmerna/indexdb_rna $MATAMOG_DIR/bin/.
-ln -sf $MATAMOG_DIR/sortmerna/sortmerna $MATAMOG_DIR/bin/.
-ln -sf $MATAMOG_DIR/sga/src/SGA/sga $MATAMOG_DIR/bin/.
+ln -sf $MATAMOG_DIR/scripts/matam_*.py $MATAMOG_DIR/bin/.
+
+echo "-- Extracting default ref db --"
+cd $MATAMOG_DIR/db
+tar jxvf SILVA_123_SSURef_rdNs_NR95.tar.bz2
 
 echo "-- MATAM building complete --"
