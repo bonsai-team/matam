@@ -22,7 +22,7 @@ cd $MATAMOG_DIR/sortmerna
 
 echo "-- Compiling Sumaclust --"
 cd $MATAMOG_DIR/sumaclust
-cd sumalib
+cd sumalibs
 git checkout master
 cd ..
 make
