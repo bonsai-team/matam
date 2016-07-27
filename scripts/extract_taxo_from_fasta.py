@@ -47,7 +47,9 @@ if __name__ == '__main__':
     for header, sequence in read_fasta_file_handle(args.input_fasta):
         header_tab = header.split()
         ref_id = header_tab[0]
-        taxo = '_'.join(header_tab[1:])
+        taxo = 'NULL'
+        if len(header_tab) > 1:
+            taxo = '_'.join(header_tab[1:])
         args.output_tab.write('{0}\t{1}\n'.format(ref_id, taxo))
     
     
