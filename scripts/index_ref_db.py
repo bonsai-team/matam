@@ -55,8 +55,8 @@ def parse_arguments():
                             action = 'store',
                             metavar = 'DBPATH',
                             type = str,
-                            required = True,
-                            help = 'MATAM ref db')
+                            help = 'MATAM ref db. '
+                                   'Default is $MATAM_DIR/db/SILVA_123_SSURef_rdNs_NR95')
     # -v / --verbose
     group_main.add_argument('-v', '--verbose',
                             action = 'store_true',
@@ -82,6 +82,10 @@ def parse_arguments():
                                    'Default is %(default)s MBi')
 
     args = parser.parse_args()
+
+    # Set default values
+    if not args.input_ref_db:
+        args.input_ref_db = os.path.join(matam_root_dir, 'db', 'SILVA_123_SSURef_rdNs_NR95')
 
     # Get absolute path for all arguments
     args.input_ref_db = os.path.abspath(args.input_ref_db)
