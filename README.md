@@ -16,6 +16,12 @@ Assembling
 
 `./bin/matam_assembly.py -i reads.fastq --cpu 4 -v`
 
+## Hardware requirements
+
+Recommanded free RAM is 10 Go, but MATAM should also work with less RAM if --max\_memory is set to a lower value (eg. --max\_memory 4000 for 4Go)
+
+Some steps of MATAM are highly paralelized. You can get a significant speed increase during these steps by setting the --cpu option to a higher value
+
 ## Dependencies
 
 ### ovgraphbuild
