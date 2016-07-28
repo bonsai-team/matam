@@ -96,7 +96,7 @@ def parse_arguments():
                             action = 'store',
                             metavar = 'MAXMEM',
                             type = int,
-                            default = 4000,
+                            default = 10000,
                             help = 'Maximum memory to use (in MBi). '
                                    'Default is %(default)s MBi')
 

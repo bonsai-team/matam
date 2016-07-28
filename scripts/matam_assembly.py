@@ -30,6 +30,9 @@ clean_name_bin = os.path.join(matam_script_dir, 'fasta_clean_name.py')
 filter_score_bin = os.path.join(matam_script_dir, 'filter_score_multialign.py')
 compute_lca_bin = os.path.join(matam_script_dir, 'compute_lca_from_tab.py')
 compute_compressed_graph_stats_bin = os.path.join(matam_script_dir, 'compute_compressed_graph_stats.py')
+sga_assemble_bin = os.path.join(matam_script_dir, 'sga_assemble.py')
+fastq_name_filter_bin = os.path.join(matam_script_dir, 'fastq_name_filter.py')
+evaluate_assembly_bin = os.path.join(matam_script_dir, 'evaluate_assembly.py')
 
 sortmerna_bin_dir = os.path.join(matam_root_dir, 'sortmerna')
 sortmerna_bin = os.path.join(sortmerna_bin_dir, 'sortmerna')
@@ -41,8 +44,74 @@ ovgraphbuild_bin = os.path.join(ovgraphbuild_bin_dir, 'ovgraphbuild')
 componentsearch_bin_dir = os.path.join(matam_root_dir, 'componentsearch')
 componentsearch_jar = os.path.join(componentsearch_bin_dir, 'ComponentSearch.jar')
 
+assembler_bin_dir = os.path.join(matam_root_dir, 'sga', 'src', 'SGA')
+assembler_name = 'sga'
+assembler_bin = os.path.join(assembler_bin_dir, assembler_name)
+
 # Define a null file handle
 FNULL = open(os.devnull, 'w')
+
+
+def read_tab_file_handle_sorted(tab_file_handle, factor_index):
+    """
+    Parse a tab file (sorted by a column) and return a generator
+    """
+    previous_factor_id = ''
+    factor_tab_list = list()
+    # Reading tab file
+    for line in tab_file_handle:
+        l = line.strip()
+        if l:
+            tab = l.split()
+            current_factor = tab[factor_index]
+            # Yield the previous factor tab list
+            if current_factor != previous_factor_id:
+                if previous_factor_id:
+                    yield factor_tab_list
+                    factor_tab_list = list()
+            factor_tab_list.append(tab)
+            previous_factor_id = current_factor
+    # Yield the last tab list
+    yield factor_tab_list
+    # Close tab file
+    tab_file_handle.close()
+
+
+def read_fasta_file_handle(fasta_file_handle):
+    """
+    Parse a fasta file and return a generator
+    """
+    # Variables initialization
+    header = ''
+    seqlines = list()
+    sequence_nb = 0
+    # Reading input file
+    for line in (l.strip() for l in fasta_file_handle if l.strip()):
+        if line[0] == '>':
+            # Yield the last read header and sequence
+            if sequence_nb:
+                yield (header, ''.join(seqlines))
+                del seqlines[:]
+            # Get header
+            header = line[1:].rstrip()
+            sequence_nb += 1
+        else:
+            # Concatenate sequence
+            seqlines.append(line.strip())
+    # Yield the input file last sequence
+    yield (header, ''.join(seqlines))
+    # Close input file
+    fasta_file_handle.close()
+
+
+def format_seq(seq, linereturn=80):
+    """
+    Format an input sequence
+    """
+    buff = list()
+    for i in range(0, len(seq), linereturn):
+        buff.append("{0}\n".format(seq[i:(i + linereturn)]))
+    return ''.join(buff).rstrip()
 
 
 class DefaultHelpParser(argparse.ArgumentParser):
@@ -108,7 +177,7 @@ def parse_arguments():
                             action = 'store',
                             metavar = 'MAXMEM',
                             type = int,
-                            default = 4000,
+                            default = 10000,
                             help = 'Maximum memory to use (in MBi). '
                                    'Default is %(default)s MBi')
 
@@ -202,6 +271,8 @@ def parse_arguments():
                            default = 0.51,
                            help = 'Quorum for LCA computing. Has to be between 0.51 and 1. '
                                   'Default is %(default)s')
+
+    # Computing compressed graph stats
 
     # Contigs assembly
 
@@ -325,6 +396,8 @@ def print_intro(args):
     # LCA labelling
     cmd_line += '--quorum {0:.2f} '.format(args.quorum)
 
+    # Computing compressed graph stats
+
     # Contigs assembly
 
     # Scaffolding
@@ -419,14 +492,16 @@ if __name__ == '__main__':
     clustered_ref_db_filename = clustered_ref_db_basename + '.fasta'
     clustered_ref_db_filepath = os.path.join(ref_db_dir, clustered_ref_db_filename)
 
+    # Read mapping
     sortme_output_basename = input_fastx_basename
     sortme_output_basename += '.sortmerna_vs_' + ref_db_basename
     sortme_output_basename += '_b' + str(args.best) + '_m' + str(args.min_lis)
     sortme_output_basepath = os.path.join(args.out_dir, sortme_output_basename)
 
-    sortme_output_fastx_filepath = sortme_output_basepath + '.' + input_fastx_extension
+    sortme_output_fastx_filepath = sortme_output_basepath + input_fastx_extension
     sortme_output_sam_filepath = sortme_output_basepath + '.sam'
 
+    # Alignment filtering
     score_threshold_int = int(args.score_threshold * 100)
 
     sam_filt_basename = sortme_output_basename + '.scr_filt_'
@@ -438,6 +513,7 @@ if __name__ == '__main__':
     sam_filt_filename = sam_filt_basename + '.sam'
     sam_filt_filepath = os.path.join(args.out_dir, sam_filt_filename)
 
+    # Overlap-graph building
     min_identity_int = int(args.min_identity * 100)
 
     ovgraphbuild_basename = sam_filt_basename + '.ovgb_i' + str(min_identity_int)
@@ -447,6 +523,7 @@ if __name__ == '__main__':
     ovgraphbuild_nodes_csv_filepath = ovgraphbuild_basepath + '.nodes.csv'
     ovgraphbuild_edges_csv_filepath = ovgraphbuild_basepath + '.edges.csv'
 
+    # Graph compaction & Components identification
     componentsearch_basename = ovgraphbuild_basename + '.ctgs'
     componentsearch_basename += '_N' + str(args.min_read_node)
     componentsearch_basename += '_E' + str(args.min_overlap_edge)
@@ -456,6 +533,7 @@ if __name__ == '__main__':
     contracted_nodes_filepath = contracted_nodes_basepath + '.csv'
     contracted_edges_filepath = componentsearch_basepath + '.edges_contracted.csv'
 
+    # LCA labelling
     read_id_metanode_component_filepath = componentsearch_basepath + '.read_id_metanode_component.tab'
     complete_taxo_filepath = componentsearch_basepath + '.read_metanode_component_taxo.tab'
 
@@ -467,8 +545,44 @@ if __name__ == '__main__':
     components_lca_filename = componentsearch_basename + '.component_lca' + str(quorum_int) + 'pct.tab'
     components_lca_filepath = os.path.join(args.out_dir, components_lca_filename)
 
+    # Computing compressed graph stats
     stats_filename = componentsearch_basename + '.graph.stats'
     stats_filepath = os.path.join(args.out_dir, stats_filename)
+
+    # Contigs assembly
+    component_read_filepath = componentsearch_basepath + '.component_read.tab'
+
+    contigs_assembly_wkdir = componentsearch_basepath + '.' + assembler_name
+    try:
+        if not os.path.exists(contigs_assembly_wkdir):
+            logger.debug('mkdir {0}'.format(contigs_assembly_wkdir))
+            os.makedirs(contigs_assembly_wkdir)
+    except OSError:
+        logger.exception('Assembly directory {0} cannot be created'.format(contigs_assembly_wkdir))
+        raise
+
+    contigs_basename = componentsearch_basename + '.'
+    contigs_basename += assembler_name + '_by_component'
+    contigs_filename = contigs_basename + '.fasta'
+    contigs_filepath = os.path.join(args.out_dir, contigs_filename)
+
+    contigs_assembly_log_filename = contigs_basename + '.log'
+    contigs_assembly_log_filepath = os.path.join(args.out_dir, contigs_assembly_log_filename)
+    # Remove log file from previous assemblies
+    # because we will only append to this file
+    if os.path.exists(contigs_assembly_log_filepath):
+        os.remove(contigs_assembly_log_filepath)
+
+    contigs_symlink_basename = 'contigs'
+    contigs_symlink_filename = contigs_symlink_basename + '.fasta'
+    contigs_symlink_filepath = os.path.join(args.out_dir, contigs_symlink_filename)
+
+    # Scaffolding
+
+    scaff_sortme_output_basename = contigs_symlink_basename
+    scaff_sortme_output_basename += '.sortmerna_vs_complete_' + ref_db_basename
+    scaff_sortme_output_basename += '_num_align_0'
+    scaff_sortme_output_basepath = os.path.join(args.out_dir, scaff_sortme_output_basename)
 
     ###############################
     # Reads mapping against ref db
@@ -478,7 +592,6 @@ if __name__ == '__main__':
     cmd_line = sortmerna_bin + ' --ref ' + clustered_ref_db_filepath
     cmd_line += ',' + clustered_ref_db_basepath + ' --reads '
     cmd_line += input_fastx_filepath + ' --aligned ' + sortme_output_basepath
-    #~ cmd_line += ' --fastx --sam --blast "1 cigar qcov" --log --best '
     cmd_line += ' --fastx --sam --blast "1" --log --best '
     cmd_line += str(args.best) + ' --min_lis ' + str(args.min_lis)
     cmd_line += ' -e {0:.2e}'.format(args.evalue)
@@ -487,7 +600,7 @@ if __name__ == '__main__':
         cmd_line += ' -v '
 
     logger.debug('CMD: {0}'.format(cmd_line))
-    #~ error_code += subprocess.call(cmd_line, shell=True)
+    error_code += subprocess.call(cmd_line, shell=True)
     if args.verbose:
         sys.stdout.write('\n')
 
@@ -504,7 +617,7 @@ if __name__ == '__main__':
     cmd_line += ' > ' + sam_filt_filepath
 
     logger.debug('CMD: {0}'.format(cmd_line))
-    #~ error_code += subprocess.call(cmd_line, shell=True)
+    error_code += subprocess.call(cmd_line, shell=True)
 
     # Tag tmp files for removal
     #~ to_rm_filepath_list.append(sortme_output_sam_filepath)
@@ -529,7 +642,7 @@ if __name__ == '__main__':
         cmd_line += ' --debug'
 
     logger.debug('CMD: {0}'.format(cmd_line))
-    #~ error_code += subprocess.call(cmd_line, shell=True)
+    error_code += subprocess.call(cmd_line, shell=True)
 
     # Tag tmp files for removal
     #~ to_rm_filepath_list.append(sam_filt_filepath)
@@ -548,12 +661,12 @@ if __name__ == '__main__':
     cmd_line += ' -e ' + ovgraphbuild_edges_csv_filepath
 
     logger.debug('CMD: {0}'.format(cmd_line))
-    #~ if args.verbose:
-        #~ error_code += subprocess.call(cmd_line, shell=True)
-    #~ else:
-        #~ # Needed because ComponentSearch doesnt have a verbose option
-        #~ # and output everything to stderr
-        #~ error_code += subprocess.call(cmd_line, shell=True, stdout=FNULL)
+    if args.verbose:
+        error_code += subprocess.call(cmd_line, shell=True)
+    else:
+        # Needed because ComponentSearch doesnt have a verbose option
+        # and output everything to stderr
+        error_code += subprocess.call(cmd_line, shell=True, stdout=FNULL)
 
     # Tag tmp files for removal
     #~ to_rm_filepath_list.append(ovgraphbuild_nodes_csv_filepath)
@@ -638,14 +751,152 @@ if __name__ == '__main__':
     logger.debug('CMD: {0}'.format(cmd_line))
     error_code += subprocess.call(cmd_line, shell=True)
 
-    # Tag tmp files for removal
-    to_rm_filepath_list.append(read_id_metanode_component_filepath)
-
     ###################
     # Contigs assembly
 
+    logger.info('Starting contigs assembly')
 
+    # Generate the read_id-->component_id file
+    cmd_line = 'cat ' + read_id_metanode_component_filepath
+    cmd_line += ' | awk \' {print $4"\\t"$1}\' | sort -k1,1n > '
+    cmd_line += component_read_filepath
 
+    logger.debug('CMD: {0}'.format(cmd_line))
+    error_code += subprocess.call(cmd_line, shell=True)
+
+    # Count the number of components to assemble
+    cmd_line = 'cat ' + component_read_filepath
+    cmd_line += ' | cut -f1 | sort | uniq | wc -l'
+
+    logger.debug('CMD: {0}'.format(cmd_line))
+    components_num = int(subprocess.check_output(cmd_line, shell=True))
+
+    # TO DO, one day, maybe:
+    # Convert input fastq to tab, join it to the component-read file
+    # on the read name. Then generate a fastq file for each component.
+    # This would take more space but be faster and less error prone
+    # than using name filtering on the complete fastq each time
+
+    # Reading components LCA and storing them in a dict
+    logger.debug('Reading components LCA assignment from {0}'.format(components_lca_filepath))
+
+    component_lca_dict = dict()
+    with open(components_lca_filepath, 'r') as component_lca_fh:
+        component_lca_dict = {t[0]: t[1] for t in (l.split() for l in component_lca_fh) if len(t) == 2}
+
+    # Open output contigs file
+    contigs_fh = open(contigs_filepath, 'w')
+
+    # Begin reading read-->component file (sorted by component)
+    contig_count = 0
+    component_count = 0
+
+    with open(component_read_filepath, 'r') as component_read_fh:
+        # We will be working in the assembly directory because assembly tools
+        # generate lots of files we dont want in our matam assembly directory
+        os.chdir(contigs_assembly_wkdir)
+
+        #
+        logger.info('Assembling component #')
+
+        # Assembling all reads of every component, one at a time
+        for component_tab_list in read_tab_file_handle_sorted(component_read_fh, 0):
+            component_count += 1
+            component_id = component_tab_list[0][0]
+
+            # To prevent assembly of singleton reads
+            if component_id == 'NULL':
+                continue
+
+            # Starting component assembly
+            if args.verbose:
+                sys.stdout.write('\r{0} / {1}'.format(component_count, components_num))
+
+            # Cleaning previous assembly
+            if os.path.exists('contigs.fa'):
+                os.remove('contigs.fa')
+            if os.path.exists('tmp'):
+                subprocess.call('rm -rf tmp', shell=True)
+
+            # Write the component reads ids
+            with open('reads_single_component.ids', 'w') as wfh:
+                for tab in component_tab_list:
+                    read_id = tab[1]
+                    wfh.write('{0}\n'.format(read_id))
+
+            # Generate a fastq file with this component reads
+            cmd_line = fastq_name_filter_bin + ' -f reads_single_component.ids'
+            cmd_line += ' -i ' + sortme_output_fastx_filepath + ' -o reads_single_component.fq'
+
+            error_code += subprocess.call(cmd_line, shell=True)
+
+            # Assemble those reads with SGA
+            cmd_line = 'echo "component #' + component_id + '" >> '
+            cmd_line += contigs_assembly_log_filepath + ' && '
+            cmd_line += sga_assemble_bin + ' -i reads_single_component.fq'
+            cmd_line += ' -o contigs.fa --sga_bin ' + assembler_bin
+            cmd_line += ' --cpu ' + str(args.cpu)
+            cmd_line += ' --tmp_dir tmp'
+            cmd_line += ' >> ' + contigs_assembly_log_filepath + ' 2>&1'
+
+            error_code += subprocess.call(cmd_line, shell=True)
+
+            # Concatenate the component contigs in the output contigs file
+            component_lca = 'NULL'
+            if component_id in component_lca_dict:
+                component_lca = component_lca_dict[component_id]
+            with open('contigs.fa', 'r') as sga_contigs_fh:
+                for header, seq in read_fasta_file_handle(sga_contigs_fh):
+                    if len(seq):
+                        contig_count += 1
+                        contigs_fh.write('>{0} component={1} '.format(contig_count, component_id))
+                        contigs_fh.write('lca={0}\n{1}\n'.format(component_lca, format_seq(seq)))
+
+        #
+        if args.verbose:
+            sys.stdout.write('\n')
+
+        # Return to matam assembly directory
+        os.chdir(args.out_dir)
+
+    # Close assembly contigs file
+    contigs_fh.close()
+
+    # Create symbolic link
+    os.symlink(contigs_filename, contigs_symlink_filepath)
+
+    # TO DO, if it gets better results:
+    # remove redundant sequences in contigs
+
+    # Tag tmp files for removal
+    to_rm_filepath_list.append(read_id_metanode_component_filepath)
+
+    # Delete assembly directory
+    if not args.keep_tmp:
+        subprocess.call('rm -rf {0}'.format(contigs_assembly_wkdir), shell=True)
+
+    ###################
+    # Scaffolding
+
+    logger.info('Scaffolding')
+
+    # Contigs remapping on the complete database
+    scaff_evalue = 1e-05
+
+    cmd_line = sortmerna_bin
+    cmd_line += ' --ref ' + complete_ref_db_filepath + ',' + complete_ref_db_basepath
+    cmd_line += ' --reads ' + contigs_filepath
+    cmd_line += ' --aligned ' + scaff_sortme_output_basepath
+    cmd_line += ' --sam --blast "1"'
+    cmd_line += ' --num_alignments 0 -e {0:.2e}'.format(scaff_evalue)
+    cmd_line += ' -a ' + str(args.cpu)
+    if args.verbose:
+        cmd_line += ' -v '
+
+    logger.debug('CMD: {0}'.format(cmd_line))
+    error_code += subprocess.call(cmd_line, shell=True)
+    if args.verbose:
+        sys.stdout.write('\n')
 
     ###############
     # Exit program
