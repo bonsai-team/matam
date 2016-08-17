@@ -70,14 +70,13 @@ def parse_arguments():
                             metavar = 'CPU',
                             type = int,
                             default = 1,
-                            help = 'Max number of CPU to use. '
-                                   'Default is %(default)s cpu')
+                            help = argparse.SUPRESS)
     # --max_memory
     group_perf.add_argument('--max_memory',
                             action = 'store',
                             metavar = 'MAXMEM',
                             type = int,
-                            default = 4000,
+                            default = 10000,
                             help = 'Maximum memory to use (in MBi). '
                                    'Default is %(default)s MBi')
 
