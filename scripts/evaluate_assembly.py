@@ -6,6 +6,14 @@ import sys
 import argparse
 import subprocess
 
+# Get script dir absolute path
+program_filename = os.path.basename(sys.argv[0])
+program_filepath = os.path.realpath(sys.argv[0])
+script_dir = os.path.dirname(program_filepath)
+
+# Get dependencies bin
+exonerate_to_sam_bin = os.path.join(script_dir, 'exonerate_to_sam.py')
+compute_assembly_stats_bin = os.path.join(script_dir, 'compute_assembly_stats.py')
 
 if __name__ == '__main__':
 
@@ -52,7 +60,7 @@ if __name__ == '__main__':
     # Convert Exonerate tab output to sam file
     exonerate_sam_filepath = exonerate_output_basepath + '.sam'
 
-    cmd_line = 'exonerate_to_sam.py -i ' + exonerate_output_filepath
+    cmd_line = exonerate_to_sam_bin + ' -i ' + exonerate_output_filepath
     cmd_line += ' -o ' + exonerate_sam_filepath
     cmd_line += ' -q ' + args.input_contigs
 
@@ -63,7 +71,7 @@ if __name__ == '__main__':
     # Compute assembly stats
     assembly_stats_filepath = exonerate_output_basepath + '.assembly.stats'
 
-    cmd_line = 'compute_assembly_stats.py -r ' + args.references
+    cmd_line = compute_assembly_stats_bin + ' -r ' + args.references
     cmd_line += ' -i ' + exonerate_sam_filepath
     cmd_line += ' > ' + assembly_stats_filepath
 
