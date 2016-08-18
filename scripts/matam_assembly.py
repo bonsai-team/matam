@@ -33,6 +33,10 @@ compute_compressed_graph_stats_bin = os.path.join(matam_script_dir, 'compute_com
 sga_assemble_bin = os.path.join(matam_script_dir, 'sga_assemble.py')
 fastq_name_filter_bin = os.path.join(matam_script_dir, 'fastq_name_filter.py')
 evaluate_assembly_bin = os.path.join(matam_script_dir, 'evaluate_assembly.py')
+get_best_matches_bin = os.path.join(matam_script_dir, 'get_best_matches_from_blast.py')
+gener_scaff_blast_bin = os.path.join(matam_script_dir, 'generate_scaffolding_blast.py')
+filter_sam_blast_bin = os.path.join(matam_script_dir, 'filter_sam_based_on_blast.py')
+scaffold_contigs_bin = os.path.join(matam_script_dir, 'scaffold_contigs.py')
 
 sortmerna_bin_dir = os.path.join(matam_root_dir, 'sortmerna')
 sortmerna_bin = os.path.join(sortmerna_bin_dir, 'sortmerna')
@@ -578,11 +582,33 @@ if __name__ == '__main__':
     contigs_symlink_filepath = os.path.join(args.out_dir, contigs_symlink_filename)
 
     # Scaffolding
-
     scaff_sortme_output_basename = contigs_symlink_basename
     scaff_sortme_output_basename += '.sortmerna_vs_complete_' + ref_db_basename
     scaff_sortme_output_basename += '_num_align_0'
     scaff_sortme_output_basepath = os.path.join(args.out_dir, scaff_sortme_output_basename)
+
+    scaff_sortme_output_blast_filepath = scaff_sortme_output_basepath + '.blast'
+    scaff_sortme_output_sam_filepath = scaff_sortme_output_basepath + '.sam'
+
+    best_only_blast_basepath = scaff_sortme_output_blast_filepath + '.best_only'
+    best_only_blast_filepath = best_only_blast_basepath + '.tab'
+
+    selected_best_only_blast_basepath = best_only_blast_basepath + '.selected'
+    selected_best_only_blast_filepath = selected_best_only_blast_basepath + '.tab'
+
+    selected_sam_filepath = selected_best_only_blast_basepath + '.sam'
+    selected_bam_filepath = selected_best_only_blast_basepath + '.bam'
+
+    selected_sorted_basepath = selected_best_only_blast_basepath + '.sorted'
+    selected_sorted_bam_filepath = selected_sorted_basepath + '.bam'
+    mpileup_filepath = selected_sorted_basepath + '.mpileup'
+
+    scaffolds_basepath = selected_sorted_basepath + '.scaffolds'
+    scaffolds_filepath = scaffolds_basepath + '.fasta'
+
+    scaffolds_symlink_basename = 'scaffolds'
+    scaffolds_symlink_filename = scaffolds_symlink_basename + '.fasta'
+    scaffolds_symlink_filepath = os.path.join(args.out_dir, scaffolds_symlink_filename)
 
     ###############################
     # Reads mapping against ref db
@@ -620,7 +646,7 @@ if __name__ == '__main__':
     error_code += subprocess.call(cmd_line, shell=True)
 
     # Tag tmp files for removal
-    #~ to_rm_filepath_list.append(sortme_output_sam_filepath)
+    to_rm_filepath_list.append(sortme_output_sam_filepath)
     to_rm_filepath_list.append(sortme_output_basepath + '.log')
     to_rm_filepath_list.append(sortme_output_basepath + '.blast')
 
@@ -645,7 +671,7 @@ if __name__ == '__main__':
     error_code += subprocess.call(cmd_line, shell=True)
 
     # Tag tmp files for removal
-    #~ to_rm_filepath_list.append(sam_filt_filepath)
+    to_rm_filepath_list.append(sam_filt_filepath)
 
     ###############################################
     # Graph compaction & Components identification
@@ -669,8 +695,8 @@ if __name__ == '__main__':
         error_code += subprocess.call(cmd_line, shell=True, stdout=FNULL)
 
     # Tag tmp files for removal
-    #~ to_rm_filepath_list.append(ovgraphbuild_nodes_csv_filepath)
-    #~ to_rm_filepath_list.append(ovgraphbuild_edges_csv_filepath)
+    to_rm_filepath_list.append(ovgraphbuild_nodes_csv_filepath)
+    to_rm_filepath_list.append(ovgraphbuild_edges_csv_filepath)
 
     ################
     # LCA labelling
@@ -863,10 +889,18 @@ if __name__ == '__main__':
     contigs_fh.close()
 
     # Create symbolic link
-    os.symlink(contigs_filename, contigs_symlink_filepath)
+    os.symlink(os.path.basename(contigs_filepath), contigs_symlink_filepath)
 
     # TO DO, if it gets better results:
     # remove redundant sequences in contigs
+
+    # Evaluate assembly if true ref are provided
+    if args.true_references:
+        cmd_line = evaluate_assembly_bin + ' -r ' + args.true_references
+        cmd_line += ' -i ' + contigs_symlink_filepath
+
+        logger.debug('CMD: {0}'.format(cmd_line))
+        error_code += subprocess.call(cmd_line, shell=True)
 
     # Tag tmp files for removal
     to_rm_filepath_list.append(read_id_metanode_component_filepath)
@@ -875,7 +909,7 @@ if __name__ == '__main__':
     if not args.keep_tmp:
         subprocess.call('rm -rf {0}'.format(contigs_assembly_wkdir), shell=True)
 
-    ###################
+    ##############
     # Scaffolding
 
     logger.info('Scaffolding')
@@ -897,6 +931,79 @@ if __name__ == '__main__':
     error_code += subprocess.call(cmd_line, shell=True)
     if args.verbose:
         sys.stdout.write('\n')
+
+    # Keep only quasi-equivalent best matches for each contig
+    # -p 0.99 is used because of the tendency of SortMeRNA to soft-clip
+    # a few nucleotides at 5’ and 3’ ends
+    cmd_line = 'sort -k1,1V -k12,12nr ' + scaff_sortme_output_blast_filepath
+    cmd_line += ' | ' + get_best_matches_bin + ' -p 0.99 -o ' + best_only_blast_filepath
+
+    logger.debug('CMD: {0}'.format(cmd_line))
+    error_code += subprocess.call(cmd_line, shell=True)
+
+    # Select blast matches for scaffolding using a specific-first conserved-later approach
+    cmd_line = gener_scaff_blast_bin + ' -i ' + best_only_blast_filepath
+    cmd_line += ' -o ' + selected_best_only_blast_filepath
+
+    logger.debug('CMD: {0}'.format(cmd_line))
+    error_code += subprocess.call(cmd_line, shell=True)
+
+    # Filter sam file based on blast scaffolding file
+    cmd_line = filter_sam_blast_bin + ' -i ' + scaff_sortme_output_sam_filepath
+    cmd_line += ' -b ' +  selected_best_only_blast_filepath
+    cmd_line += ' | sort -k1,1V > ' + selected_sam_filepath
+
+    logger.debug('CMD: {0}'.format(cmd_line))
+    error_code += subprocess.call(cmd_line, shell=True)
+
+    # Convert sam to bam
+    cmd_line = 'samtools view -b -S ' + selected_sam_filepath
+    cmd_line += ' -T ' + complete_ref_db_filepath
+    cmd_line += ' -o ' + selected_bam_filepath
+
+    logger.debug('CMD: {0}'.format(cmd_line))
+    error_code += subprocess.call(cmd_line, shell=True)
+
+    # Sort bam
+    cmd_line = 'samtools sort ' + selected_bam_filepath + ' ' + selected_sorted_basepath
+
+    logger.debug('CMD: {0}'.format(cmd_line))
+    error_code += subprocess.call(cmd_line, shell=True)
+
+    # Generate mpileup
+    cmd_line = 'samtools mpileup -d 10000 ' + selected_sorted_bam_filepath
+    cmd_line += ' > ' + mpileup_filepath
+
+    logger.debug('CMD: {0}'.format(cmd_line))
+    error_code += subprocess.call(cmd_line, shell=True)
+
+    # Scaffold contigs based on mpileup
+    cmd_line = scaffold_contigs_bin + ' -i ' + mpileup_filepath
+    cmd_line += ' -o ' + scaffolds_filepath
+
+    logger.debug('CMD: {0}'.format(cmd_line))
+    error_code += subprocess.call(cmd_line, shell=True)
+
+    # Create symbolic link
+    os.symlink(os.path.basename(scaffolds_filepath), scaffolds_symlink_filepath)
+
+    # Evaluate assembly if true ref are provided
+    if args.true_references:
+        cmd_line = evaluate_assembly_bin + ' -r ' + args.true_references
+        cmd_line += ' -i ' + scaffolds_symlink_filepath
+
+        logger.debug('CMD: {0}'.format(cmd_line))
+        error_code += subprocess.call(cmd_line, shell=True)
+
+    # Tag tmp files for removal
+    to_rm_filepath_list.append(scaff_sortme_output_blast_filepath)
+    to_rm_filepath_list.append(scaff_sortme_output_sam_filepath)
+    to_rm_filepath_list.append(best_only_blast_filepath)
+    to_rm_filepath_list.append(selected_best_only_blast_filepath)
+    to_rm_filepath_list.append(selected_sam_filepath)
+    to_rm_filepath_list.append(selected_bam_filepath)
+    to_rm_filepath_list.append(selected_sorted_bam_filepath)
+    to_rm_filepath_list.append(mpileup_filepath)
 
     ###############
     # Exit program
