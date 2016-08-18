@@ -485,7 +485,7 @@ int main(int argc, char const ** argv)
               << " were neither compatible nor incompatible"
               << "\n" << "\n";
 
-    if (options.verbose)
+    if (options.debug)
     {
         printCompatibilityStats(globalStats);
     }
