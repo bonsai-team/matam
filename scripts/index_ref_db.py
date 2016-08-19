@@ -70,7 +70,7 @@ def parse_arguments():
                             metavar = 'CPU',
                             type = int,
                             default = 1,
-                            help = argparse.SUPRESS)
+                            help = argparse.SUPPRESS)
     # --max_memory
     group_perf.add_argument('--max_memory',
                             action = 'store',
