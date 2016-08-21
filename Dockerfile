@@ -17,19 +17,10 @@ RUN apt-get update
 # Ref: https://github.com/ppericard/matam
 
 # Install dependencies
-RUN apt-get install gcc-4.9 sparsehash 
+RUN apt-get install gcc-4.9
+RUN apt-get install libsparsehash-dev
 
 # Build MATAM
 RUN ./build.sh
 
 ##################### INSTALLATION END #####################
-
-
-
-
-
-
-
-
-
-
