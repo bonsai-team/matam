@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 
-MATAMOG_DIR=$(pwd)
+MATAMOG_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 git lfs pull
 

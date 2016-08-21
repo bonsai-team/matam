@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 
-MATAMOG_DIR=$(pwd)
+MATAMOG_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 echo "-- Updating git submodules --"
 git submodule update --init --recursive
