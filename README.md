@@ -8,9 +8,9 @@ Compiling MATAM and dependencies
 
 `./build.sh`
 
-Indexing default reference database
+Getting and indexing default reference database
 
-`./scripts/index_ref_db.py -v`
+`./get_default_db.sh`
 
 Assembling
 
@@ -23,6 +23,12 @@ Recommanded free RAM is 10 Go, but MATAM should also work with less RAM if --max
 Some steps of MATAM are highly paralelized. You can get a significant speed increase during these steps by setting the --cpu option to a higher value
 
 ## Dependencies
+
+### Quick install
+
+For Debian-like distributions:
+
+`sudo apt-get update && sudo apt-get install curl git gcc g++ default-jdk automake make cmake libsparsehash-dev zlib1g-dev && curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash && sudo apt-get update && sudo apt-get install git-lfs`
 
 ### ovgraphbuild
 
