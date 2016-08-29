@@ -30,20 +30,10 @@ For Debian-like distributions:
 
 `sudo apt-get update && sudo apt-get install curl git gcc g++ default-jdk automake make cmake libsparsehash-dev zlib1g-dev && curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash && sudo apt-get update && sudo apt-get install git-lfs`
 
-### ovgraphbuild
+### General dependencies
 
 * gcc v4.9.0 or superior (full C++11 support, \<regex\> included, and partial C++14 support)
-* libraries: rt, pthread, zlib
-* Seqan v2.0.1 or superior (v2.2.0 is provided as a submodule of ovgraphbuild)
-
-### SGA
-
-* automake
+* c++ libraries: rt, pthread, zlib
+* automake, make, cmake
 * google sparse hash library (sparsehash paquet on debian)
-* Bamtools library (http://github.com/pezmaster31/bamtools, provided as a submodule of matam)
-* zlib
-* (optional but suggested) the jemalloc memory allocator
-
-### bamtools
-
-* zlib
+* git large file system (git-lfs) to get the supplied reference database
