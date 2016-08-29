@@ -14,7 +14,7 @@ Getting and indexing default reference database
 
 Assembling
 
-`./bin/matam_assembly.py -i reads.fastq --cpu 4 -v`
+`./bin/matam_assembly.py -i reads.fastq --cpu 4 --max_memory 10000 -v`
 
 ## Hardware requirements
 
