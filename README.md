@@ -8,13 +8,13 @@ Compiling MATAM and dependencies
 
 `./build.sh`
 
-Indexing default reference database
+Getting and indexing default reference database
 
-`./scripts/index_ref_db.py -v`
+`./get_default_db.sh`
 
 Assembling
 
-`./bin/matam_assembly.py -i reads.fastq --cpu 4 -v`
+`./bin/matam_assembly.py -i reads.fastq --cpu 4 --max_memory 10000 -v`
 
 ## Hardware requirements
 
@@ -24,20 +24,16 @@ Some steps of MATAM are highly paralelized. You can get a significant speed incr
 
 ## Dependencies
 
-### ovgraphbuild
+### Quick install
 
-* gcc v4.9.0 or superior (full C++11 support, \<regex\> included, and partial C++14 support)
-* libraries: rt, pthread, zlib
-* Seqan v2.0.1 or superior (v2.2.0 is provided as a submodule of ovgraphbuild)
+For Debian-like distributions:
 
-### SGA
+`sudo apt-get update && sudo apt-get install curl git gcc g++ default-jdk automake make cmake libsparsehash-dev zlib1g-dev && curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash && sudo apt-get update && sudo apt-get install git-lfs`
 
-* automake
+### General dependencies
+
+* **gcc v4.9.0 or superior** (full C++11 support, \<regex\> included, and partial C++14 support)
+* c++ libraries: rt, pthread, zlib
+* automake, make, cmake
 * google sparse hash library (sparsehash paquet on debian)
-* Bamtools library (http://github.com/pezmaster31/bamtools, provided as a submodule of matam)
-* zlib
-* (optional but suggested) the jemalloc memory allocator
-
-### bamtools
-
-* zlib
+* git large file system (git-lfs) to get the supplied reference database
