@@ -42,6 +42,6 @@ RUN git clone https://github.com/ppericard/matam.git
 
 # Build MATAM
 WORKDIR /matam
-RUN ./build.sh
+RUN ./build.py
 
 ##################### INSTALLATION END #####################
