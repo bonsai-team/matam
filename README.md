@@ -32,7 +32,7 @@ For Debian-like distributions:
 
 ### General dependencies
 
-* gcc v4.9.0 or superior (full C++11 support, \<regex\> included, and partial C++14 support)
+* **gcc v4.9.0 or superior** (full C++11 support, \<regex\> included, and partial C++14 support)
 * c++ libraries: rt, pthread, zlib
 * automake, make, cmake
 * google sparse hash library (sparsehash paquet on debian)
