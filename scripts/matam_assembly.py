@@ -356,7 +356,7 @@ def print_intro(args):
     Print the introduction
     """
 
-    sys.stdout.write("""
+    sys.stderr.write("""
 #################################
          MATAM assembly
 #################################\n\n""")
@@ -414,7 +414,7 @@ def print_intro(args):
     cmd_line += '--input_fastx {0}'.format(args.input_fastx)
 
     # Print cmd line
-    sys.stdout.write('CMD: {0}\n\n'.format(cmd_line))
+    sys.stderr.write('CMD: {0}\n\n'.format(cmd_line))
 
     return 0
 
@@ -432,6 +432,9 @@ def rm_files(filepath_list):
 
 
 if __name__ == '__main__':
+
+    # Set global t0
+    global_t0_wall = time.time()
 
     # Arguments parsing
     args = parse_arguments()
@@ -625,10 +628,16 @@ if __name__ == '__main__':
     if args.verbose:
         cmd_line += ' -v '
 
+    # Set t0
+    t0_wall = time.time()
+
     logger.debug('CMD: {0}'.format(cmd_line))
     error_code += subprocess.call(cmd_line, shell=True)
     if args.verbose:
-        sys.stdout.write('\n')
+        sys.stderr.write('\n')
+
+    # Output running time
+    logger.debug('Reads mapping terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
 
     #############################
     # Alignment filtering
@@ -642,8 +651,14 @@ if __name__ == '__main__':
         cmd_line += ' --geometric'
     cmd_line += ' > ' + sam_filt_filepath
 
+    # Set t0
+    t0_wall = time.time()
+
     logger.debug('CMD: {0}'.format(cmd_line))
     error_code += subprocess.call(cmd_line, shell=True)
+
+    # Output running time
+    logger.debug('Alignment filtering terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
 
     # Tag tmp files for removal
     to_rm_filepath_list.append(sortme_output_sam_filepath)
@@ -667,8 +682,14 @@ if __name__ == '__main__':
     if args.debug:
         cmd_line += ' --debug'
 
+    # Set t0
+    t0_wall = time.time()
+
     logger.debug('CMD: {0}'.format(cmd_line))
     error_code += subprocess.call(cmd_line, shell=True)
+
+    # Output running time
+    logger.debug('Overlap-graph building terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
 
     # Tag tmp files for removal
     to_rm_filepath_list.append(sam_filt_filepath)
@@ -686,13 +707,19 @@ if __name__ == '__main__':
     cmd_line += ' -n ' + ovgraphbuild_nodes_csv_filepath
     cmd_line += ' -e ' + ovgraphbuild_edges_csv_filepath
 
+    # Set t0
+    t0_wall = time.time()
+
     logger.debug('CMD: {0}'.format(cmd_line))
     if args.verbose:
         error_code += subprocess.call(cmd_line, shell=True)
     else:
         # Needed because ComponentSearch doesnt have a verbose option
         # and output everything to stderr
-        error_code += subprocess.call(cmd_line, shell=True, stdout=FNULL)
+        error_code += subprocess.call(cmd_line, shell=True, stderr=FNULL)
+
+    # Output running time
+    logger.debug('Graph compaction & Components identification terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
 
     # Tag tmp files for removal
     to_rm_filepath_list.append(ovgraphbuild_nodes_csv_filepath)
@@ -702,6 +729,9 @@ if __name__ == '__main__':
     # LCA labelling
 
     logger.info('LCA labelling')
+
+    # Set t0
+    t0_wall = time.time()
 
     # Note: some of the manipulations here are needed because ComponentSearch
     # works with read ids rather than read names. The goal of this part is to
@@ -755,6 +785,9 @@ if __name__ == '__main__':
     logger.debug('CMD: {0}'.format(cmd_line))
     error_code += subprocess.call(cmd_line, shell=True)
 
+    # Output running time
+    logger.debug('LCA labelling terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
+
     # Tag tmp files for removal
     to_rm_filepath_list.append(componentsearch_basepath + '.components.tab')
     to_rm_filepath_list.append(ovgraphbuild_basepath + '.nodes.tab')
@@ -774,13 +807,22 @@ if __name__ == '__main__':
         cmd_line += ' --read_node_component ' + read_id_metanode_component_filepath
     cmd_line += ' -o ' + stats_filepath
 
+    # Set t0
+    t0_wall = time.time()
+
     logger.debug('CMD: {0}'.format(cmd_line))
     error_code += subprocess.call(cmd_line, shell=True)
+
+    # Output running time
+    logger.debug('Computing compressed graph stats terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
 
     ###################
     # Contigs assembly
 
     logger.info('Starting contigs assembly')
+
+    # Set t0
+    t0_wall = time.time()
 
     # Generate the read_id-->component_id file
     cmd_line = 'cat ' + read_id_metanode_component_filepath
@@ -836,7 +878,7 @@ if __name__ == '__main__':
 
             # Starting component assembly
             if args.verbose:
-                sys.stdout.write('\r{0} / {1}'.format(component_count, components_num))
+                sys.stderr.write('\r{0} / {1}'.format(component_count, components_num))
 
             # Cleaning previous assembly
             if os.path.exists('contigs.fa'):
@@ -880,7 +922,7 @@ if __name__ == '__main__':
 
         #
         if args.verbose:
-            sys.stdout.write('\n')
+            sys.stderr.write('\n')
 
         # Return to matam assembly directory
         os.chdir(args.out_dir)
@@ -893,6 +935,9 @@ if __name__ == '__main__':
 
     # TO DO, if it gets better results:
     # remove redundant sequences in contigs
+
+    # Output running time
+    logger.debug('Contigs assembly terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
 
     # Evaluate assembly if true ref are provided
     if args.true_references:
@@ -914,6 +959,9 @@ if __name__ == '__main__':
 
     logger.info('Scaffolding')
 
+    # Set t0
+    t0_wall = time.time()
+
     # Contigs remapping on the complete database
     scaff_evalue = 1e-05
 
@@ -930,7 +978,13 @@ if __name__ == '__main__':
     logger.debug('CMD: {0}'.format(cmd_line))
     error_code += subprocess.call(cmd_line, shell=True)
     if args.verbose:
-        sys.stdout.write('\n')
+        sys.stderr.write('\n')
+
+    # Output running time
+    logger.debug('[scaff] Contig mapping terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
+
+    # Set t0
+    t0_wall = time.time()
 
     # Keep only quasi-equivalent best matches for each contig
     # -p 0.99 is used because of the tendency of SortMeRNA to soft-clip
@@ -987,6 +1041,9 @@ if __name__ == '__main__':
     # Create symbolic link
     os.symlink(os.path.basename(scaffolds_filepath), scaffolds_symlink_filepath)
 
+    # Output running time
+    logger.debug('[scaff] Scaffolding terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
+
     # Evaluate assembly if true ref are provided
     if args.true_references:
         cmd_line = evaluate_assembly_bin + ' -r ' + args.true_references
@@ -1008,6 +1065,8 @@ if __name__ == '__main__':
     ###############
     # Exit program
 
+    exit_code = 0
+
     # Exit if everything went ok
     if not error_code:
         # Try to remove all tmp files
@@ -1016,13 +1075,16 @@ if __name__ == '__main__':
             logger.info('Removing tmp files')
             rm_files(to_rm_filepath_list)
         #
-        sys.stdout.write('\n{0} terminated with no error\n'.format(program_filename))
-        exit(0)
+        sys.stderr.write('\n{0} terminated with no error\n'.format(program_filename))
     # Deal with errors
     else:
-        sys.stdout.write('\n{0} terminated with some errors. '.format(program_filename))
+        sys.stderr.write('\n{0} terminated with some errors. '.format(program_filename))
         if args.verbose:
-            sys.stdout.write('Check the log for additional infos\n')
+            sys.stderr.write('Check the log for additional infos\n')
         else:
-            sys.stdout.write('Rerun the program using --verbose or --debug option\n')
-        exit(1)
+            sys.stderr.write('Rerun the program using --verbose or --debug option\n')
+        exit_code = 1
+
+    logger.info('Run terminated in {0:.4f} seconds wall time'.format(time.time() - global_t0_wall))
+
+    exit(exit_code)
