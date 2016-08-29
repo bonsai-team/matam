@@ -879,6 +879,7 @@ if __name__ == '__main__':
             # Starting component assembly
             if args.verbose:
                 sys.stderr.write('\r{0} / {1}'.format(component_count, components_num))
+                sys.stderr.flush()
 
             # Cleaning previous assembly
             if os.path.exists('contigs.fa'):
