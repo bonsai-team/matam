@@ -10,7 +10,7 @@
 
 2. Compiling MATAM and dependencies
 
-  `./build.sh`
+  `./build.py`
 
 3. Getting and indexing default reference database
 
