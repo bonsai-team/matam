@@ -6,19 +6,19 @@
 
 1. Cloning MATAM repository
 
-`git clone https://github.com/ppericard/matam.git`
+  `git clone https://github.com/ppericard/matam.git`
 
 2. Compiling MATAM and dependencies
 
-`./build.sh`
+  `./build.sh`
 
 3. Getting and indexing default reference database
 
-`./get_default_db.sh`
+  `./get_default_db.sh`
 
-4.Assembling
+4. Assembling
 
-`./bin/matam_assembly.py -i reads.fastq --cpu 4 --max_memory 10000 -v`
+  `./bin/matam_assembly.py -i reads.fastq --cpu 4 --max_memory 10000 -v`
 
 ## Hardware requirements
 
