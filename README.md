@@ -51,8 +51,8 @@ The following example datasets are provided:
 
 * Running assembly
 
-  `$MATAMDIR/bin/matam_assembly.py -i $MATAMDIR/db/16sp.art_HS25_pe_100bp_50x.fq --cpu 4 --max_memory 10000 -v`
+  `$MATAMDIR/bin/matam_assembly.py -i $MATAMDIR/examples/16sp_simulated_dataset/16sp.art_HS25_pe_100bp_50x.fq --cpu 4 --max_memory 10000 -v`
   
 * Running validation mode (Exonerate must be available in $PATH)
 
-  `$MATAMDIR/bin/matam_assembly.py -i $MATAMDIR/db/16sp.art_HS25_pe_100bp_50x.fq  --true_references $MATAMDIR/db/16sp.fasta --true_ref_taxo $MATAMDIR/db/16sp.taxo.tab --cpu 4 --max_memory 10000 -v`
+  `$MATAMDIR/bin/matam_assembly.py -i $MATAMDIR/examples/16sp_simulated_dataset/16sp.art_HS25_pe_100bp_50x.fq  --true_references $MATAMDIR/examples/16sp_simulated_dataset/16sp.fasta --true_ref_taxo $MATAMDIR/examples/16sp_simulated_dataset/16sp.taxo.tab --cpu 4 --max_memory 10000 -v`
