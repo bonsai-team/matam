@@ -18,7 +18,7 @@
 
 4. Assembling
 
-  `./bin/matam_assembly.py -i reads.fastq --cpu 4 --max_memory 10000 -v`
+  `$MATAMDIR/bin/matam_assembly.py -i reads.fastq --cpu 4 --max_memory 10000 -v`
 
 ## Hardware requirements
 
@@ -51,8 +51,8 @@ The following example datasets are provided:
 
 * Running assembly
 
-  `./bin/matam_assembly.py -i ./db/16sp.art_HS25_pe_100bp_50x.fq --cpu 4 --max_memory 10000 -v`
+  `$MATAMDIR/bin/matam_assembly.py -i $MATAMDIR/db/16sp.art_HS25_pe_100bp_50x.fq --cpu 4 --max_memory 10000 -v`
   
 * Running validation mode
 
-  `./bin/matam_assembly.py -i ./db/16sp.art_HS25_pe_100bp_50x.fq  --true_references ./db/16sp.fasta --true_ref_taxo ./db/16sp.taxo.tab --cpu 4 --max_memory 10000 -v`
+  `$MATAMDIR/bin/matam_assembly.py -i $MATAMDIR/db/16sp.art_HS25_pe_100bp_50x.fq  --true_references $MATAMDIR/db/16sp.fasta --true_ref_taxo $MATAMDIR/db/16sp.taxo.tab --cpu 4 --max_memory 10000 -v`
