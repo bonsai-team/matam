@@ -62,7 +62,7 @@ if __name__ == '__main__':
 
     #
     sys.stderr.write('\n')
-    
+
     ########################
     # Update git submodules
 
@@ -260,6 +260,7 @@ if __name__ == '__main__':
     if global_error_code > 0:
         logger.warning('Problems might have happened during MATAM building. Please check log above')
     else:
+        logger.debug('Building completed in {0:.2f} seconds'.format(time.time() - global_t0_wall))
         logger.info('MATAM building went well. '
                     'Program executables can be found in '
                     'MATAM bin directory: {0}'.format(matam_bin_dirpath))

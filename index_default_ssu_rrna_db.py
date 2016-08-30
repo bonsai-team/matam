@@ -64,7 +64,7 @@ if __name__ == '__main__':
     ch.setFormatter(formatter)
     # add the handler to logger
     logger.addHandler(ch)
-    
+
     # Set global t0
     global_t0_wall = time.time()
 
@@ -141,7 +141,7 @@ if __name__ == '__main__':
     # Exit
 
     logger.info('-- Completed default SSU rRNA DB indexing --')
-    
+
     if global_error_code > 0:
         logger.warning('Problems might have happened during indexing. Please check log above')
     else:
