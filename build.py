@@ -69,6 +69,7 @@ if __name__ == '__main__':
     logger.info('-- Updating git submodules --')
 
     os.chdir(matam_root_dirpath)
+    logger.debug('PWD: {0}'.format(matam_root_dirpath))
 
     cmd_line = 'git submodule update --init --recursive'
 
@@ -88,6 +89,7 @@ if __name__ == '__main__':
     logger.info('-- Compiling ComponentSearch --')
 
     os.chdir(componentsearch_dirpath)
+    logger.debug('PWD: {0}'.format(componentsearch_dirpath))
 
     cmd_line = './compile.sh'
 
@@ -109,6 +111,7 @@ if __name__ == '__main__':
     ovgraphbuild_build_dirpath = os.path.join(ovgraphbuild_dirpath, 'build')
     makedir(ovgraphbuild_build_dirpath)
     os.chdir(ovgraphbuild_build_dirpath)
+    logger.debug('PWD: {0}'.format(ovgraphbuild_build_dirpath))
 
     cmd_line = 'cmake .. && make'
 
@@ -128,6 +131,7 @@ if __name__ == '__main__':
     logger.info('-- Building SortMeRNA --')
 
     os.chdir(sortmerna_dirpath)
+    logger.debug('PWD: {0}'.format(sortmerna_dirpath))
 
     cmd_line = './build.sh'
 
@@ -151,6 +155,7 @@ if __name__ == '__main__':
     sumalibs_dirpath = os.path.join(sumaclust_dirpath, 'sumalibs')
 
     os.chdir(sumalibs_dirpath)
+    logger.debug('PWD: {0}'.format(sumalibs_dirpath))
 
     cmd_line = 'git checkout master'
 
@@ -166,6 +171,7 @@ if __name__ == '__main__':
 
     #
     os.chdir(sumaclust_dirpath)
+    logger.debug('PWD: {0}'.format(sumaclust_dirpath))
 
     cmd_line = 'make'
 
@@ -187,6 +193,7 @@ if __name__ == '__main__':
     bamtools_lib_build_dirpath = os.path.join(bamtools_lib_dirpath, 'build')
     makedir(bamtools_lib_build_dirpath)
     os.chdir(bamtools_lib_build_dirpath)
+    logger.debug('PWD: {0}'.format(bamtools_lib_build_dirpath))
 
     cmd_line = 'cmake .. && make'
 
@@ -207,6 +214,7 @@ if __name__ == '__main__':
 
     sga_src_dirpath = os.path.join(sga_dirpath, 'src')
     os.chdir(sga_src_dirpath)
+    logger.debug('PWD: {0}'.format(sga_src_dirpath))
 
     cmd_line = './autogen.sh && '
     cmd_line += './configure --with-bamtools=' + bamtools_lib_dirpath + ' && make'
@@ -229,6 +237,7 @@ if __name__ == '__main__':
     matam_bin_dirpath = os.path.join(matam_root_dirpath, 'bin')
     makedir(matam_bin_dirpath)
     os.chdir(matam_bin_dirpath)
+    logger.debug('PWD: {0}'.format(matam_bin_dirpath))
 
     cmd_line = 'ln -sf ' + os.path.join(matam_scripts_dirpath, 'matam_*.py')
     cmd_line += ' ' + os.path.join(matam_bin_dirpath, '.')
@@ -253,6 +262,6 @@ if __name__ == '__main__':
     else:
         logger.info('MATAM building went well. '
                     'Program executables can be found in '
-                    'MATAM bin directory {0}'.format(matam_bin_dirpath))
+                    'MATAM bin directory: {0}'.format(matam_bin_dirpath))
 
     sys.stderr.write('\n')
