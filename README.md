@@ -53,6 +53,6 @@ The following example datasets are provided:
 
   `$MATAMDIR/bin/matam_assembly.py -i $MATAMDIR/db/16sp.art_HS25_pe_100bp_50x.fq --cpu 4 --max_memory 10000 -v`
   
-* Running validation mode
+* Running validation mode (Exonerate must be available in $PATH)
 
   `$MATAMDIR/bin/matam_assembly.py -i $MATAMDIR/db/16sp.art_HS25_pe_100bp_50x.fq  --true_references $MATAMDIR/db/16sp.fasta --true_ref_taxo $MATAMDIR/db/16sp.taxo.tab --cpu 4 --max_memory 10000 -v`
