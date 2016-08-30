@@ -932,6 +932,8 @@ if __name__ == '__main__':
     contigs_fh.close()
 
     # Create symbolic link
+    if os.path.exists(contigs_symlink_filepath):
+        os.remove(contigs_symlink_filepath)
     os.symlink(os.path.basename(contigs_filepath), contigs_symlink_filepath)
 
     # TO DO, if it gets better results:
@@ -1040,6 +1042,8 @@ if __name__ == '__main__':
     error_code += subprocess.call(cmd_line, shell=True)
 
     # Create symbolic link
+    if os.path.exists(scaffolds_symlink_filepath):
+        os.remove(scaffolds_symlink_filepath)
     os.symlink(os.path.basename(scaffolds_filepath), scaffolds_symlink_filepath)
 
     # Output running time
