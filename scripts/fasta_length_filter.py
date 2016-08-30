@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -68,18 +68,18 @@ def format_seq(seq, linereturn=80):
     Format an input sequence
     """
     buff = list()
-    for i in xrange(0, len(seq), linereturn):
+    for i in range(0, len(seq), linereturn):
         buff.append("{0}\n".format(seq[i:(i + linereturn)]))
     return ''.join(buff).rstrip()
 
 
 if __name__ == '__main__':
-    
+
     parser = argparse.ArgumentParser(description='Filter a fasta file based on sequence length.')
-    parser.add_argument('-i', '--input_fasta', metavar='input', 
+    parser.add_argument('-i', '--input_fasta', metavar='input',
                         type=argparse.FileType('r', 0), default='-',
                         help='input fasta file')
-    parser.add_argument('-o', '--output_fasta', metavar='output', 
+    parser.add_argument('-o', '--output_fasta', metavar='output',
                         type=argparse.FileType('w', 0), default='-',
                         help='ouput fasta file')
     parser.add_argument('-m', '--min_length', metavar='MIN',
@@ -89,7 +89,7 @@ if __name__ == '__main__':
                         type=int, default=0,
                         help='Maximum sequence length')
     args = parser.parse_args()
-    
+
     # Code is duplicated here to prevent to have to test args.max_length many times
     if args.max_length:
         for header, sequence in read_fasta_file_handle(args.input_fasta):

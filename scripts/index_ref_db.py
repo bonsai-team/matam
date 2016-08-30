@@ -146,7 +146,7 @@ if __name__ == '__main__':
 
     cmd_line = indexdb_bin + ' --ref ' + complete_ref_db_filepath
     cmd_line += ',' + complete_ref_db_basepath
-    cmd_line += ' -m {0}'.format(args.max_memory) 
+    cmd_line += ' -m {0}'.format(args.max_memory)
     if args.verbose:
         cmd_line += ' -v '
 
@@ -160,7 +160,7 @@ if __name__ == '__main__':
 
     cmd_line = indexdb_bin + ' --ref ' + clustered_ref_db_filepath
     cmd_line += ',' + clustered_ref_db_basepath
-    cmd_line += ' -m {0}'.format(args.max_memory) 
+    cmd_line += ' -m {0}'.format(args.max_memory)
     if args.verbose:
         cmd_line += ' -v '
 

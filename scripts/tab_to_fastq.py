@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -36,18 +36,18 @@ import argparse
 
 
 if __name__ == '__main__':
-    
+
     parser = argparse.ArgumentParser(description='Convert a tab file to a fastq file')
-    parser.add_argument('-i', '--input_tab', metavar='INTAB', 
+    parser.add_argument('-i', '--input_tab', metavar='INTAB',
                         type=argparse.FileType('r', 0), default='-',
                         help='input tab file')
-    parser.add_argument('-o', '--output_fastq', metavar='OUTFASTQ', 
+    parser.add_argument('-o', '--output_fastq', metavar='OUTFASTQ',
                         type=argparse.FileType('w', 0), default='-',
                         help='ouput fastq file')
     args = parser.parse_args()
-    
+
     for tab in (l.strip().split('\t') for l in args.input_tab if l.strip()):
-		header= tab[0]
-		seq = tab[1]
-		qual = tab[2]
-		args.output_fastq.write('@{0}\n{1}\n+\n{2}\n'.format(header, seq, qual))
+        header= tab[0]
+        seq = tab[1]
+        qual = tab[2]
+        args.output_fastq.write('@{0}\n{1}\n+\n{2}\n'.format(header, seq, qual))

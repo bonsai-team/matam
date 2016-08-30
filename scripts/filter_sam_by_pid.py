@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import sys
@@ -131,7 +131,7 @@ if __name__ == '__main__':
         for operation, count in cigar_tab:
             if operation == 'M':
                 # Compute the number of matches on this block
-                local_matches_num = sum((query_seq[query_end + 1 + i] == subject_seq[subject_end + 1 + i] for i in xrange(0, count)))
+                local_matches_num = sum((query_seq[query_end + 1 + i] == subject_seq[subject_end + 1 + i] for i in range(0, count)))
                 matches_num += local_matches_num
                 mismatches_num += count - local_matches_num
                 subject_end += count

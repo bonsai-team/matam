@@ -1,10 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
 remove_redundant_sequences.py
 
-Description: Remove sequences entirely included in bigger sequences 
+Description: Remove sequences entirely included in bigger sequences
 
   remove_redundant_sequences.py -i input.fa -o output.fa
 
@@ -70,34 +70,34 @@ def format_seq(seq, linereturn=80):
     Format an input sequence
     """
     buff = list()
-    for i in xrange(0, len(seq), linereturn):
+    for i in range(0, len(seq), linereturn):
         buff.append("{0}\n".format(seq[i:(i + linereturn)]))
     return ''.join(buff).rstrip()
 
 
 if __name__ == '__main__':
-    
+
     parser = argparse.ArgumentParser(description='Remove redundant sequences.')
-    parser.add_argument('-i', '--input_fasta', metavar='input', 
+    parser.add_argument('-i', '--input_fasta', metavar='input',
                         type=argparse.FileType('r', 0), default='-',
                         help='input fasta file')
-    parser.add_argument('-o', '--output_fasta', metavar='output', 
+    parser.add_argument('-o', '--output_fasta', metavar='output',
                         type=argparse.FileType('w', 0), default='-',
                         help='ouput fasta file')
     args = parser.parse_args()
-    
-    
+
+
     sequences_list = [(h, s) for h, s in read_fasta_file_handle(args.input_fasta)]
-    
+
     sequences_list.sort(key=lambda x: len(x[1]))
-    
+
     sequences_to_keep_list = list()
-    
-    for i in xrange(len(sequences_list)-1):
+
+    for i in range(len(sequences_list)-1):
         short_seq = sequences_list[i][1]
-        #~ print short_seq
+        #~ print(short_seq)
         to_keep = True
-        for j in xrange(i+1, len(sequences_list)):
+        for j in range(i+1, len(sequences_list)):
             long_seq = sequences_list[j][1]
             if short_seq in long_seq:
                 to_keep = False
@@ -105,45 +105,45 @@ if __name__ == '__main__':
         if to_keep:
             sequences_to_keep_list.append(sequences_list[i])
     sequences_to_keep_list.append(sequences_list[-1])
-    
+
     for header, seq in sequences_to_keep_list:
         args.output_fasta.write('>{0}\n{1}\n'.format(header, format_seq(seq)))
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

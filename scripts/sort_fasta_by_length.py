@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -68,56 +68,56 @@ def format_seq(seq, linereturn=80):
     Format an input sequence
     """
     buff = list()
-    for i in xrange(0, len(seq), linereturn):
+    for i in range(0, len(seq), linereturn):
         buff.append("{0}\n".format(seq[i:(i + linereturn)]))
     return ''.join(buff).rstrip()
 
 
 if __name__ == '__main__':
-    
+
     # Initiate argument parser
     parser = argparse.ArgumentParser(description='Sort a fasta file by increasing sequence length.')
-    
+
     # -i / --input_fasta
-    parser.add_argument('-i', '--input_fasta', 
+    parser.add_argument('-i', '--input_fasta',
                         action='store',
-                        metavar='INFILE', 
-                        type=argparse.FileType('r'), 
+                        metavar='INFILE',
+                        type=argparse.FileType('r'),
                         default='-',
                         help="Input fasta file. "
                              "Default is <stdin>")
-    
+
     # -o / --output_fasta
     parser.add_argument('-o', '--output_fasta',
-						action='store',
-                        metavar='OUTFILE', 
-                        type=argparse.FileType('w'), 
+                        action='store',
+                        metavar='OUTFILE',
+                        type=argparse.FileType('w'),
                         default='-',
                         help="Ouput fasta file. "
-							 "Default is <stdout>")
-    
+                             "Default is <stdout>")
+
     # -r / --reverse
-    parser.add_argument('-r', '--reverse', 
-						action='store_true', 
+    parser.add_argument('-r', '--reverse',
+                        action='store_true',
                         help='Sort by decreasing length')
-    
+
     # Parse arguments from command line
     args = parser.parse_args()
-    
+
     # Variables initialization
     seq_list = list()
-    
+
     # Load all sequences
     for header, sequence in read_fasta_file_handle(args.input_fasta):
         seq_list.append((header, sequence))
-    
+
     # Sort sequences by length
     if args.reverse:
         seq_list.sort(key=lambda x: len(x[1]), reverse=True)
     else:
         seq_list.sort(key=lambda x: len(x[1]))
-    
+
     # Write sorted sequences to output file
     for header, sequence in seq_list:
         args.output_fasta.write(">{0}\n{1}\n".format(header, format_seq(sequence)))
-	
+

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import argparse
@@ -90,8 +90,6 @@ if __name__ == '__main__':
                     kept_references_ids_set.add(tab[1]) # Add the matching ref id to the set
                     # Write the alignment
                     args.output_tab.write('{0}\n'.format('\t'.join(tab)))
-                    if tab[0] == '1500':
-                        print tab
                     dealt_contigs_id.add(tab[0])
                     dealt_contigs_num += 1
                 else:
@@ -100,7 +98,7 @@ if __name__ == '__main__':
         else:
             # Get most specific contig so far
             selected_tab_list = tab_list_list[0]
-            #~ print selected_tab_list
+            #~ print(selected_tab_list)
             tab_list_buffer = tab_list_list[1:]
 
             selected_tab_list.sort(key=lambda t: (-ref_count_dict[t[1]], t[1]))

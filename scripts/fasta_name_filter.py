@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -72,19 +72,19 @@ def format_seq(seq, linereturn=80):
     Format an input sequence
     """
     buff = list()
-    for i in xrange(0, len(seq), linereturn):
+    for i in range(0, len(seq), linereturn):
         buff.append("{0}\n".format(seq[i:(i + linereturn)]))
     return ''.join(buff).rstrip()
 
 
 if __name__ == '__main__':
-    
+
     parser = argparse.ArgumentParser(description='Filter a fasta file based on sequence name.')
-    parser.add_argument('-i', '--input_fasta', metavar='input', 
-                        type=argparse.FileType('r', 0), default='-',
+    parser.add_argument('-i', '--input_fasta', metavar='input',
+                        type=argparse.FileType('r'), default='-',
                         help='input fasta file')
-    parser.add_argument('-o', '--output_fasta', metavar='output', 
-                        type=argparse.FileType('w', 0), default='-',
+    parser.add_argument('-o', '--output_fasta', metavar='output',
+                        type=argparse.FileType('w'), default='-',
                         help='ouput fasta file')
     parser.add_argument('-s', '--stringtofind', metavar='string',
                         type=str, help='String to filter on')
@@ -92,11 +92,11 @@ if __name__ == '__main__':
                         type=argparse.FileType('r'),
                         help='File with ids')
     args = parser.parse_args()
-    
+
     if not args.stringtofind and not args.fileids:
         parser.print_help()
         raise Exception('Either a string or an id file has to be supplied')
-    
+
     if args.fileids:
         ids_list = list()
         # read ids and store them

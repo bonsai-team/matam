@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import argparse
@@ -15,7 +15,7 @@ def format_seq(seq, linereturn=80):
     Format an input sequence
     """
     buff = list()
-    for i in xrange(0, len(seq), linereturn):
+    for i in range(0, len(seq), linereturn):
         buff.append("{0}\n".format(seq[i:(i + linereturn)]))
     return ''.join(buff).rstrip()
 
@@ -38,7 +38,7 @@ def iter_read_bases(read_bases):
                 i += 1
                 count_str += read_bases[i]
             count = int(count_str)
-            for x in xrange(count):
+            for x in range(count):
                 i += 1
                 seq += read_bases[i]
             #~ read_base = character + count_str + seq
@@ -50,7 +50,7 @@ def iter_read_bases(read_bases):
         elif character in frozenset('.,$ACGTNacgtn*><'):
             read_base = character
         else:
-            print read_bases
+            print(read_bases)
             raise ParsingError('Character is not recognized')
 
         yield read_base
@@ -79,7 +79,7 @@ def find_called_base(ref_base, read_bases, coverage):
     if most_common_base != '*':
         called_base += most_common_base
 
-    #~ print base_sorted_list
+    #~ print(base_sorted_list)
 
     if len(insert_dict):
         insert_sorted_list = sorted(insert_dict.items(), reverse=True, key=lambda x: (x[1], x[0]))
@@ -87,7 +87,7 @@ def find_called_base(ref_base, read_bases, coverage):
         if most_common_insert_count >= (coverage / 2.0):
             called_base += insert_sorted_list[0][0]
 
-    #~ print called_base
+    #~ print(called_base)
 
     return called_base
 
@@ -122,7 +122,7 @@ if __name__ == '__main__':
 
     #
     for tab in (l.split() for l in args.input_mpileup if l.strip()):
-        #~ print tab
+        #~ print(tab)
         ref_id = tab[0]
         position = int(tab[1])
         ref_base = tab[2].upper()
@@ -138,7 +138,7 @@ if __name__ == '__main__':
                 scaffolds_list.append(scaffold_seq)
                 scaffold_seq = ''
         elif position > previous_pos + 1:
-            for i in xrange(gap_length):
+            for i in range(gap_length):
                 scaffold_seq += 'N'
 
         called_base = find_called_base(ref_base, read_bases, coverage)
@@ -154,14 +154,14 @@ if __name__ == '__main__':
 
     scaffolds_list.sort(key=lambda x: len(x))
 
-    #~ print scaffolds_list
+    #~ print(scaffolds_list)
 
     scaffolds_to_keep_list = list()
 
-    for i in xrange(len(scaffolds_list)-1):
+    for i in range(len(scaffolds_list)-1):
         short_scaff = scaffolds_list[i]
         to_keep = True
-        for j in xrange(i+1, len(scaffolds_list)):
+        for j in range(i+1, len(scaffolds_list)):
             long_scaff = scaffolds_list[j]
             if short_scaff in long_scaff:
                 to_keep = False

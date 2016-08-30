@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -67,13 +67,13 @@ def read_fastq_file_handle(fastq_file_handle):
 
 
 if __name__ == '__main__':
-    
+
     parser = argparse.ArgumentParser(description='Filter a fastq file based on sequence name.')
-    parser.add_argument('-i', '--input_fastq', metavar='input', 
-                        type=argparse.FileType('r', 0), default='-',
+    parser.add_argument('-i', '--input_fastq', metavar='input',
+                        type=argparse.FileType('r'), default='-',
                         help='input fastq file')
-    parser.add_argument('-o', '--output_fastq', metavar='output', 
-                        type=argparse.FileType('w', 0), default='-',
+    parser.add_argument('-o', '--output_fastq', metavar='output',
+                        type=argparse.FileType('w'), default='-',
                         help='ouput fastq file')
     parser.add_argument('-s', '--stringtofind', metavar='string',
                         type=str, help='String to filter on')
@@ -81,11 +81,11 @@ if __name__ == '__main__':
                         type=argparse.FileType('r'),
                         help='File with ids')
     args = parser.parse_args()
-    
+
     if not args.stringtofind and not args.fileids:
         parser.print_help()
         raise Exception('Either a string or an id file has to be supplied')
-    
+
     if args.fileids:
         ids_list = list()
         for line in args.fileids:

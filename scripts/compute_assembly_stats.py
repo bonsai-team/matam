@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import sys
@@ -83,7 +83,7 @@ if __name__ == '__main__':
         seqid = header.split()[0]
         total_ref_length += len(seq)
         ref_seq_dict[seqid] = seq.upper()
-        ref_positions_count_dict[seqid] = [0 for x in xrange(len(seq))]
+        ref_positions_count_dict[seqid] = [0 for x in range(len(seq))]
         # aligned_contigs_num, aligned_contigs_length, matches_num
         # mismatches_num, indel_num, overhang_num
         ref_metrics_dict[seqid] = [0, 0, 0, 0, 0, 0]
@@ -139,7 +139,7 @@ if __name__ == '__main__':
         for operation, count in cigar_tab:
             if operation == 'M':
                 # Compute the number of matches on this block
-                local_matches_num = sum((query_seq[query_end + 1 + i] == subject_seq[subject_end + 1 + i] for i in xrange(0, count)))
+                local_matches_num = sum((query_seq[query_end + 1 + i] == subject_seq[subject_end + 1 + i] for i in range(0, count)))
                 matches_num += local_matches_num
                 mismatches_num += count - local_matches_num
                 subject_end += count
@@ -172,7 +172,7 @@ if __name__ == '__main__':
 
         #
         ref_positions_count = ref_positions_count_dict[subject_id]
-        for i in xrange(subject_start, subject_end + 1):
+        for i in range(subject_start, subject_end + 1):
             ref_positions_count[i] += 1
 
         # Store previous subject id and score
@@ -183,7 +183,7 @@ if __name__ == '__main__':
     errors_num_per_kbp = total_leven_distance * 1000.0 / total_aligned_contigs_length
 
     total_covered_positions_count = 0
-    coverage_count_list = [0 for i in xrange(11)]
+    coverage_count_list = [0 for i in range(11)]
     ref_stats_dict = dict()
     for ref_id in ref_seq_dict:
         ref_positions_count = ref_positions_count_dict[ref_id]
@@ -202,8 +202,8 @@ if __name__ == '__main__':
         total_covered_positions_count += covered_positions_count
 
     max_coverage = 0
-    percent_coverage_list = [0.0 for i in xrange(11)]
-    for i in xrange(11):
+    percent_coverage_list = [0.0 for i in range(11)]
+    for i in range(11):
         coverage_count = coverage_count_list[i]
         if coverage_count > 0:
             max_coverage = i
@@ -230,10 +230,10 @@ if __name__ == '__main__':
     sys.stdout.write('ALL BEST MATCHES:\n')
     sys.stdout.write('\tTotal ref coverage   = {0:.2f}%\n'.format(total_ref_coverage))
     sys.stdout.write('\t\tCov')
-    for i in xrange(max_coverage + 1):
+    for i in range(max_coverage + 1):
         sys.stdout.write('\t{0}'.format(i))
     sys.stdout.write('+\n\t\t%align')
-    for i in xrange(max_coverage + 1):
+    for i in range(max_coverage + 1):
         sys.stdout.write('\t{0:.2f}%'.format(percent_coverage_list[i]))
     sys.stdout.write('\n\n')
 
