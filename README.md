@@ -12,9 +12,9 @@
 
   `./build.py`
 
-3. Getting and indexing default reference database
+3. (Optional) Getting and indexing default SSU rRNA reference database
 
-  `./get_default_db.sh`
+  `./index_default_ssu_rrna_db.py --max_memory 10000`
 
 4. Assembling
 
