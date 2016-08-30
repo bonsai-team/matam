@@ -42,3 +42,17 @@ To install all the needed depencies, you can run the following command-line in D
 * automake, make, cmake
 * google sparse hash library (libsparsehash-dev paquet on debian)
 * git large file system (git-lfs), if you want to get the supplied reference database
+
+## Running example datasets
+
+The following example datasets are provided:
+
+### 16 bacterial species simulated dataset
+
+* Running assembly
+
+  `./bin/matam_assembly.py -i ./db/16sp.art_HS25_pe_100bp_50x.fq --cpu 4 --max_memory 10000 -v`
+  
+* Running validation mode
+
+  `./bin/matam_assembly.py -i ./db/16sp.art_HS25_pe_100bp_50x.fq  --true_references ./db/16sp.fasta --true_ref_taxo ./db/16sp.taxo.tab --cpu 4 --max_memory 10000 -v`
