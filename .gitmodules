@@ -1,6 +1,6 @@
 [submodule "sortmerna"]
 	path = sortmerna
-	url = https://github.com/biocore/sortmerna.git
+	url = https://github.com/ppericard/sortmerna.git
 [submodule "sga"]
 	path = sga
 	url = https://github.com/jts/sga.git
