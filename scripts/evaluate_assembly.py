@@ -54,7 +54,7 @@ if __name__ == '__main__':
     cmd_line += ' ' + args.input_contigs + ' ' + args.references
     cmd_line += ' | sort -k1,1V > ' + exonerate_output_filepath
 
-    sys.stdout.write('\nCMD: {0}\n'.format(cmd_line))
+    sys.stderr.write('\nCMD: {0}\n'.format(cmd_line))
     subprocess.call(cmd_line, shell=True)
 
     # Convert Exonerate tab output to sam file
@@ -64,9 +64,9 @@ if __name__ == '__main__':
     cmd_line += ' -o ' + exonerate_sam_filepath
     cmd_line += ' -q ' + args.input_contigs
 
-    sys.stdout.write('\nCMD: {0}\n'.format(cmd_line))
+    sys.stderr.write('\nCMD: {0}\n'.format(cmd_line))
     subprocess.call(cmd_line, shell=True)
-    sys.stdout.write('\n')
+    sys.stderr.write('\n')
 
     # Compute assembly stats
     assembly_stats_filepath = exonerate_output_basepath + '.assembly.stats'
@@ -75,9 +75,9 @@ if __name__ == '__main__':
     cmd_line += ' -i ' + exonerate_sam_filepath
     cmd_line += ' > ' + assembly_stats_filepath
 
-    sys.stdout.write('CMD: {0}\n'.format(cmd_line))
+    sys.stderr.write('CMD: {0}\n'.format(cmd_line))
     subprocess.call(cmd_line, shell=True)
-    sys.stdout.write('\n')
+    sys.stderr.write('\n')
 
 
 
