@@ -197,7 +197,7 @@ if __name__ == '__main__':
                 coverage_count_list[pos_coverage] += 1
         covered_positions_percent = covered_positions_count * 100.0 / len(ref_positions_count)
         mean_coverage = sum(ref_positions_count)/float(len(ref_positions_count))
-        median_coverage = sorted(ref_positions_count, key=int)[len(ref_positions_count)/2]
+        median_coverage = sorted(ref_positions_count, key=int)[len(ref_positions_count)//2]
         ref_stats_dict[ref_id] = (covered_positions_percent, mean_coverage, median_coverage)
         total_covered_positions_count += covered_positions_count
 
