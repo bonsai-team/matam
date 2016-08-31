@@ -834,7 +834,7 @@ if __name__ == '__main__':
 
     # Count the number of components to assemble
     cmd_line = 'cat ' + component_read_filepath
-    cmd_line += ' | cut -f1 | sort | uniq | wc -l'
+    cmd_line += ' | cut -f1 | grep -v "NULL" | sort | uniq | wc -l'
 
     logger.debug('CMD: {0}'.format(cmd_line))
     components_num = int(subprocess.check_output(cmd_line, shell=True))
@@ -869,12 +869,14 @@ if __name__ == '__main__':
 
         # Assembling all reads of every component, one at a time
         for component_tab_list in read_tab_file_handle_sorted(component_read_fh, 0):
-            component_count += 1
+
             component_id = component_tab_list[0][0]
 
             # To prevent assembly of singleton reads
             if component_id == 'NULL':
                 continue
+
+            component_count += 1
 
             # Starting component assembly
             if args.verbose:
