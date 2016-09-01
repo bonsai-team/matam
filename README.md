@@ -32,12 +32,13 @@ Some steps of MATAM are highly paralelized. You can get a significant speed incr
 
 To install all the needed depencies, you can run the following command-line in Debian-like distributions :
 
-  `sudo apt-get update && sudo apt-get install curl git gcc g++ default-jdk automake make cmake libsparsehash-dev zlib1g-dev && curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash && sudo apt-get update && sudo apt-get install git-lfs`
+  `sudo apt-get update && sudo apt-get install curl git gcc g++ python3 default-jdk automake make cmake libsparsehash-dev zlib1g-dev && curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash && sudo apt-get update && sudo apt-get install git-lfs`
 
 ### Full dependencies list
 
 * **gcc v4.9.0 or superior** (full C++11 support, \<regex\> included, and partial C++14 support)
 * C++ libraries: rt, pthread, zlib
+* Python 3
 * Java SE 7 JDK. OpenJDK is ok (openjdk-7-jdk paquet on debian)
 * automake, make, cmake
 * google sparse hash library (libsparsehash-dev paquet on debian)
