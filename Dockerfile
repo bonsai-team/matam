@@ -37,7 +37,7 @@ RUN rm -rf /var/lib/apt/lists/*
 
 # Build MATAM
 RUN ./build.py
-RUN ./index_default_ssu_rrna_db.py --max_memory 4000
+#RUN ./index_default_ssu_rrna_db.py --max_memory 4000
 
 # Set PATH
 ENV PATH /bin:$PATH
