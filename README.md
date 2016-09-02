@@ -45,6 +45,12 @@ To install all the needed depencies, you can run the following command-line in D
 * google sparse hash library (libsparsehash-dev paquet on debian)
 * git large file system (git-lfs), if you want to get the supplied reference database
 
+## MATAM in Docker
+
+To run MATAM using docker, just run:
+
+`docker run ppericard/matam matam_assembly.py`
+
 ## Running example datasets
 
 The following example datasets are provided:
