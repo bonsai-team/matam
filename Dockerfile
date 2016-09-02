@@ -33,6 +33,8 @@ RUN apt-get install -y zlib1g-dev
 RUN curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
 RUN apt-get install git-lfs
 
+RUN apt-get install bzip2
+
 # Tests
 RUN gcc --version
 RUN g++ --version

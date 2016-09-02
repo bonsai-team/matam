@@ -78,11 +78,3 @@ if __name__ == '__main__':
     sys.stderr.write('CMD: {0}\n'.format(cmd_line))
     subprocess.call(cmd_line, shell=True)
     sys.stderr.write('\n')
-
-
-
-
-
-
-
-
