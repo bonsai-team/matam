@@ -43,6 +43,6 @@ RUN git clone https://github.com/ppericard/matam.git
 # Build MATAM
 WORKDIR /matam
 RUN ./build.py
-RUN ./index_default_ssu_rrna_db.py --max_memory 4000 -v
+RUN ./index_default_ssu_rrna_db.py --max_memory 4000
 
 ##################### INSTALLATION END #####################
