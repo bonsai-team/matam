@@ -35,11 +35,15 @@ RUN curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.d
 # Clean apt cache
 RUN rm -rf /var/lib/apt/lists/*
 
+# Cloning MATAM
+RUN git clone https://github.com/ppericard/matam.git
+
 # Build MATAM
+WORKDIR /matam
 RUN ./build.py
 #RUN ./index_default_ssu_rrna_db.py --max_memory 4000
 
 # Set PATH
-ENV PATH /bin:$PATH
+ENV PATH /matam/bin:$PATH
 
 ##################### INSTALLATION END #####################
