@@ -1,50 +1,45 @@
 ############################################################
 # Dockerfile to build MATAM container images
-# Based on Ubuntu
+# Based on Debian
 ############################################################
 
-# Set the base image to Ubuntu
-FROM ubuntu
+# Set the base image to Debian
+FROM debian
 
 # File Author / Maintainer
 MAINTAINER Pierre Pericard
-
-# Update the repository sources list
-RUN apt-get update
 
 ################## BEGIN INSTALLATION ######################
 # Install MATAM following the instructions from Github repository
 # Ref: https://github.com/ppericard/matam
 
 # Install dependencies
-RUN apt-get install -y curl
-RUN apt-get install -y git
+RUN apt-get update && apt-get install --no-install-recommends -y \
+    curl \
+    git \
+    gcc \
+    g++ \
+    python3 \
+    default-jdk \
+    automake \
+    make \
+    cmake \
+    libsparsehash-dev \
+    zlib1g-dev \
+    bzip2
 
-#RUN apt-get install -y gcc-4.9 g++-4.9
-#RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.9 60 --slave /usr/bin/g++ g++ /usr/bin/g++-4.9
-RUN apt-get install -y gcc g++
+# Install git lfs repository and paquet
+RUN curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash \
+&& apt-get install -y git-lfs
 
-RUN apt-get install -y default-jdk
-RUN apt-get install -y automake make
-RUN apt-get install -y cmake
-RUN apt-get install -y libsparsehash-dev
-RUN apt-get install -y zlib1g-dev
-
-RUN curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
-RUN apt-get install git-lfs
-
-RUN apt-get install bzip2
-
-# Tests
-RUN gcc --version
-RUN g++ --version
-
-# Get MATAM
-RUN git clone https://github.com/ppericard/matam.git
+# Clean apt cache
+RUN rm -rf /var/lib/apt/lists/*
 
 # Build MATAM
-WORKDIR /matam
 RUN ./build.py
 RUN ./index_default_ssu_rrna_db.py --max_memory 4000
+
+# Set PATH
+ENV PATH /bin:$PATH
 
 ##################### INSTALLATION END #####################
