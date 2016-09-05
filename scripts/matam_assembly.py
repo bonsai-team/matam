@@ -944,13 +944,13 @@ if __name__ == '__main__':
     # Output running time
     logger.debug('Contigs assembly terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
 
-    # Evaluate assembly if true ref are provided
-    if args.true_references:
-        cmd_line = evaluate_assembly_bin + ' -r ' + args.true_references
-        cmd_line += ' -i ' + contigs_symlink_filepath
+    ## Evaluate assembly if true ref are provided
+    #if args.true_references:
+        #cmd_line = evaluate_assembly_bin + ' -r ' + args.true_references
+        #cmd_line += ' -i ' + contigs_symlink_filepath
 
-        logger.debug('CMD: {0}'.format(cmd_line))
-        error_code += subprocess.call(cmd_line, shell=True)
+        #logger.debug('CMD: {0}'.format(cmd_line))
+        #error_code += subprocess.call(cmd_line, shell=True)
 
     # Tag tmp files for removal
     to_rm_filepath_list.append(read_id_metanode_component_filepath)
