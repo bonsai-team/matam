@@ -94,7 +94,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Retrieve paired and singleton reads from a fastq file')
     parser.add_argument('-i', '--input_fastq',
                         metavar='INFQ',
-                        type=argparse.FileType('r', 0),
+                        type=argparse.FileType('r'),
                         default='-',
                         help='input fastq file')
     parser.add_argument('-b', '--basename',
