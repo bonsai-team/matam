@@ -46,7 +46,10 @@ def parse_cigar(cigar):
             count = 1
             if count_str:
                 count = int(count_str)
-            cigar_tab.append((operation, count))
+            if cigar_tab and operation == cigar_tab[-1][0]:
+                cigar_tab[-1][1] += count
+            else:
+                cigar_tab.append((operation, count))
             count_str = ''
     #
     return cigar_tab
