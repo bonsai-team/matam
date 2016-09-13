@@ -77,10 +77,10 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Filter a fasta file based on sequence length.')
     parser.add_argument('-i', '--input_fasta', metavar='input',
-                        type=argparse.FileType('r', 0), default='-',
+                        type=argparse.FileType('r'), default='-',
                         help='input fasta file')
     parser.add_argument('-o', '--output_fasta', metavar='output',
-                        type=argparse.FileType('w', 0), default='-',
+                        type=argparse.FileType('w'), default='-',
                         help='ouput fasta file')
     parser.add_argument('-m', '--min_length', metavar='MIN',
                         type=int, default=0,
