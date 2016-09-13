@@ -138,24 +138,24 @@ def return_compatibility_status(alignment_i, alignment_j):
     ov_start_on_ref = alignment_j.subject_start
     ov_end_on_ref = min(alignment_i.subject_end, alignment_j.subject_end)
     overlap_size = ov_end_on_ref - ov_start_on_ref
-    
+
     if overlap_size <= 0:
         return 0
-    
+
     # By default, alignments are incompatible
     compatibility_status = 2
-    
+
     ov_start_on_sbj_i = alignment_i.query_start + (alignment_j.subject_start - alignment_i.subject_start)
     ov_end_on_sbj_i = ov_start_on_sbj_i + overlap_size
-    
+
     ov_start_on_sbj_j = alignment_j.query_start
     ov_end_on_sbj_j = ov_start_on_sbj_j + overlap_size
-    
+
     # TO DO: extend the overlap with the soft-clipped sequences
-    
+
     ov_seq_i = alignment_i.query_seq[ov_start_on_sbj_i:ov_end_on_sbj_i+1]
     ov_seq_j = alignment_j.query_seq[ov_start_on_sbj_j:ov_end_on_sbj_j+1]
-    
+
     # If the two contigs have an identical sequence on the overlap, then
     # the alignments are compatible
     if ov_seq_i == ov_seq_j:
@@ -196,16 +196,52 @@ def compute_bin_list(compatibility_matrix):
     """
     """
     bin_list = list()
-    for i in range(query_num):
-        
-        #~ for b in bin_list:
-            #~ 
-            #~ if compatible
-        
-        
-        # If SamAlignment i is not compatible with any existing bin,
-        # then create a new bin
-        bin_list.append([i])
+    # Initialise the first bin
+    bin_list.append([0])
+    # Scan all contigs
+    for j in range(1, len(compatibility_matrix)):
+        #
+        in_a_bin = False
+        # Scan through all bins
+        for b in bin_list:
+            #
+            overlap_with_b = False
+            is_incompatible_with_b = False
+            #
+            for i in b:
+                # Get compatibility status. i is always < j
+                compatibility_status = compatibility_matrix[i][j]
+                # If i overlaps with j
+                if compatibility_status:
+                    overlap_with_b = True
+                    # Test for direct incompatibility
+                    if compatibility_status == 2:
+                        # There is at least one mismatch in the overlap between i and j
+                        is_incompatible_with_b = True
+                        # No need to test for other contigs in that bin
+                        # we known it cannot belong to this one
+                        break
+                    elif compatibility_status == 1:
+                        # i and j overlaps with no error
+                        # Test for secondary compatibility
+                        for x in range(j+1, len(compatibility_matrix)):
+                            status_i = compatibility_matrix[i][x]
+                            status_j = compatibility_matrix[j][x]
+                            if status_i and status_j:
+                                if status_i != status_j:
+                                    is_incompatible_with_b = True
+                                    break
+                        if is_incompatible_with_b:
+                            break
+            if overlap_with_b and not is_incompatible_with_b:
+                b.append(j)
+                in_a_bin = True
+                break
+        #
+        if not in_a_bin:
+            # If SamAlignment i is not compatible with any existing bin,
+            # then create a new bin
+            bin_list.append([j])
     #
     return bin_list
 
@@ -305,11 +341,14 @@ if __name__ == '__main__':
     ########
     # Start
 
+    # Write header start
+    args.output_sam.write('@HD\tVN:1.0\n')
+
     for tab_list in read_tab_file_handle_sorted(args.input_sam, 2):
         # Get reference id
         ref_id = tab_list[0][2]
         query_num = len(tab_list)
-        
+
         # Parse sam file for one reference and generate a SamAlignment object for each line
         sam_alignments_list = list()
         for sam_tab in tab_list:
@@ -317,27 +356,36 @@ if __name__ == '__main__':
             #~ print(sam_alignment.__dict__)
             sam_alignments_list.append(sam_alignment)
         #~ print(sam_alignments_list)
-        
+
         # Compute contigs compatibility matrix
         contigs_compatibility_matrix = compute_contigs_compatibility_matrix(sam_alignments_list)
-        
-        for line in contigs_compatibility_matrix:
-            print(line)
-        print()
-        
+
+        #~ for line in contigs_compatibility_matrix:
+            #~ print(line)
+        #~ print()
+
         # If there is no incompatible contigs, no need to split sam file
         if not any(2 in t for t in contigs_compatibility_matrix):
+            args.output_sam.write('@SQ\tSN:{0}\tLN:9999999999\n'.format(ref_id))
             for tab in tab_list:
                 args.output_sam.write('{0}\n'.format('\t'.join(tab)))
         # Else we compute sets of compatible contigs
         else:
             # Compute bins of compatible contigs
             bin_list = compute_bin_list(contigs_compatibility_matrix)
-            print(bin_list)
+            #~ print(bin_list)
             # Output SAM lines
-        
-        print()
-    
+            for b in range(len(bin_list)):
+                args.output_sam.write('@SQ\tSN:{0}_{1}\tLN:9999999999\n'.format(ref_id, b))
+                for i in bin_list[b]:
+                    tab = tab_list[i]
+                    # Modify ref column
+                    tab[2] += '_{0}'.format(b)
+                    # Output SAM
+                    args.output_sam.write('{0}\n'.format('\t'.join(tab)))
+
+        #~ print()
+
     #######
     # Exit
 
