@@ -31,12 +31,15 @@ filter_score_bin = os.path.join(matam_script_dir, 'filter_score_multialign.py')
 compute_lca_bin = os.path.join(matam_script_dir, 'compute_lca_from_tab.py')
 compute_compressed_graph_stats_bin = os.path.join(matam_script_dir, 'compute_compressed_graph_stats.py')
 sga_assemble_bin = os.path.join(matam_script_dir, 'sga_assemble.py')
+remove_redundant_bin = os.path.join(matam_script_dir, 'remove_redundant_sequences.py')
 fastq_name_filter_bin = os.path.join(matam_script_dir, 'fastq_name_filter.py')
 evaluate_assembly_bin = os.path.join(matam_script_dir, 'evaluate_assembly.py')
 get_best_matches_bin = os.path.join(matam_script_dir, 'get_best_matches_from_blast.py')
 gener_scaff_blast_bin = os.path.join(matam_script_dir, 'generate_scaffolding_blast.py')
 filter_sam_blast_bin = os.path.join(matam_script_dir, 'filter_sam_based_on_blast.py')
+compute_contigs_compatibility_bin = os.path.join(matam_script_dir, 'compute_contigs_compatibility.py')
 scaffold_contigs_bin = os.path.join(matam_script_dir, 'scaffold_contigs.py')
+fasta_length_filter_bin = os.path.join(matam_script_dir, 'fasta_length_filter.py')
 
 sortmerna_bin_dir = os.path.join(matam_root_dir, 'sortmerna')
 sortmerna_bin = os.path.join(sortmerna_bin_dir, 'sortmerna')
@@ -590,28 +593,53 @@ if __name__ == '__main__':
     scaff_sortme_output_basename += '_num_align_0'
     scaff_sortme_output_basepath = os.path.join(args.out_dir, scaff_sortme_output_basename)
 
-    scaff_sortme_output_blast_filepath = scaff_sortme_output_basepath + '.blast'
-    scaff_sortme_output_sam_filepath = scaff_sortme_output_basepath + '.sam'
+    scaff_sortme_output_blast_filename = scaff_sortme_output_basename + '.blast'
+    scaff_sortme_output_blast_filepath = os.path.join(args.out_dir, scaff_sortme_output_blast_filename)
 
-    best_only_blast_basepath = scaff_sortme_output_blast_filepath + '.best_only'
-    best_only_blast_filepath = best_only_blast_basepath + '.tab'
+    scaff_sortme_output_sam_filename = scaff_sortme_output_basename + '.sam'
+    scaff_sortme_output_sam_filepath = os.path.join(args.out_dir, scaff_sortme_output_sam_filename)
 
-    selected_best_only_blast_basepath = best_only_blast_basepath + '.selected'
-    selected_best_only_blast_filepath = selected_best_only_blast_basepath + '.tab'
+    best_only_blast_basename = scaff_sortme_output_blast_filename + '.best_only'
+    best_only_blast_filename = best_only_blast_basename + '.tab'
+    best_only_blast_filepath = os.path.join(args.out_dir, best_only_blast_filename)
 
-    selected_sam_filepath = selected_best_only_blast_basepath + '.sam'
-    selected_bam_filepath = selected_best_only_blast_basepath + '.bam'
+    selected_best_only_blast_basename = best_only_blast_basename + '.selected'
+    selected_best_only_blast_filename = selected_best_only_blast_basename + '.tab'
+    selected_best_only_blast_filepath = os.path.join(args.out_dir, selected_best_only_blast_filename)
 
-    selected_sorted_basepath = selected_best_only_blast_basepath + '.sorted'
-    selected_sorted_bam_filepath = selected_sorted_basepath + '.bam'
-    mpileup_filepath = selected_sorted_basepath + '.mpileup'
+    selected_sam_filename = selected_best_only_blast_basename + '.sam'
+    selected_sam_filepath = os.path.join(args.out_dir, selected_sam_filename)
 
-    scaffolds_basepath = selected_sorted_basepath + '.scaffolds'
-    scaffolds_filepath = scaffolds_basepath + '.fasta'
+    binned_sam_basename = selected_best_only_blast_basename + '.binned'
+    binned_sam_filename = binned_sam_basename + '.sam'
+    binned_sam_filepath = os.path.join(args.out_dir, binned_sam_filename)
+
+    bam_filename = binned_sam_basename + '.bam'
+    bam_filepath = os.path.join(args.out_dir, bam_filename)
+
+    sorted_bam_basename = binned_sam_basename + '.sorted'
+    sorted_bam_basepath = os.path.join(args.out_dir, sorted_bam_basename)
+    sorted_bam_filename = sorted_bam_basename + '.bam'
+    sorted_bam_filepath = os.path.join(args.out_dir, sorted_bam_filename)
+
+    mpileup_filename = sorted_bam_basename + '.mpileup'
+    mpileup_filepath = os.path.join(args.out_dir, mpileup_filename)
+
+    scaffolds_basename = sorted_bam_basename + '.scaffolds'
+    scaffolds_filename = scaffolds_basename + '.fasta'
+    scaffolds_filepath = os.path.join(args.out_dir, scaffolds_filename)
 
     scaffolds_symlink_basename = 'scaffolds'
     scaffolds_symlink_filename = scaffolds_symlink_basename + '.fasta'
     scaffolds_symlink_filepath = os.path.join(args.out_dir, scaffolds_symlink_filename)
+
+    scaffolds_NR_basename = scaffolds_symlink_basename + '.NR'
+    scaffolds_NR_filename = scaffolds_NR_basename + '.fasta'
+    scaffolds_NR_filepath = os.path.join(args.out_dir, scaffolds_NR_filename)
+
+    large_scaffolds_NR_basename = scaffolds_NR_basename + '.min_' + str(500) + 'bp'
+    large_scaffolds_NR_filename = large_scaffolds_NR_basename + '.fasta'
+    large_scaffolds_NR_filepath = os.path.join(args.out_dir, large_scaffolds_NR_filename)
 
     ###############################
     # Reads mapping against ref db
@@ -1010,27 +1038,34 @@ if __name__ == '__main__':
     # Filter sam file based on blast scaffolding file
     cmd_line = filter_sam_blast_bin + ' -i ' + scaff_sortme_output_sam_filepath
     cmd_line += ' -b ' +  selected_best_only_blast_filepath
-    cmd_line += ' | sort -k1,1V > ' + selected_sam_filepath
+    cmd_line += ' | sort -k3,3 -k4,4n > ' + selected_sam_filepath
+
+    logger.debug('CMD: {0}'.format(cmd_line))
+    error_code += subprocess.call(cmd_line, shell=True)
+
+    # Bin compatible contigs matching on the same reference
+    cmd_line = compute_contigs_compatibility_bin
+    cmd_line += ' -i ' + selected_sam_filepath
+    cmd_line += ' | sort -k1,1n > ' + binned_sam_filepath
 
     logger.debug('CMD: {0}'.format(cmd_line))
     error_code += subprocess.call(cmd_line, shell=True)
 
     # Convert sam to bam
-    cmd_line = 'samtools view -b -S ' + selected_sam_filepath
-    cmd_line += ' -T ' + complete_ref_db_filepath
-    cmd_line += ' -o ' + selected_bam_filepath
+    cmd_line = 'samtools view -b -S ' + binned_sam_filepath
+    cmd_line += ' -o ' + bam_filepath
 
     logger.debug('CMD: {0}'.format(cmd_line))
     error_code += subprocess.call(cmd_line, shell=True)
 
     # Sort bam
-    cmd_line = 'samtools sort ' + selected_bam_filepath + ' ' + selected_sorted_basepath
+    cmd_line = 'samtools sort ' + bam_filepath + ' ' + sorted_bam_basepath
 
     logger.debug('CMD: {0}'.format(cmd_line))
     error_code += subprocess.call(cmd_line, shell=True)
 
     # Generate mpileup
-    cmd_line = 'samtools mpileup -d 10000 ' + selected_sorted_bam_filepath
+    cmd_line = 'samtools mpileup -d 10000 ' + sorted_bam_filepath
     cmd_line += ' > ' + mpileup_filepath
 
     logger.debug('CMD: {0}'.format(cmd_line))
@@ -1047,6 +1082,21 @@ if __name__ == '__main__':
     if os.path.exists(scaffolds_symlink_filepath):
         os.remove(scaffolds_symlink_filepath)
     os.symlink(os.path.basename(scaffolds_filepath), scaffolds_symlink_filepath)
+
+    # Remove redundant scaffolds
+    cmd_line = remove_redundant_bin + ' -i ' + scaffolds_symlink_filepath
+    cmd_line += ' -o ' + scaffolds_NR_filepath
+
+    logger.debug('CMD: {0}'.format(cmd_line))
+    error_code += subprocess.call(cmd_line, shell=True)
+
+    # Filter out small scaffolds
+    cmd_line = fasta_length_filter_bin + ' -m ' + str(500)
+    cmd_line += ' -i ' + scaffolds_NR_filepath
+    cmd_line += ' -o ' + large_scaffolds_NR_filepath
+
+    logger.debug('CMD: {0}'.format(cmd_line))
+    error_code += subprocess.call(cmd_line, shell=True)
 
     # Output running time
     logger.debug('[scaff] Scaffolding terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
@@ -1065,8 +1115,9 @@ if __name__ == '__main__':
     to_rm_filepath_list.append(best_only_blast_filepath)
     to_rm_filepath_list.append(selected_best_only_blast_filepath)
     to_rm_filepath_list.append(selected_sam_filepath)
-    to_rm_filepath_list.append(selected_bam_filepath)
-    to_rm_filepath_list.append(selected_sorted_bam_filepath)
+    to_rm_filepath_list.append(binned_sam_filepath)
+    to_rm_filepath_list.append(bam_filepath)
+    to_rm_filepath_list.append(sorted_bam_filepath)
     to_rm_filepath_list.append(mpileup_filepath)
 
     ###############
