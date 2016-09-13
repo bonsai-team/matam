@@ -23,7 +23,6 @@ def format_seq(seq, linereturn=80):
 def iter_read_bases(read_bases):
     """
     """
-
     read_base = ''
     i = 0
     while i < len(read_bases):
@@ -60,7 +59,6 @@ def iter_read_bases(read_bases):
 def find_called_base(ref_base, read_bases, coverage):
     """
     """
-
     called_base = ''
 
     base_dict = defaultdict(int)
@@ -113,7 +111,6 @@ if __name__ == '__main__':
 
     max_N_string_length = 1
 
-
     #
     previous_ref_id = ''
     previous_pos = -1
@@ -151,29 +148,9 @@ if __name__ == '__main__':
     if scaffold_seq:
         scaffolds_list.append(scaffold_seq)
 
-
-    scaffolds_list.sort(key=lambda x: len(x))
-
-    #~ print(scaffolds_list)
-
-    scaffolds_to_keep_list = list()
-
-    for i in range(len(scaffolds_list)-1):
-        short_scaff = scaffolds_list[i]
-        to_keep = True
-        for j in range(i+1, len(scaffolds_list)):
-            long_scaff = scaffolds_list[j]
-            if short_scaff in long_scaff:
-                to_keep = False
-                break
-        if to_keep:
-            scaffolds_to_keep_list.append(short_scaff)
-    scaffolds_to_keep_list.append(scaffolds_list[-1])
-
-
     # Write scaffolds
     scaffold_num = 0
-    for scaffold_seq in scaffolds_to_keep_list:
+    for scaffold_seq in scaffolds_list:
         scaffold_num += 1
         args.output_scaffolds.write('>{0}\n{1}\n'.format(scaffold_num,
                                                          format_seq(scaffold_seq)))
