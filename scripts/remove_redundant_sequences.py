@@ -39,6 +39,7 @@ import argparse
 import string
 import re
 
+
 def read_fasta_file_handle(fasta_file_handle):
     """
     Parse a fasta file and return a generator
@@ -65,6 +66,7 @@ def read_fasta_file_handle(fasta_file_handle):
     # Close input file
     fasta_file_handle.close()
 
+
 def format_seq(seq, linereturn=80):
     """
     Format an input sequence
@@ -78,14 +80,17 @@ def format_seq(seq, linereturn=80):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Remove redundant sequences.')
-    parser.add_argument('-i', '--input_fasta', metavar='input',
-                        type=argparse.FileType('r', 0), default='-',
+    parser.add_argument('-i', '--input_fasta',
+                        metavar='input',
+                        type=argparse.FileType('r'),
+                        default='-',
                         help='input fasta file')
-    parser.add_argument('-o', '--output_fasta', metavar='output',
-                        type=argparse.FileType('w', 0), default='-',
+    parser.add_argument('-o', '--output_fasta',
+                        metavar='output',
+                        type=argparse.FileType('w'),
+                        default='-',
                         help='ouput fasta file')
     args = parser.parse_args()
-
 
     sequences_list = [(h, s) for h, s in read_fasta_file_handle(args.input_fasta)]
 
@@ -108,42 +113,3 @@ if __name__ == '__main__':
 
     for header, seq in sequences_to_keep_list:
         args.output_fasta.write('>{0}\n{1}\n'.format(header, format_seq(seq)))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
