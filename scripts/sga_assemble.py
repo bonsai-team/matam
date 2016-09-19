@@ -30,7 +30,7 @@ if __name__ == '__main__':
                         type=str,
                         default='contigs.fa',
                         help='Ouput contigs fasta file. '
-                             'Default is ${default}')
+                             'Default is ${default}s')
     # --sga_bin
     parser.add_argument('--sga_bin',
                         action='store',
@@ -45,7 +45,7 @@ if __name__ == '__main__':
                         type=str,
                         default='/tmp',
                         help='Tmp directory. '
-                             'Default is ${default}')
+                             'Default is ${default}s')
     # --cpu
     parser.add_argument('--cpu',
                         action='store',
@@ -53,7 +53,7 @@ if __name__ == '__main__':
                         type=int,
                         default=3,
                         help='Max number of CPU to use. '
-                             'Default is ${default}')
+                             'Default is ${default}s')
     #
     args = parser.parse_args()
 
