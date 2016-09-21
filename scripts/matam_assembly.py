@@ -1003,7 +1003,9 @@ if __name__ == '__main__':
     cmd_line += ' --reads ' + contigs_filepath
     cmd_line += ' --aligned ' + scaff_sortme_output_basepath
     cmd_line += ' --sam --blast "1"'
-    cmd_line += ' --num_alignments 0 -e {0:.2e}'.format(scaff_evalue)
+    cmd_line += ' --num_alignments 0 '
+    #~ cmd_line += ' --best 0 --min_lis 10 '
+    cmd_line += ' -e {0:.2e}'.format(scaff_evalue)
     cmd_line += ' -a ' + str(args.cpu)
     if args.verbose:
         cmd_line += ' -v '
