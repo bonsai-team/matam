@@ -113,7 +113,9 @@ if __name__ == '__main__':
     os.chdir(ovgraphbuild_build_dirpath)
     logger.debug('PWD: {0}'.format(ovgraphbuild_build_dirpath))
 
-    cmd_line = 'cmake .. && make'
+    #~ cmd_line = 'cmake .. '
+    cmd_line = 'cmake .. -G"CodeBlocks - Unix Makefiles"'
+    cmd_line += '&& make'
 
     logger.debug('CMD: {0}'.format(cmd_line))
     error_code = subprocess.call(cmd_line, shell=True)
