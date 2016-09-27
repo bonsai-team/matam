@@ -284,6 +284,11 @@ def parse_arguments():
     # Contigs assembly
 
     # Scaffolding
+    group_scaff = parser.add_argument_group('Scaffolding')
+    # --no_binning
+    group_scaff.add_argument('--no_binning',
+                             action = 'store_true',
+                             help = 'Do not perform contig binning during scaffolding')
 
     # Visualization
 
@@ -614,10 +619,16 @@ if __name__ == '__main__':
     binned_sam_filename = binned_sam_basename + '.sam'
     binned_sam_filepath = os.path.join(args.out_dir, binned_sam_filename)
 
-    bam_filename = binned_sam_basename + '.bam'
+    processed_sam_basename = binned_sam_basename
+    processed_sam_filepath = binned_sam_filepath
+    if args.no_binning:
+        processed_sam_basename = selected_best_only_blast_basename
+        processed_sam_filepath = selected_sam_filepath
+
+    bam_filename = processed_sam_filepath + '.bam'
     bam_filepath = os.path.join(args.out_dir, bam_filename)
 
-    sorted_bam_basename = binned_sam_basename + '.sorted'
+    sorted_bam_basename = processed_sam_basename + '.sorted'
     sorted_bam_basepath = os.path.join(args.out_dir, sorted_bam_basename)
     sorted_bam_filename = sorted_bam_basename + '.bam'
     sorted_bam_filepath = os.path.join(args.out_dir, sorted_bam_filename)
@@ -1004,6 +1015,7 @@ if __name__ == '__main__':
     cmd_line += ' --aligned ' + scaff_sortme_output_basepath
     cmd_line += ' --sam --blast "1"'
     cmd_line += ' --num_alignments 0 '
+    #~ cmd_line += ' --num_seeds 3 '
     #~ cmd_line += ' --best 0 --min_lis 10 '
     cmd_line += ' -e {0:.2e}'.format(scaff_evalue)
     cmd_line += ' -a ' + str(args.cpu)
@@ -1046,15 +1058,16 @@ if __name__ == '__main__':
     error_code += subprocess.call(cmd_line, shell=True)
 
     # Bin compatible contigs matching on the same reference
-    cmd_line = compute_contigs_compatibility_bin
-    cmd_line += ' -i ' + selected_sam_filepath
-    cmd_line += ' | sort -k1,1n > ' + binned_sam_filepath
+    if not args.no_binning:
+        cmd_line = compute_contigs_compatibility_bin
+        cmd_line += ' -i ' + selected_sam_filepath
+        cmd_line += ' | sort -k1,1n > ' + binned_sam_filepath
 
-    logger.debug('CMD: {0}'.format(cmd_line))
-    error_code += subprocess.call(cmd_line, shell=True)
+        logger.debug('CMD: {0}'.format(cmd_line))
+        error_code += subprocess.call(cmd_line, shell=True)
 
     # Convert sam to bam
-    cmd_line = 'samtools view -b -S ' + binned_sam_filepath
+    cmd_line = 'samtools view -b -S ' + processed_sam_filepath
     cmd_line += ' -o ' + bam_filepath
 
     logger.debug('CMD: {0}'.format(cmd_line))
@@ -1105,8 +1118,16 @@ if __name__ == '__main__':
 
     # Evaluate assembly if true ref are provided
     if args.true_references:
+        # Evaluate all scaffolds
         cmd_line = evaluate_assembly_bin + ' -r ' + args.true_references
         cmd_line += ' -i ' + scaffolds_symlink_filepath
+
+        logger.debug('CMD: {0}'.format(cmd_line))
+        error_code += subprocess.call(cmd_line, shell=True)
+
+        # Evaluate large NR scaffolds
+        cmd_line = evaluate_assembly_bin + ' -r ' + args.true_references
+        cmd_line += ' -i ' + large_scaffolds_NR_filepath
 
         logger.debug('CMD: {0}'.format(cmd_line))
         error_code += subprocess.call(cmd_line, shell=True)
