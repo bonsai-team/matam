@@ -4,6 +4,7 @@
 import os
 import sys
 import argparse
+import statistics
 import subprocess
 import time
 import logging
@@ -109,6 +110,41 @@ def read_fasta_file_handle(fasta_file_handle):
     yield (header, ''.join(seqlines))
     # Close input file
     fasta_file_handle.close()
+
+
+class FastaStats():
+    """
+    """
+    seq_num = 0
+    total_nt = int()
+
+    seq_length_list = list()
+
+    def add_sequence(self, seq):
+        self.seq_length_list.append(len(seq))
+        self.total_nt += len(seq)
+        self.seq_num += 1
+
+    def get_avg_length(self):
+        return statistics.mean(self.seq_length_list)
+
+    def get_max_length(self):
+        return max(self.seq_length_list)
+
+    def get_min_length(self):
+        return min(self.seq_length_list)
+
+
+def compute_fasta_stats(fasta_filepath):
+    """
+    """
+    fasta_stats = FastaStats()
+
+    with open(fasta_filepath, 'r') as fh:
+        for header, seq in read_fasta_file_handle(fh):
+            fasta_stats.add_sequence(seq)
+
+    return fasta_stats
 
 
 def format_seq(seq, linereturn=80):
@@ -547,6 +583,7 @@ if __name__ == '__main__':
     contracted_nodes_basepath = componentsearch_basepath + '.nodes_contracted'
     contracted_nodes_filepath = contracted_nodes_basepath + '.csv'
     contracted_edges_filepath = componentsearch_basepath + '.edges_contracted.csv'
+    contracted_components_filepath = componentsearch_basepath + '.components.csv'
 
     # LCA labelling
     read_id_metanode_component_filepath = componentsearch_basepath + '.read_id_metanode_component.tab'
@@ -648,9 +685,22 @@ if __name__ == '__main__':
     scaffolds_NR_filename = scaffolds_NR_basename + '.fasta'
     scaffolds_NR_filepath = os.path.join(args.out_dir, scaffolds_NR_filename)
 
-    large_scaffolds_NR_basename = scaffolds_NR_basename + '.min_' + str(500) + 'bp'
-    large_scaffolds_NR_filename = large_scaffolds_NR_basename + '.fasta'
-    large_scaffolds_NR_filepath = os.path.join(args.out_dir, large_scaffolds_NR_filename)
+    large_NR_scaffolds_basename = scaffolds_NR_basename + '.min_' + str(500) + 'bp'
+    large_NR_scaffolds_filename = large_NR_scaffolds_basename + '.fasta'
+    large_NR_scaffolds_filepath = os.path.join(args.out_dir, large_NR_scaffolds_filename)
+
+    #################################
+    # Compute input reads statistics
+
+    # Get input reads number
+    input_reads_nb = float()
+    if input_fastx_extension in ('.fq', '.fastq'):
+        input_fastx_line_nb = int(subprocess.check_output('wc -l {0}'.format(input_fastx_filepath), shell=True).split()[0])
+        input_reads_nb = input_fastx_line_nb / 4.0
+    elif input_fastx_extension in ('.fa', '.fasta'):
+        input_reads_nb = int(subprocess.check_output('grep -c "^>" {0}'.format(input_fastx_filepath), shell=True))
+    else:
+        logger.warning('Input fastx file extension was not recognised ({0})'.format(input_fastx_extension))
 
     ###############################
     # Reads mapping against ref db
@@ -677,6 +727,14 @@ if __name__ == '__main__':
 
     # Output running time
     logger.debug('Reads mapping terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
+
+    # Get selected reads number
+    selected_reads_nb = float()
+    if input_fastx_extension in ('.fq', '.fastq'):
+        selected_fastx_line_nb = int(subprocess.check_output('wc -l {0}'.format(sortme_output_fastx_filepath), shell=True).split()[0])
+        selected_reads_nb = input_fastx_line_nb / 4.0
+    elif input_fastx_extension in ('.fa', '.fasta'):
+        selected_reads_nb = int(subprocess.check_output('grep -c "^>" {0}'.format(sortme_output_fastx_filepath), shell=True))
 
     #############################
     # Alignment filtering
@@ -733,6 +791,10 @@ if __name__ == '__main__':
     # Tag tmp files for removal
     to_rm_filepath_list.append(sam_filt_filepath)
 
+    # Get overlap graph stats
+    ovgraph_nodes_nb = int(subprocess.check_output('wc -l {0}'.format(ovgraphbuild_nodes_csv_filepath), shell=True).split()[0]) - 1
+    ovgraph_edges_nb = int(subprocess.check_output('wc -l {0}'.format(ovgraphbuild_edges_csv_filepath), shell=True).split()[0]) - 1
+
     ###############################################
     # Graph compaction & Components identification
 
@@ -764,6 +826,14 @@ if __name__ == '__main__':
     to_rm_filepath_list.append(ovgraphbuild_nodes_csv_filepath)
     to_rm_filepath_list.append(ovgraphbuild_edges_csv_filepath)
 
+    # Get compressed graph stats
+    compressed_graph_nodes_nb = int(subprocess.check_output('wc -l {0}'.format(contracted_nodes_filepath), shell=True).split()[0]) - 1
+    compressed_graph_edges_nb = int(subprocess.check_output('wc -l {0}'.format(contracted_edges_filepath), shell=True).split()[0]) - 1
+    compressed_graph_reads_nb = int(subprocess.check_output('wc -l {0}'.format(contracted_components_filepath), shell=True).split()[0]) - 1
+    compressed_graph_excluded_reads_nb = ovgraph_nodes_nb - compressed_graph_reads_nb
+    excluded_reads_percent = compressed_graph_excluded_reads_nb * 100.0 / ovgraph_nodes_nb
+    components_nb = int(subprocess.check_output('cut -d ";" -f1 {0} | sort | uniq | wc -l'.format(contracted_components_filepath), shell=True).split()[0]) - 1
+
     ################
     # LCA labelling
 
@@ -778,7 +848,7 @@ if __name__ == '__main__':
     # in order to compute LCA at metanode or component level
 
     # Convert CSV component file to TAB format and sort by read id
-    cmd_line = 'tail -n +2 ' + componentsearch_basepath + '.components.csv'
+    cmd_line = 'tail -n +2 ' + contracted_components_filepath
     cmd_line += ' | sed "s/;/\\t/g" | sort -k2,2 > '
     cmd_line += componentsearch_basepath + '.components.tab'
 
@@ -998,6 +1068,9 @@ if __name__ == '__main__':
     if not args.keep_tmp:
         subprocess.call('rm -rf {0}'.format(contigs_assembly_wkdir), shell=True)
 
+    # Compute contigs assembly stats
+    contigs_stats = compute_fasta_stats(contigs_filepath)
+
     ##############
     # Scaffolding
 
@@ -1015,8 +1088,8 @@ if __name__ == '__main__':
     cmd_line += ' --aligned ' + scaff_sortme_output_basepath
     cmd_line += ' --sam --blast "1"'
     cmd_line += ' --num_alignments 0 '
-    #~ cmd_line += ' --num_seeds 3 '
-    #~ cmd_line += ' --best 0 --min_lis 10 '
+    #cmd_line += ' --num_seeds 3 '
+    #cmd_line += ' --best 0 --min_lis 10 '
     cmd_line += ' -e {0:.2e}'.format(scaff_evalue)
     cmd_line += ' -a ' + str(args.cpu)
     if args.verbose:
@@ -1108,7 +1181,7 @@ if __name__ == '__main__':
     # Filter out small scaffolds
     cmd_line = fasta_length_filter_bin + ' -m ' + str(500)
     cmd_line += ' -i ' + scaffolds_NR_filepath
-    cmd_line += ' -o ' + large_scaffolds_NR_filepath
+    cmd_line += ' -o ' + large_NR_scaffolds_filepath
 
     logger.debug('CMD: {0}'.format(cmd_line))
     error_code += subprocess.call(cmd_line, shell=True)
@@ -1118,19 +1191,37 @@ if __name__ == '__main__':
 
     # Evaluate assembly if true ref are provided
     if args.true_references:
+        
+        true_ref_filename = os.path.basename(args.true_references)
+        true_ref_basename, true_ref_extension = os.path.splitext(true_ref_filename)
+        
         # Evaluate all scaffolds
         cmd_line = evaluate_assembly_bin + ' -r ' + args.true_references
         cmd_line += ' -i ' + scaffolds_symlink_filepath
 
         logger.debug('CMD: {0}'.format(cmd_line))
         error_code += subprocess.call(cmd_line, shell=True)
+        
+        scaffolds_assembly_stats_filename = scaffolds_symlink_basename + '.exonerate_vs_' 
+        scaffolds_assembly_stats_filename += true_ref_basename + '.assembly.stats'
+        scaffolds_assembly_stats_filepath = os.path.join(args.out_dir, scaffolds_assembly_stats_filename)
+
+        scaffolds_error_rate = float(subprocess.check_output('grep "error rate" {0}'.format(scaffolds_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].split('errors')[0].strip())
+        scaffolds_ref_coverage = float(subprocess.check_output('grep "ref coverage" {0}'.format(scaffolds_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
 
         # Evaluate large NR scaffolds
         cmd_line = evaluate_assembly_bin + ' -r ' + args.true_references
-        cmd_line += ' -i ' + large_scaffolds_NR_filepath
+        cmd_line += ' -i ' + large_NR_scaffolds_filepath
 
         logger.debug('CMD: {0}'.format(cmd_line))
         error_code += subprocess.call(cmd_line, shell=True)
+        
+        large_NR_scaffolds_assembly_stats_filename = large_NR_scaffolds_basename + '.exonerate_vs_' 
+        large_NR_scaffolds_assembly_stats_filename += true_ref_basename + '.assembly.stats'
+        large_NR_scaffolds_assembly_stats_filepath = os.path.join(args.out_dir, large_NR_scaffolds_assembly_stats_filename)
+        
+        large_NR_scaffolds_error_rate = float(subprocess.check_output('grep "error rate" {0}'.format(large_NR_scaffolds_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].split('errors')[0].strip())
+        large_NR_scaffolds_ref_coverage = float(subprocess.check_output('grep "ref coverage" {0}'.format(large_NR_scaffolds_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
 
     # Tag tmp files for removal
     to_rm_filepath_list.append(scaff_sortme_output_blast_filepath)
@@ -1142,6 +1233,65 @@ if __name__ == '__main__':
     to_rm_filepath_list.append(bam_filepath)
     to_rm_filepath_list.append(sorted_bam_filepath)
     to_rm_filepath_list.append(mpileup_filepath)
+
+    # Compute scaffolds assemblies stats
+    scaffolds_stats = compute_fasta_stats(scaffolds_filepath)
+    large_NR_scaffolds_stats = compute_fasta_stats(large_NR_scaffolds_filepath)
+
+    ###########################
+    # Print Assembly Statistics
+
+    if args.verbose:
+        sys.stderr.write('\n')
+
+        b = 'MATAM Statistics\n\n'
+        b += 'Input reads nb: {0}\n'.format(int(input_reads_nb))
+        b += 'Selected reads nb: {0}\n\n'.format(int(selected_reads_nb))
+
+        b += 'Ov. Graph nodes nb: {0}\n'.format(ovgraph_nodes_nb)
+        b += 'Ov. Graph edges nb: {0}\n\n'.format(ovgraph_edges_nb)
+
+        b += 'Compressed Graph nodes nb: {0}\n'.format(compressed_graph_nodes_nb)
+        b += 'Compressed Graph edges nb: {0}\n'.format(compressed_graph_edges_nb)
+        b += 'Compressed Graph reads nb: {0}\n'.format(compressed_graph_reads_nb)
+        b += 'Compr. Graph excluded reads nb: {0} '.format(compressed_graph_excluded_reads_nb)
+        b += '({0:.2f}% of total reads)\n'.format(excluded_reads_percent)
+        b += 'Compr. Graph components nb: {0}\n\n'.format(components_nb)
+
+        b += 'Contigs assembly:\n'
+        b += '\tSeq nb: {0}\n'.format(contigs_stats.seq_num)
+        b += '\tSeq avg. size: {0:.2f} nt\n'.format(contigs_stats.get_avg_length())
+        b += '\tSeq max size: {0} nt\n'.format(contigs_stats.get_max_length())
+        b += '\tSeq min size: {0} nt\n'.format(contigs_stats.get_min_length())
+        b += '\tSeq total size: {0} nt\n'.format(contigs_stats.total_nt)
+        #~ if args.true_references:
+            #~ b += '\tError rate: {0:.2f}%\n'.format(contigs_error_rate)
+            #~ b += '\tRef coverage: {0:.2f}%\n'.format(contigs_ref_coverage)
+        b += '\n'
+
+        b += 'Scaffolds assembly:\n'
+        b += '\tSeq nb: {0}\n'.format(scaffolds_stats.seq_num)
+        b += '\tSeq avg. size: {0:.2f} nt\n'.format(scaffolds_stats.get_avg_length())
+        b += '\tSeq max size: {0} nt\n'.format(scaffolds_stats.get_max_length())
+        b += '\tSeq min size: {0} nt\n'.format(scaffolds_stats.get_min_length())
+        b += '\tSeq total size: {0} nt\n'.format(scaffolds_stats.total_nt)
+        if args.true_references:
+            b += '\tError rate: {0:.2f}%\n'.format(scaffolds_error_rate)
+            b += '\tRef coverage: {0:.2f}%\n'.format(scaffolds_ref_coverage)
+        b += '\n'
+
+        b += 'Large NR Scaffolds assembly:\n'
+        b += '\tSeq nb: {0}\n'.format(large_NR_scaffolds_stats.seq_num)
+        b += '\tSeq avg. size: {0:.2f} nt\n'.format(large_NR_scaffolds_stats.get_avg_length())
+        b += '\tSeq max size: {0} nt\n'.format(large_NR_scaffolds_stats.get_max_length())
+        b += '\tSeq min size: {0} nt\n'.format(large_NR_scaffolds_stats.get_min_length())
+        b += '\tSeq total size: {0} nt\n'.format(large_NR_scaffolds_stats.total_nt)
+        if args.true_references:
+            b += '\tError rate: {0:.2f}%\n'.format(large_NR_scaffolds_error_rate)
+            b += '\tRef coverage: {0:.2f}%\n'.format(large_NR_scaffolds_ref_coverage)
+        b += '\n'
+
+        sys.stderr.write(b)
 
     ###############
     # Exit program
