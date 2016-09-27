@@ -1206,7 +1206,7 @@ if __name__ == '__main__':
         scaffolds_assembly_stats_filename += true_ref_basename + '.assembly.stats'
         scaffolds_assembly_stats_filepath = os.path.join(args.out_dir, scaffolds_assembly_stats_filename)
 
-        scaffolds_error_rate = float(subprocess.check_output('grep "error rate" {0}'.format(scaffolds_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].split('errors')[0].strip())
+        scaffolds_error_rate = float(subprocess.check_output('grep "error rate" {0}'.format(scaffolds_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
         scaffolds_ref_coverage = float(subprocess.check_output('grep "ref coverage" {0}'.format(scaffolds_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
 
         # Evaluate large NR scaffolds
@@ -1220,7 +1220,7 @@ if __name__ == '__main__':
         large_NR_scaffolds_assembly_stats_filename += true_ref_basename + '.assembly.stats'
         large_NR_scaffolds_assembly_stats_filepath = os.path.join(args.out_dir, large_NR_scaffolds_assembly_stats_filename)
         
-        large_NR_scaffolds_error_rate = float(subprocess.check_output('grep "error rate" {0}'.format(large_NR_scaffolds_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].split('errors')[0].strip())
+        large_NR_scaffolds_error_rate = float(subprocess.check_output('grep "error rate" {0}'.format(large_NR_scaffolds_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
         large_NR_scaffolds_ref_coverage = float(subprocess.check_output('grep "ref coverage" {0}'.format(large_NR_scaffolds_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
 
     # Tag tmp files for removal
