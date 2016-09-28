@@ -115,10 +115,10 @@ def read_fasta_file_handle(fasta_file_handle):
 class FastaStats():
     """
     """
-    seq_num = 0
-    total_nt = int()
-
-    seq_length_list = list()
+    def __init__(self):
+        self.seq_num = 0
+        self.total_nt = int()
+        self.seq_length_list = list()
 
     def add_sequence(self, seq):
         self.seq_length_list.append(len(seq))
