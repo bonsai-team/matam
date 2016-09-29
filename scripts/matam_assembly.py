@@ -629,6 +629,14 @@ if __name__ == '__main__':
     contigs_symlink_filename = contigs_symlink_basename + '.fasta'
     contigs_symlink_filepath = os.path.join(args.out_dir, contigs_symlink_filename)
 
+    contigs_NR_basename = contigs_symlink_basename + '.NR'
+    contigs_NR_filename = contigs_NR_basename + '.fasta'
+    contigs_NR_filepath = os.path.join(args.out_dir, contigs_NR_filename)
+
+    large_NR_contigs_basename = contigs_NR_basename + '.min_' + str(500) + 'bp'
+    large_NR_contigs_filename = large_NR_contigs_basename + '.fasta'
+    large_NR_contigs_filepath = os.path.join(args.out_dir, large_NR_contigs_filename)
+
     # Scaffolding
     scaff_sortme_output_basename = contigs_symlink_basename
     scaff_sortme_output_basename += '.sortmerna_vs_complete_' + ref_db_basename
@@ -1050,16 +1058,57 @@ if __name__ == '__main__':
     # TO DO, if it gets better results:
     # remove redundant sequences in contigs
 
+    # Remove redundant contigs
+    cmd_line = remove_redundant_bin + ' -i ' + contigs_symlink_filepath
+    cmd_line += ' -o ' + contigs_NR_filepath
+
+    logger.debug('CMD: {0}'.format(cmd_line))
+    error_code += subprocess.call(cmd_line, shell=True)
+
+    # Filter out small contigs
+    cmd_line = fasta_length_filter_bin + ' -m ' + str(500)
+    cmd_line += ' -i ' + contigs_NR_filepath
+    cmd_line += ' -o ' + large_NR_contigs_filepath
+
+    logger.debug('CMD: {0}'.format(cmd_line))
+    error_code += subprocess.call(cmd_line, shell=True)
+
     # Output running time
     logger.debug('Contigs assembly terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
 
-    ## Evaluate assembly if true ref are provided
-    #if args.true_references:
-        #cmd_line = evaluate_assembly_bin + ' -r ' + args.true_references
-        #cmd_line += ' -i ' + contigs_symlink_filepath
+    # Evaluate assembly if true ref are provided
+    if args.true_references:
 
-        #logger.debug('CMD: {0}'.format(cmd_line))
-        #error_code += subprocess.call(cmd_line, shell=True)
+        true_ref_filename = os.path.basename(args.true_references)
+        true_ref_basename, true_ref_extension = os.path.splitext(true_ref_filename)
+
+        # Evaluate all contigs
+        cmd_line = evaluate_assembly_bin + ' -r ' + args.true_references
+        cmd_line += ' -i ' + contigs_symlink_filepath
+
+        logger.debug('CMD: {0}'.format(cmd_line))
+        error_code += subprocess.call(cmd_line, shell=True)
+
+        contigs_assembly_stats_filename = contigs_symlink_basename + '.exonerate_vs_'
+        contigs_assembly_stats_filename += true_ref_basename + '.assembly.stats'
+        contigs_assembly_stats_filepath = os.path.join(args.out_dir, contigs_assembly_stats_filename)
+
+        contigs_error_rate = float(subprocess.check_output('grep "error rate" {0}'.format(contigs_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
+        contigs_ref_coverage = float(subprocess.check_output('grep "ref coverage" {0}'.format(contigs_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
+
+        # Evaluate large NR contigs
+        cmd_line = evaluate_assembly_bin + ' -r ' + args.true_references
+        cmd_line += ' -i ' + large_NR_contigs_filepath
+
+        logger.debug('CMD: {0}'.format(cmd_line))
+        error_code += subprocess.call(cmd_line, shell=True)
+
+        large_NR_contigs_assembly_stats_filename = large_NR_contigs_basename + '.exonerate_vs_'
+        large_NR_contigs_assembly_stats_filename += true_ref_basename + '.assembly.stats'
+        large_NR_contigs_assembly_stats_filepath = os.path.join(args.out_dir, large_NR_contigs_assembly_stats_filename)
+
+        large_NR_contigs_error_rate = float(subprocess.check_output('grep "error rate" {0}'.format(large_NR_contigs_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
+        large_NR_contigs_ref_coverage = float(subprocess.check_output('grep "ref coverage" {0}'.format(large_NR_contigs_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
 
     # Tag tmp files for removal
     to_rm_filepath_list.append(read_id_metanode_component_filepath)
@@ -1070,6 +1119,7 @@ if __name__ == '__main__':
 
     # Compute contigs assembly stats
     contigs_stats = compute_fasta_stats(contigs_filepath)
+    large_NR_contigs_stats = compute_fasta_stats(large_NR_contigs_filepath)
 
     ##############
     # Scaffolding
@@ -1264,9 +1314,20 @@ if __name__ == '__main__':
         b += '\tSeq max size: {0} nt\n'.format(contigs_stats.get_max_length())
         b += '\tSeq avg. size: {0:.2f} nt\n'.format(contigs_stats.get_avg_length())
         b += '\tSeq total size: {0} nt\n'.format(contigs_stats.total_nt)
-        #~ if args.true_references:
-            #~ b += '\tError rate: {0:.2f}%\n'.format(contigs_error_rate)
-            #~ b += '\tRef coverage: {0:.2f}%\n'.format(contigs_ref_coverage)
+        if args.true_references:
+            b += '\tError rate: {0:.2f}%\n'.format(contigs_error_rate)
+            b += '\tRef coverage: {0:.2f}%\n'.format(contigs_ref_coverage)
+        b += '\n'
+
+        b += 'Large NR Contigs assembly:\n'
+        b += '\tSeq nb: {0}\n'.format(large_NR_contigs_stats.seq_num)
+        b += '\tSeq min size: {0} nt\n'.format(large_NR_contigs_stats.get_min_length())
+        b += '\tSeq max size: {0} nt\n'.format(large_NR_contigs_stats.get_max_length())
+        b += '\tSeq avg. size: {0:.2f} nt\n'.format(large_NR_contigs_stats.get_avg_length())
+        b += '\tSeq total size: {0} nt\n'.format(large_NR_contigs_stats.total_nt)
+        if args.true_references:
+            b += '\tError rate: {0:.2f}%\n'.format(large_NR_contigs_error_rate)
+            b += '\tRef coverage: {0:.2f}%\n'.format(large_NR_contigs_ref_coverage)
         b += '\n'
 
         b += 'Scaffolds assembly:\n'
