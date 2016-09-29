@@ -1191,18 +1191,18 @@ if __name__ == '__main__':
 
     # Evaluate assembly if true ref are provided
     if args.true_references:
-        
+
         true_ref_filename = os.path.basename(args.true_references)
         true_ref_basename, true_ref_extension = os.path.splitext(true_ref_filename)
-        
+
         # Evaluate all scaffolds
         cmd_line = evaluate_assembly_bin + ' -r ' + args.true_references
         cmd_line += ' -i ' + scaffolds_symlink_filepath
 
         logger.debug('CMD: {0}'.format(cmd_line))
         error_code += subprocess.call(cmd_line, shell=True)
-        
-        scaffolds_assembly_stats_filename = scaffolds_symlink_basename + '.exonerate_vs_' 
+
+        scaffolds_assembly_stats_filename = scaffolds_symlink_basename + '.exonerate_vs_'
         scaffolds_assembly_stats_filename += true_ref_basename + '.assembly.stats'
         scaffolds_assembly_stats_filepath = os.path.join(args.out_dir, scaffolds_assembly_stats_filename)
 
@@ -1215,11 +1215,11 @@ if __name__ == '__main__':
 
         logger.debug('CMD: {0}'.format(cmd_line))
         error_code += subprocess.call(cmd_line, shell=True)
-        
-        large_NR_scaffolds_assembly_stats_filename = large_NR_scaffolds_basename + '.exonerate_vs_' 
+
+        large_NR_scaffolds_assembly_stats_filename = large_NR_scaffolds_basename + '.exonerate_vs_'
         large_NR_scaffolds_assembly_stats_filename += true_ref_basename + '.assembly.stats'
         large_NR_scaffolds_assembly_stats_filepath = os.path.join(args.out_dir, large_NR_scaffolds_assembly_stats_filename)
-        
+
         large_NR_scaffolds_error_rate = float(subprocess.check_output('grep "error rate" {0}'.format(large_NR_scaffolds_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
         large_NR_scaffolds_ref_coverage = float(subprocess.check_output('grep "ref coverage" {0}'.format(large_NR_scaffolds_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
 
@@ -1260,9 +1260,9 @@ if __name__ == '__main__':
 
         b += 'Contigs assembly:\n'
         b += '\tSeq nb: {0}\n'.format(contigs_stats.seq_num)
-        b += '\tSeq avg. size: {0:.2f} nt\n'.format(contigs_stats.get_avg_length())
-        b += '\tSeq max size: {0} nt\n'.format(contigs_stats.get_max_length())
         b += '\tSeq min size: {0} nt\n'.format(contigs_stats.get_min_length())
+        b += '\tSeq max size: {0} nt\n'.format(contigs_stats.get_max_length())
+        b += '\tSeq avg. size: {0:.2f} nt\n'.format(contigs_stats.get_avg_length())
         b += '\tSeq total size: {0} nt\n'.format(contigs_stats.total_nt)
         #~ if args.true_references:
             #~ b += '\tError rate: {0:.2f}%\n'.format(contigs_error_rate)
@@ -1271,9 +1271,9 @@ if __name__ == '__main__':
 
         b += 'Scaffolds assembly:\n'
         b += '\tSeq nb: {0}\n'.format(scaffolds_stats.seq_num)
-        b += '\tSeq avg. size: {0:.2f} nt\n'.format(scaffolds_stats.get_avg_length())
-        b += '\tSeq max size: {0} nt\n'.format(scaffolds_stats.get_max_length())
         b += '\tSeq min size: {0} nt\n'.format(scaffolds_stats.get_min_length())
+        b += '\tSeq max size: {0} nt\n'.format(scaffolds_stats.get_max_length())
+        b += '\tSeq avg. size: {0:.2f} nt\n'.format(scaffolds_stats.get_avg_length())
         b += '\tSeq total size: {0} nt\n'.format(scaffolds_stats.total_nt)
         if args.true_references:
             b += '\tError rate: {0:.2f}%\n'.format(scaffolds_error_rate)
@@ -1282,9 +1282,9 @@ if __name__ == '__main__':
 
         b += 'Large NR Scaffolds assembly:\n'
         b += '\tSeq nb: {0}\n'.format(large_NR_scaffolds_stats.seq_num)
-        b += '\tSeq avg. size: {0:.2f} nt\n'.format(large_NR_scaffolds_stats.get_avg_length())
-        b += '\tSeq max size: {0} nt\n'.format(large_NR_scaffolds_stats.get_max_length())
         b += '\tSeq min size: {0} nt\n'.format(large_NR_scaffolds_stats.get_min_length())
+        b += '\tSeq max size: {0} nt\n'.format(large_NR_scaffolds_stats.get_max_length())
+        b += '\tSeq avg. size: {0:.2f} nt\n'.format(large_NR_scaffolds_stats.get_avg_length())
         b += '\tSeq total size: {0} nt\n'.format(large_NR_scaffolds_stats.total_nt)
         if args.true_references:
             b += '\tError rate: {0:.2f}%\n'.format(large_NR_scaffolds_error_rate)
