@@ -43,6 +43,11 @@ if __name__ == '__main__':
     references_filename = args.references.split('/')[-1]
     references_basename = '.'.join(references_filename.split('.')[:-1])
 
+    # Exit if the fasta file is empty
+    if os.path.getsize(args.input_contigs) == 0:
+        sys.stderr.write('\n{0} fasta file is empty\n\n'.format(args.input_contigs))
+        exit(0)
+
     # Align contigs against references with Exonerate
     exonerate_output_basepath = input_contigs_basepath + '.exonerate_vs_'
     exonerate_output_basepath += references_basename
