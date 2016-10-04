@@ -83,6 +83,11 @@ if __name__ == '__main__':
                         type=float,
                         default=0.99,
                         help='Identity threshold')
+    # -s / --soft_clip_as_mismatch
+    parser.add_argument('-s', '--soft_clip_as_mismatch',
+                        action = 'store_true',
+                        help = 'Soft-clipped nucleotides are considered '
+                               'as mismatches')
 
     args = parser.parse_args()
 
@@ -116,21 +121,25 @@ if __name__ == '__main__':
 
         cigar_tab = parse_cigar(cigar)
 
-        # Deal with soft clipping and get the query start (0-based)
+        # Init variables
         query_start = 0
         overhang_num = 0
+        indel_num = 0
+        matches_num = 0
+        mismatches_num = 0
+
+        # Deal with soft clipping and get the query start (0-based)
         if cigar_tab[0][0] == 'S':
             count = cigar_tab[0][1]
             query_start += count
             overhang_num += count
+            if args.soft_clip_as_mismatch:
+                mismatches_num += count
             del cigar_tab[0]
 
         # Parse CIGAR
         query_end = query_start - 1
         subject_end = subject_start - 1
-        indel_num = 0
-        matches_num = 0
-        mismatches_num = 0
         for operation, count in cigar_tab:
             if operation == 'M':
                 # Compute the number of matches on this block
@@ -147,6 +156,7 @@ if __name__ == '__main__':
                 indel_num += count
             elif operation == 'S':
                 overhang_num += count
+                mismatches_num += count
 
         identity = float(matches_num) / (matches_num + mismatches_num + indel_num)
 
