@@ -107,7 +107,8 @@ def read_fasta_file_handle(fasta_file_handle):
             # Concatenate sequence
             seqlines.append(line.strip())
     # Yield the input file last sequence
-    yield (header, ''.join(seqlines))
+    if header or seqlines:
+        yield (header, ''.join(seqlines))
     # Close input file
     fasta_file_handle.close()
 
@@ -126,13 +127,22 @@ class FastaStats():
         self.seq_num += 1
 
     def get_avg_length(self):
-        return statistics.mean(self.seq_length_list)
+        if self.seq_length_list:
+            return statistics.mean(self.seq_length_list)
+        else:
+            return -1
 
     def get_max_length(self):
-        return max(self.seq_length_list)
+        if self.seq_length_list:
+            return max(self.seq_length_list)
+        else:
+            return -1
 
     def get_min_length(self):
-        return min(self.seq_length_list)
+        if self.seq_length_list:
+            return min(self.seq_length_list)
+        else:
+            return -1
 
 
 def compute_fasta_stats(fasta_filepath):
@@ -1107,8 +1117,12 @@ if __name__ == '__main__':
         large_NR_contigs_assembly_stats_filename += true_ref_basename + '.assembly.stats'
         large_NR_contigs_assembly_stats_filepath = os.path.join(args.out_dir, large_NR_contigs_assembly_stats_filename)
 
-        large_NR_contigs_error_rate = float(subprocess.check_output('grep "error rate" {0}'.format(large_NR_contigs_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
-        large_NR_contigs_ref_coverage = float(subprocess.check_output('grep "ref coverage" {0}'.format(large_NR_contigs_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
+        try:
+            large_NR_contigs_error_rate = float(subprocess.check_output('grep "error rate" {0}'.format(large_NR_contigs_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
+            large_NR_contigs_ref_coverage = float(subprocess.check_output('grep "ref coverage" {0}'.format(large_NR_contigs_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
+        except subprocess.CalledProcessError:
+            large_NR_contigs_error_rate = float()
+            large_NR_contigs_ref_coverage = float()
 
     # Tag tmp files for removal
     to_rm_filepath_list.append(read_id_metanode_component_filepath)
@@ -1270,8 +1284,12 @@ if __name__ == '__main__':
         large_NR_scaffolds_assembly_stats_filename += true_ref_basename + '.assembly.stats'
         large_NR_scaffolds_assembly_stats_filepath = os.path.join(args.out_dir, large_NR_scaffolds_assembly_stats_filename)
 
-        large_NR_scaffolds_error_rate = float(subprocess.check_output('grep "error rate" {0}'.format(large_NR_scaffolds_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
-        large_NR_scaffolds_ref_coverage = float(subprocess.check_output('grep "ref coverage" {0}'.format(large_NR_scaffolds_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
+        try:
+            large_NR_scaffolds_error_rate = float(subprocess.check_output('grep "error rate" {0}'.format(large_NR_scaffolds_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
+            large_NR_scaffolds_ref_coverage = float(subprocess.check_output('grep "ref coverage" {0}'.format(large_NR_scaffolds_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
+        except subprocess.CalledProcessError:
+            large_NR_scaffolds_error_rate = float()
+            large_NR_scaffolds_ref_coverage = float()
 
     # Tag tmp files for removal
     to_rm_filepath_list.append(scaff_sortme_output_blast_filepath)
