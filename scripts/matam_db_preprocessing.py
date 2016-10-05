@@ -360,7 +360,7 @@ if __name__ == '__main__':
     logger.info('Cleaning reference db')
 
     cmd_line = 'cat ' + complete_ref_db_filepath
-    cmd_line += ' | sed "/^>/!s/U/T/g" | sed "/^>/!s/u/t/g"'
+    cmd_line += ' | sed "/^>/!s/U/T/g" | sed "/^>/!s/u/t/g" | sed "/^>/!s/ //g"'
     if not args.remove_Ns:
         cmd_line += ' | ' + replace_Ns_bin
     cmd_line += ' | ' + sort_fasta_bin + ' --reverse > '
