@@ -7,11 +7,9 @@
 ******************************************************************************/
 void buildCompatibilityGraph(TGraph &graph,
                              std::vector<TVertexDescriptor > &vertices,
-                             std::vector<TEdgeDescriptor > &edges,
                              TProperties &readNames,
                              GlobalStatistics &globalStats,
                              std::vector<std::vector<seqan::BamAlignmentRecord> > const &bamRecordBuffer,
-                             TransitionMatrix &transitionMatrix,
                              AlphaOptions const &options)
 {
     if (options.debug)
@@ -102,17 +100,13 @@ void buildCompatibilityGraph(TGraph &graph,
 
             ++numConsideredReadsPairs;
 
-            computeReadsPairCompatibility(graph,
-                                          edges,
-                                          globalStats,
+            computeReadsPairCompatibility(globalStats,
                                           asqgFile,
                                           csvEdgesFile,
                                           i,
                                           j,
                                           *bamRecordBufferItI,
                                           *bamRecordBufferItJ,
-                                          vertices,
-                                          transitionMatrix,
                                           readNames,
                                           options);
 
@@ -240,108 +234,16 @@ void writeReadsToCSV(std::ostream &csvNodesFile,
 /******************************************************************************
     Compute the compatibility between 2 reads given all their bam records
 ******************************************************************************/
-void computeReadsPairCompatibility(TGraph &graph,
-                                   std::vector<TEdgeDescriptor > &edges,
-                                   GlobalStatistics &globalStats,
+void computeReadsPairCompatibility(GlobalStatistics &globalStats,
                                    std::ofstream &asqgFile,
                                    std::ofstream &csvEdgesFile,
                                    int64_t i,
                                    int64_t j,
                                    std::vector<seqan::BamAlignmentRecord> const &readBamRecordBufferI,
                                    std::vector<seqan::BamAlignmentRecord> const &readBamRecordBufferJ,
-                                   std::vector<TVertexDescriptor > const &vertices,
-                                   TransitionMatrix &transitionMatrix,
                                    TProperties const &readNames,
                                    AlphaOptions const &options)
 {
-//    std::cerr << i << ":" << j << "\n" << "\n";
-//
-//    for (auto const &bamRecordI : readBamRecordBufferI)
-//    {
-//        std::cerr << formatBamRecordString(bamRecordI) << "\n";
-//    }
-//    std::cerr << "\n";
-//
-//    for (auto const &bamRecordJ : readBamRecordBufferJ)
-//    {
-//        std::cerr << formatBamRecordString(bamRecordJ) << "\n";
-//    }
-//    std::cerr << "\n";
-//    std::cerr << "##########################################################"
-//              << "\n" << "\n" << std::flush;
-
-//    //
-//    auto const &bamRecordI = readBamRecordBufferI[0];
-//    auto const &bamRecordJ = readBamRecordBufferJ[0];
-//
-//    // De novo overlap alignment computing
-//    auto readSeqI(bamRecordI.seq);
-//    if (seqan::hasFlagRC(bamRecordI)) seqan::reverseComplement(readSeqI);
-//
-//    auto readSeqJ(bamRecordJ.seq);
-//    if (seqan::hasFlagRC(bamRecordJ)) seqan::reverseComplement(readSeqJ);
-//
-//    TAlign align;
-//    int score = align2ReadSequences(align, readSeqI, readSeqJ);
-////    std::cout << "Score: " << score << "\n";
-////    std::cout << align << "\n" << "\n";
-//
-//    OverlapStatistics alignOvStats;
-//    OverlapDescription alignOvDescription;
-//
-//    alignOvDescription.readIDI = i;
-//    alignOvDescription.readIDJ = j;
-//
-//    computeAlignmentStats(alignOvStats, alignOvDescription, align, readSeqI, readSeqJ, false);
-//
-//    auto seqIdentityPercent = static_cast<double>(alignOvStats.matchesNum) / alignOvStats.totalOverlapPositions;
-//
-//    bool areReadsCompatibleAlign = ((alignOvStats.totalOverlapPositions >= options.minOverlapLength)
-//                                    && (alignOvStats.indelNum == 0)
-//                                    && (seqIdentityPercent >= options.idRateThreshold));
-//
-//    if (!areReadsCompatibleAlign)
-//    {
-//        seqan::reverseComplement(readSeqJ);
-//
-//        score = align2ReadSequences(align, readSeqI, readSeqJ);
-//
-//        alignOvStats = OverlapStatistics();
-//        alignOvDescription = OverlapDescription();
-//
-//        alignOvDescription.readIDI = i;
-//        alignOvDescription.readIDJ = j;
-//        alignOvDescription.isRead2RC = true;
-//
-//        computeAlignmentStats(alignOvStats, alignOvDescription, align, readSeqI, readSeqJ, false);
-//
-//        seqIdentityPercent = static_cast<double>(alignOvStats.matchesNum) / alignOvStats.totalOverlapPositions;
-//
-//        areReadsCompatibleAlign = ((alignOvStats.totalOverlapPositions >= options.minOverlapLength)
-//                                   && (alignOvStats.indelNum == 0)
-//                                   && (seqIdentityPercent >= options.idRateThreshold));
-//
-//        reverseComplementReadJ(alignOvDescription);
-//    }
-//
-//    if (alignOvDescription.isEnclosedOverlap)
-//    {
-//        ++globalStats.enclosedOverlapsNum;
-//    }
-
-//    std::cout << std::setprecision(4)
-//              << "length I = " << alignOvDescription.readLengthI << ", "
-//              << "length J = " << alignOvDescription.readLengthJ << "\n"
-//              << "ovStartI = " << alignOvDescription.ovBeginPosI << ", "
-//              << "ovEndI = " << alignOvDescription.ovEndPosI << ", "
-//              << "ovStartJ = " << alignOvDescription.ovBeginPosJ  << ", "
-//              << "ovEndJ = " << alignOvDescription.ovEndPosJ << "\n"
-//              << "enclosedOverlap = " << alignOvDescription.isEnclosedOverlap << "\n"
-//              << "totalOvPos = " << alignOvStats.totalOverlapPositions << ", "
-//              << "perctId = " << seqIdentityPercent*100.0 << "%, "
-//              << "trueCoEmittedReads = " << trueCoEmittedReads
-//              << "\n" << "\n";
-
     bool atLeastOneCommonRef = false;
     bool areReadsCompatible = false;
     bool areReadsIncompatible = false;
@@ -359,7 +261,7 @@ void computeReadsPairCompatibility(TGraph &graph,
 
     // TO DO: Envisager de parcourir la double boucle en proposant les paires
     // d'alignements de bonne qualité en premier si possible
-    int32_t min_align_num = std::min(readBamRecordBufferI.size(), readBamRecordBufferJ.size());
+    // int32_t min_align_num = std::min(readBamRecordBufferI.size(), readBamRecordBufferJ.size());
     
     for (auto const &bamRecordI : readBamRecordBufferI)
     {
@@ -379,7 +281,6 @@ void computeReadsPairCompatibility(TGraph &graph,
                                                    globalStats,
                                                    bamRecordI,
                                                    bamRecordJ,
-                                                   transitionMatrix,
                                                    options);
             }
 
@@ -388,40 +289,6 @@ void computeReadsPairCompatibility(TGraph &graph,
             if (areReadsCompatible || areReadsIncompatible)
             {
                 goto fastExit;
-            }
-        }
-    }
-
-    if (options.multiRef)
-    {
-        wasFoundWithMultiRef = true;
-
-        for (auto const &bamRecordI : readBamRecordBufferI)
-        {
-            for (auto const &bamRecordJ : readBamRecordBufferJ)
-            {
-                if (bamRecordI.rID != bamRecordJ.rID)
-                {
-                    ++globalStats.numConsideredAlignmentsPairs;
-
-                    alignOvDescription.isRead2RC = !(seqan::hasFlagRC(bamRecordI)==seqan::hasFlagRC(bamRecordJ));
-
-                    computeAlignmentsPairCompatibility(areReadsCompatible,
-                                                       areReadsIncompatible,
-                                                       areReadsOverlapping,
-                                                       globalStats,
-                                                       bamRecordI,
-                                                       bamRecordJ,
-                                                       transitionMatrix,
-                                                       options);
-                }
-
-                // Exit the nested loop if there is enough information
-                // to decide whether the reads are compatible or not
-                if (areReadsCompatible || areReadsIncompatible)
-                {
-                    goto fastExit;
-                }
             }
         }
     }
@@ -472,7 +339,8 @@ fastExit:
             seqan::reverseComplement(readSeqJ);
 
         TAlign align;
-        int score = align2ReadSequences(align, readSeqI, readSeqJ);
+        // int score = align2ReadSequences(align, readSeqI, readSeqJ);
+        align2ReadSequences(align, readSeqI, readSeqJ);
 
         alignOvDescription.readIDI = i;
         alignOvDescription.readIDJ = j;
@@ -500,7 +368,6 @@ fastExit:
         ++globalStats.compatibleReadPairsNum;
 
         // Add a new edge between the two reads
-//        edges.push_back(addEdge(graph, vertices[i], vertices[j]));
         if (options.outputASQG)
         {
             writeOverlapToASQG(asqgFile, alignOvDescription);
@@ -518,10 +385,6 @@ fastExit:
         // Evaluate TP and FP
         if (trueCoEmittedReadsSpecie) ++globalStats.truePositive;
         else ++globalStats.falsePositive;
-
-//        if (trueCoEmittedReads) ++globalStats.truePositive;
-//        else ++globalStats.falsePositive;
-
     }
     else // reads are considered incompatible by default
     {
@@ -536,27 +399,8 @@ fastExit:
         {
             if (trueCoEmittedReadsSpecie) ++globalStats.falseNegative;
             else ++globalStats.trueNegative;
-
-//            if (trueCoEmittedReads) ++globalStats.falseNegative;
-//            else ++globalStats.trueNegative;
         }
     }
-
-//    if (areReadsOverlapping)
-//    {
-//        if (areReadsCompatibleAlign)
-//        {
-//            writeOverlapToASQG(asqgFile, alignOvDescription);
-//
-//            if (trueCoEmittedReadsSpecie) ++globalStats.truePositive;
-//            else ++globalStats.falsePositive;
-//        }
-//        else
-//        {
-//            if (trueCoEmittedReadsSpecie) ++globalStats.falseNegative;
-//            else ++globalStats.trueNegative;
-//        }
-//    }
 }
 
 /******************************************************************************
@@ -715,4 +559,3 @@ void printProgress(std::ostream &stream,
                << progress << "%         " << std::flush;
     }
 }
-

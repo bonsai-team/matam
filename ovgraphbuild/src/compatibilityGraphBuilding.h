@@ -11,7 +11,6 @@
 #include <seqan/align.h>
 
 #include "compatibilityGraph.h"
-#include "TransitionMatrix.h"
 #include "alignmentsComparison.h"
 #include "optionsParser.h"
 #include "assemblyStatistics.h"
@@ -26,11 +25,9 @@ using TAlign = seqan::Align<TSequence, seqan::ArrayGaps> ;      // align type
 ******************************************************************************/
 void buildCompatibilityGraph(TGraph &,
                              std::vector<TVertexDescriptor > &,
-                             std::vector<TEdgeDescriptor > &,
                              TProperties &,
                              GlobalStatistics &,
                              std::vector<std::vector<seqan::BamAlignmentRecord> > const &,
-                             TransitionMatrix &,
                              AlphaOptions const &);
 
 /******************************************************************************
@@ -60,17 +57,13 @@ void writeReadsToCSV(std::ostream &,
 /******************************************************************************
     Compute the compatibility between 2 reads given all their bam records
 ******************************************************************************/
-void computeReadsPairCompatibility(TGraph &,
-                                   std::vector<TEdgeDescriptor > &,
-                                   GlobalStatistics &,
+void computeReadsPairCompatibility(GlobalStatistics &,
                                    std::ofstream &,
                                    std::ofstream &,
                                    int64_t,
                                    int64_t,
                                    std::vector<seqan::BamAlignmentRecord> const &,
                                    std::vector<seqan::BamAlignmentRecord> const &,
-                                   std::vector<TVertexDescriptor > const &,
-                                   TransitionMatrix &,
                                    TProperties const &,
                                    AlphaOptions const &);
 

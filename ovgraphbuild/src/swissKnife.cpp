@@ -1,30 +1,5 @@
 #include "swissKnife.h"
 
-//template<typename C, typename V>
-//void findAndInsert(C &container,
-//                   V const &targetVal,
-//                   V const &insertVal)
-//{
-//    auto it = std::find(std::cbegin(container),
-//                        std::cend(container),
-//                        targetVal);
-//
-//    container.insert(it, insertVal);
-//}
-//
-//template<typename T>
-//bool sortInAscendingOrder(T &valueA, T &valueB)
-//{
-//    if(valueA > valueB)
-//    {
-//        T tmp = valueA;
-//        valueA = valueB;
-//        valueB = tmp;
-//        return true;
-//    }
-//    return false;
-//}
-
 template<typename T>
 std::vector<T> intersection(std::vector<T> &v1, std::vector<T> &v2)
 {

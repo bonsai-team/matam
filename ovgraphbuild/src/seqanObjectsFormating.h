@@ -11,5 +11,4 @@
 ***************************************************************************************/
 std::string formatBamRecordString(seqan::BamAlignmentRecord const &bamRecord);
 
-
 #endif // SEQANOBJECTSFORMATING_H

@@ -39,7 +39,6 @@ parseCommandLine(AlphaOptions &options, int argc, char const **argv)
     seqan::addOption(parser, seqan::ArgParseOption( "", "min_trail_matches", "Minimum trailing matches needed to anchor the pairwise overlaps (correction).",
         seqan::ArgParseArgument::INTEGER, "MIN"));
     seqan::addOption(parser, seqan::ArgParseOption( "", "no_indel", "Indels are not allowed in reads overlap."));
-    seqan::addOption(parser, seqan::ArgParseOption( "", "multi_ref", "Turn on multi-ref algorithm."));
     seqan::addOption(parser, seqan::ArgParseOption( "", "illumina", "Optimize the parameters for illumina sequencing."));
 
     // Define Options -- Section Misc.
@@ -89,7 +88,6 @@ parseCommandLine(AlphaOptions &options, int argc, char const **argv)
     seqan::getOptionValue(options.idRateThreshold, parser, "id_threshold");
     seqan::getOptionValue(options.minNumTrailingMatches, parser, "min_trail_matches");
     options.noIndel = seqan::isSet(parser, "no_indel");
-    options.multiRef = seqan::isSet(parser, "multi_ref");
 
     if (seqan::isSet(parser, "illumina"))
     {
@@ -146,7 +144,6 @@ int printStartingDebugAndVerboseInfo(AlphaOptions &options)
                   << "PARAM: Min Overlap:        \t" << options.minOverlapLength << "\n"
                   << "PARAM: Id Threshold:       \t" << options.idRateThreshold << "\n"
                   << "PARAM: NoIndel:            \t" << options.noIndel << "\n"
-                  << "PARAM: MultiRef:           \t" << options.multiRef << "\n"
                   << "PARAM: Debug:              \t" << options.debug << "\n"
                   << "PARAM: Verbose:            \t" << options.verbose << "\n"
                   << "PARAM: Test:               \t" << options.test << "\n" << "\n";

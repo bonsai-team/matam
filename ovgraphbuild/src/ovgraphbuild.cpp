@@ -23,7 +23,6 @@
 #include <seqan/map.h>
 
 #include "optionsParser.h"
-#include "TransitionMatrix.h"
 #include "assemblyStatistics.h"
 #include "compatibilityGraphBuilding.h"
 #include "compatibilityGraph.h"
@@ -144,60 +143,6 @@ void readRefNameFromSam(seqan::Map<seqan::Pair<seqan::CharString, int> > &refNam
 //        std::cout << it << "\t";
 //    }
 //    std::cout << "\n" << "\n";
-}
-
-/***************************************************************************************
-    Read the reference sequences all-against-all pairwise alignments file and
-      store the relevant ones in the TransitionMatrix
-***************************************************************************************/
-int64_t readRefPairwiseAlignments(TransitionMatrix &transitionMatrix,
-                                  char* myRefPairwiseAlignFile,
-                                  AlphaOptions const &options)
-{
-    if (options.debug)
-    {
-        std::cout << "DEBUG: Currently in file: " << __FILE__
-                  << " Function: " << __FUNCTION__ << "()"
-                  << "\n" << "\n" << std::flush;
-    }
-
-    int64_t pairwiseAlignmentNum = 0;
-
-    // Read references fasta file
-    seqan::SeqFileIn pairwiseFileIn;
-    if (!open(pairwiseFileIn, myRefPairwiseAlignFile))
-    {
-        std::cerr << "ERROR: Could not open " << myRefPairwiseAlignFile << "!" << "\n";
-        exit(1);
-    }
-
-    try
-    {
-        while (!atEnd(pairwiseFileIn))
-        {
-            seqan::StringSet<seqan::CharString> pairwiseIds;
-            seqan::StringSet<seqan::CharString> pairwiseSeqs;
-
-            seqan::readRecords(pairwiseIds, pairwiseSeqs, pairwiseFileIn, 200000);
-
-            pairwiseAlignmentNum += transitionMatrix.addPairwiseAlignments(pairwiseIds, pairwiseSeqs);
-            // BUG: pairwiseAlignmentNum need to be computed again after sorting and filtering
-
-            std::cout << "\rDEBUG: " << transitionMatrix.getFilledBoxesNum()
-                      << " references pairs in transition matrix"
-                      << "                                    " << std::flush;
-        }
-
-        std::cout << "\n" << "\n";
-    }
-    catch (seqan::Exception const &e)
-    {
-        std::cerr << "ERROR: " << e.what() << "\n";
-    }
-
-    transitionMatrix.sortAndFilter();
-
-    return pairwiseAlignmentNum;
 }
 
 /***************************************************************************************
@@ -392,49 +337,6 @@ int main(int argc, char const ** argv)
     // Reset tmp clock
     begin_tmp = clock();
 
-    /// //////////////////////////////////////////////////////////////////////
-    /// Read the reference sequences all-against-all pairwise alignments file
-
-    TransitionMatrix transitionMatrix(refNameToIndexMap,
-                                      refLengthMap,
-                                      options.minRefPairwisePercentId,
-                                      options.verbose,
-                                      options.debug);
-
-    int64_t pairwiseAlignmentNum = 0;
-
-    if (options.multiRef)
-    {
-        pairwiseAlignmentNum =
-            readRefPairwiseAlignments(transitionMatrix,
-                                      seqan::toCString(options.myRefPairwiseAlignFile),
-                                      options);
-    }
-
-//    transitionMatrix.printData();
-//    std::cout << "\n";
-
-    if (options.verbose)
-    {
-        std::cout << "TIME: Ref pairwise file read in " << double(clock() - begin_tmp) / CLOCKS_PER_SEC
-                  << " seconds." << "\n";
-
-        int refPairsWithTransitionInfoNum = transitionMatrix.getFilledBoxesNum();
-
-        std::cout << "INFO: " << pairwiseAlignmentNum << " ref pairwise alignments were loaded" /// BUG: Wrong, need to be computed again after sorting and filtering
-                  << ", representing " << refPairsWithTransitionInfoNum << " references pairs";
-
-        int possibleRefPairsNum = refSeqNum*(refSeqNum-1)/2;
-
-        std::cout << std::setprecision(4)
-                  << " out of " << possibleRefPairsNum << " possible ref pairs"
-                  << " (" << (float)refPairsWithTransitionInfoNum/possibleRefPairsNum*100.0 << "%)"
-                  << "\n" << "\n";
-    }
-
-    // Reset tmp clock
-    begin_tmp = clock();
-
     /// /////////////////
     /// SAM file reading
 
@@ -462,16 +364,13 @@ int main(int argc, char const ** argv)
 
     TGraph graph;
     std::vector<TVertexDescriptor > vertices;
-    std::vector<TEdgeDescriptor > edges;
     TProperties readNames;
 
     buildCompatibilityGraph(graph,
                             vertices,
-                            edges,
                             readNames,
                             globalStats,
                             bamRecordBuffer,
-                            transitionMatrix,
                             options);
 
     std::cout << "TIME: Compatibility graph was build in " << double(clock() - begin_tmp) / CLOCKS_PER_SEC
@@ -492,14 +391,6 @@ int main(int argc, char const ** argv)
 
     // Reset the tmp clock
     begin_tmp = clock();
-
-    /// /////////////////////
-    /// Graph saving to DOT
-
-    // Write the graph
-//    std::ofstream dotFile("graph.ov50.cor_indel_4.triangle.dot");
-//    writeRecords(dotFile, graph, DotDrawing());
-//    dotFile.close();
 
     /// /////////////
     /// Main ending

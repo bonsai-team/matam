@@ -26,7 +26,6 @@ struct AlphaOptions
     bool verbose;
     bool debug;
     bool test;
-    bool multiRef;
     bool noIndel;
 
     // Initialize the variables with initializer lists
@@ -35,7 +34,7 @@ struct AlphaOptions
         outputBasename(""), outputASQG(false), outputCSV(false),
         minRefPairwisePercentId(0),
         minOverlapLength(0), idRateThreshold(100.0), minNumTrailingMatches(0),
-        verbose(false), debug(false), test(false), multiRef(false),
+        verbose(false), debug(false), test(false),
         noIndel(false)
     {}
 };

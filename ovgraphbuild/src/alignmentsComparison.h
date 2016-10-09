@@ -7,7 +7,6 @@
 #include <seqan/bam_io.h>
 
 #include "assemblyStatistics.h"
-#include "TransitionMatrix.h"
 #include "optionsParser.h"
 
 /***************************************************************************************
@@ -62,7 +61,6 @@ void computeAlignmentsPairCompatibility(bool &,
                                         GlobalStatistics &,
                                         seqan::BamAlignmentRecord const &,
                                         seqan::BamAlignmentRecord const &,
-                                        TransitionMatrix &,
                                         AlphaOptions const &);
 
 /******************************************************************************
@@ -120,49 +118,7 @@ void doubleParcours(OverlapStatistics &,
                     seqan::Iterator<const seqan::String<seqan::Iupac> >::Type &,
                     std::string::iterator &,
                     std::string::iterator &,
-                    int32_t const,
-                    AlphaOptions const &);
-
-/******************************************************************************
-    Compute the compatibility between 2 bam records mapped on different refs
-    Must be used with bamRecordI.rID < bamRecordJ.rID
-******************************************************************************/
-void computeCompatOnDifferentRefs(bool &,
-                                  bool &,
-                                  bool &,
-                                  GlobalStatistics &,
-                                  seqan::BamAlignmentRecord const &, //
-                                  seqan::BamAlignmentRecord const &,
-                                  TransitionMatrix &,
-                                  AlphaOptions const &);
-
-/******************************************************************************
-    Compute transition blocs overlap between two reads mapped on
-    different refs.
-******************************************************************************/
-void computeBlocOverlapOnDifferentRefs(OverlapStatistics &,
-                                       int32_t &,
-                                       bool &,
-                                       bool &,
-                                       seqan::BamAlignmentRecord const &,
-                                       seqan::BamAlignmentRecord const &,
-                                       int32_t const,
-                                       int32_t const,
-                                       std::vector<ConservedBloc> const &,
-                                       AlphaOptions const &);
-
-/******************************************************************************
-    Compute detailled stats on an overlap between two reads mapped on
-    different refs. nly to be called when the overlap is determined.
-******************************************************************************/
-void computeOverlapOnDifferentRefs(OverlapStatistics &,
-                                   int32_t &,
-                                   seqan::BamAlignmentRecord const &,
-                                   seqan::BamAlignmentRecord const &,
-                                   int32_t const,
-                                   int32_t const,
-                                   std::vector<ConservedBloc> const &,
-                                   AlphaOptions const &);
+                    int32_t const);
 
 /******************************************************************************
     Print all the info about a pair of alignments
