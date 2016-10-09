@@ -72,7 +72,9 @@ def buffer_paired_reads(fastq_fh):
     read_buffer = list()
     # Reading each read in fastq file
     for header, seq, qual in read_fastq_file_handle(fastq_fh):
-        read_id = header.split()[0]
+        #~ read_id = header.split()[0]
+        read_id = header.split()[0][:-2]
+        print(header, read_id)
         # Yield read buffer
         if read_id != previous_read_id:
             if previous_read_id:
