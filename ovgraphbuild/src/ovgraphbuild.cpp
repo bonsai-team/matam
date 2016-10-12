@@ -190,7 +190,7 @@ void readSamFile(seqan::BamHeader &header,
 //            }
 
             if (bamRecord.qName != oldQName)
-                    ++globalStats.totalReadsNum;
+                ++globalStats.totalReadsNum;
 
             if (hasFlagUnmapped(bamRecord))
             {
