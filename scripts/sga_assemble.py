@@ -31,6 +31,10 @@ if __name__ == '__main__':
                         default='contigs.fa',
                         help='Ouput contigs fasta file. '
                              'Default is ${default}s')
+    # --no_correction
+    parser.add_argument('--no_correction',
+                        action = 'store_true',
+                        help = 'Desactivate error correction')
     # --sga_bin
     parser.add_argument('--sga_bin',
                         action='store',
@@ -95,30 +99,34 @@ if __name__ == '__main__':
     subprocess.call(cmd_line, shell=True)
 
     ## Error correction
-    # Build the index that will be used for error correction
-    cmd_line = args.sga_bin + ' index -a ropebwt' # ropebwt algo will only work for sequences < 200bp
-    cmd_line += ' -t ' + str(args.cpu) + ' --no-reverse '
-    cmd_line += preprocess_output
+    error_corrected_output_basename = 'preprocess_output'
+    if not args.no_correction:
 
-    sys.stdout.write('\nCMD: {0}\n\n'.format(cmd_line))
-    subprocess.call(cmd_line, shell=True)
+        error_corrected_output_basename = 'error_corrected'
 
-    # Perform error correction
-    kmer_cutoff = 41
-    error_corrected_output_basename = 'error_corrected'
+        # Build the index that will be used for error correction
+        cmd_line = args.sga_bin + ' index -a sais' # ropebwt algo will only work for sequences < 200bp
+        cmd_line += ' -t ' + str(args.cpu) + ' --no-reverse '
+        cmd_line += preprocess_output
 
-    cmd_line = args.sga_bin + ' correct -k ' + str(kmer_cutoff)
-    cmd_line += ' --discard -x 2 -t ' + str(args.cpu)
-    #~ cmd_line += ' --discard --learn -t ' + str(args.cpu)
-    cmd_line += ' -o ' + error_corrected_output_basename + '.fq'
-    cmd_line += ' ' + preprocess_output
+        sys.stdout.write('\nCMD: {0}\n\n'.format(cmd_line))
+        subprocess.call(cmd_line, shell=True)
 
-    sys.stdout.write('\nCMD: {0}\n\n'.format(cmd_line))
-    subprocess.call(cmd_line, shell=True)
+        # Perform error correction
+        kmer_cutoff = 41
+
+        cmd_line = args.sga_bin + ' correct -k ' + str(kmer_cutoff)
+        cmd_line += ' --discard -x 2 -t ' + str(args.cpu)
+        #~ cmd_line += ' --discard --learn -t ' + str(args.cpu)
+        cmd_line += ' -o ' + error_corrected_output_basename + '.fq'
+        cmd_line += ' ' + preprocess_output
+
+        sys.stdout.write('\nCMD: {0}\n\n'.format(cmd_line))
+        subprocess.call(cmd_line, shell=True)
 
     ## Contig assembly
     # Index the corrected data
-    cmd_line = args.sga_bin + ' index -a ropebwt' # ropebwt algo will only work for sequences < 200bp
+    cmd_line = args.sga_bin + ' index -a sais' # ropebwt algo will only work for sequences < 200bp
     cmd_line += ' -t ' + str(args.cpu)
     cmd_line += ' ' + error_corrected_output_basename + '.fq'
 
@@ -128,10 +136,14 @@ if __name__ == '__main__':
     # Remove exact-match duplicates and reads with low-frequency k-mers
     filtered_output = error_corrected_output_basename + '.filter.pass.fa'
     min_kmer_coverage = 2
+    if args.no_correction:
+        min_kmer_coverage = 1
 
     cmd_line = args.sga_bin + ' filter -x ' + str(min_kmer_coverage)
-    cmd_line += ' -t ' + str(args.cpu) + ' --homopolymer-check '
-    cmd_line += '--low-complexity-check -o ' + filtered_output
+    cmd_line += ' -t ' + str(args.cpu)
+    if not args.no_correction:
+        cmd_line += ' --homopolymer-check --low-complexity-check'
+    cmd_line += ' -o ' + filtered_output
     cmd_line += ' ' + error_corrected_output_basename + '.fq'
 
     sys.stdout.write('\nCMD: {0}\n'.format(cmd_line))
