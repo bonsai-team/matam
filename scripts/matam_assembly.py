@@ -1017,15 +1017,20 @@ if __name__ == '__main__':
                 subprocess.call('rm -rf tmp', shell=True)
 
             # Write the component reads ids
+            read_num = 0
             with open('reads_single_component.ids', 'w') as wfh:
                 for tab in component_tab_list:
                     read_id = tab[1]
+                    read_num += 1
                     wfh.write('{0}\n'.format(read_id))
+
+            #~ logger.debug('{0} reads are in component #{1}'.format(read_num, component_id))
 
             # Generate a fastq file with this component reads
             cmd_line = fastq_name_filter_bin + ' -f reads_single_component.ids'
             cmd_line += ' -i ' + sortme_output_fastx_filepath + ' -o reads_single_component.fq'
 
+            #~ logger.debug('CMD: {0}'.format(cmd_line))
             error_code += subprocess.call(cmd_line, shell=True)
 
             # Assemble those reads with SGA
@@ -1033,22 +1038,28 @@ if __name__ == '__main__':
             cmd_line += contigs_assembly_log_filepath + ' && '
             cmd_line += sga_assemble_bin + ' -i reads_single_component.fq'
             cmd_line += ' -o contigs.fa --sga_bin ' + assembler_bin
+            cmd_line += ' --no_correction' # !!! desactivate all SGA error corrections and filters
             cmd_line += ' --cpu ' + str(args.cpu)
             cmd_line += ' --tmp_dir tmp'
             cmd_line += ' >> ' + contigs_assembly_log_filepath + ' 2>&1'
 
+            #~ logger.debug('CMD: {0}'.format(cmd_line))
             error_code += subprocess.call(cmd_line, shell=True)
 
             # Concatenate the component contigs in the output contigs file
             component_lca = 'NULL'
+            component_contigs_num = 0
             if component_id in component_lca_dict:
                 component_lca = component_lca_dict[component_id]
             with open('contigs.fa', 'r') as sga_contigs_fh:
                 for header, seq in read_fasta_file_handle(sga_contigs_fh):
                     if len(seq):
                         contig_count += 1
+                        component_contigs_num += 1
                         contigs_fh.write('>{0} component={1} '.format(contig_count, component_id))
                         contigs_fh.write('lca={0}\n{1}\n'.format(component_lca, format_seq(seq)))
+
+            #~ logger.debug('{0} contigs were written to assembly fasta file'.format(component_contigs_num))
 
         #
         if args.verbose:
