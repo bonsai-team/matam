@@ -36,12 +36,16 @@ if __name__ == '__main__':
 
     # Arguments parsing
     parser = argparse.ArgumentParser(description='')
-    parser.add_argument('-i', '--input_fasta', metavar='TAB',
-                        type=argparse.FileType('r', 0), default='-',
+    parser.add_argument('-i', '--input_fasta',
+                        metavar='TAB',
+                        type=argparse.FileType('r'),
+                        default='-',
                         help='input fasta file')
-    parser.add_argument('-o', '--output_tab', metavar='TAB',
-                        type=argparse.FileType('w', 0), default='-',
-                        help='ouput tab file')
+    parser.add_argument('-o', '--output_tab',
+                        metavar='TAB',
+                        type=argparse.FileType('w'),
+                        default='-',
+                        help='output tab file')
     args = parser.parse_args()
 
     for header, sequence in read_fasta_file_handle(args.input_fasta):
