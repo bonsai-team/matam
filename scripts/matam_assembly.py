@@ -1114,7 +1114,8 @@ if __name__ == '__main__':
         contigs_assembly_stats_filename += true_ref_basename + '.assembly.stats'
         contigs_assembly_stats_filepath = os.path.join(args.out_dir, contigs_assembly_stats_filename)
 
-        contigs_error_rate = float(subprocess.check_output('grep "error rate" {0}'.format(contigs_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
+        contigs_error_rate = float(subprocess.check_output('grep "error rate   =" {0}'.format(contigs_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
+        contigs_error_rate_2 = float(subprocess.check_output('grep "error rate 2 =" {0}'.format(contigs_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
         contigs_ref_coverage = float(subprocess.check_output('grep "ref coverage" {0}'.format(contigs_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
 
         # Evaluate large NR contigs
@@ -1129,10 +1130,12 @@ if __name__ == '__main__':
         large_NR_contigs_assembly_stats_filepath = os.path.join(args.out_dir, large_NR_contigs_assembly_stats_filename)
 
         try:
-            large_NR_contigs_error_rate = float(subprocess.check_output('grep "error rate" {0}'.format(large_NR_contigs_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
+            large_NR_contigs_error_rate = float(subprocess.check_output('grep "error rate   =" {0}'.format(large_NR_contigs_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
+            large_NR_contigs_error_rate_2 = float(subprocess.check_output('grep "error rate 2 =" {0}'.format(large_NR_contigs_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
             large_NR_contigs_ref_coverage = float(subprocess.check_output('grep "ref coverage" {0}'.format(large_NR_contigs_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
         except subprocess.CalledProcessError:
             large_NR_contigs_error_rate = float()
+            large_NR_contigs_error_rate_2 = float()
             large_NR_contigs_ref_coverage = float()
 
     # Tag tmp files for removal
@@ -1281,7 +1284,8 @@ if __name__ == '__main__':
         scaffolds_assembly_stats_filename += true_ref_basename + '.assembly.stats'
         scaffolds_assembly_stats_filepath = os.path.join(args.out_dir, scaffolds_assembly_stats_filename)
 
-        scaffolds_error_rate = float(subprocess.check_output('grep "error rate" {0}'.format(scaffolds_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
+        scaffolds_error_rate = float(subprocess.check_output('grep "error rate   =" {0}'.format(scaffolds_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
+        scaffolds_error_rate_2 = float(subprocess.check_output('grep "error rate 2 =" {0}'.format(scaffolds_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
         scaffolds_ref_coverage = float(subprocess.check_output('grep "ref coverage" {0}'.format(scaffolds_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
 
         # Evaluate large NR scaffolds
@@ -1296,10 +1300,12 @@ if __name__ == '__main__':
         large_NR_scaffolds_assembly_stats_filepath = os.path.join(args.out_dir, large_NR_scaffolds_assembly_stats_filename)
 
         try:
-            large_NR_scaffolds_error_rate = float(subprocess.check_output('grep "error rate" {0}'.format(large_NR_scaffolds_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
+            large_NR_scaffolds_error_rate = float(subprocess.check_output('grep "error rate   =" {0}'.format(large_NR_scaffolds_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
+            large_NR_scaffolds_error_rate_2 = float(subprocess.check_output('grep "error rate 2 =" {0}'.format(large_NR_scaffolds_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
             large_NR_scaffolds_ref_coverage = float(subprocess.check_output('grep "ref coverage" {0}'.format(large_NR_scaffolds_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
         except subprocess.CalledProcessError:
             large_NR_scaffolds_error_rate = float()
+            large_NR_scaffolds_error_rate_2 = float()
             large_NR_scaffolds_ref_coverage = float()
 
     # Tag tmp files for removal
@@ -1345,6 +1351,7 @@ if __name__ == '__main__':
         b += '\tSeq total size: {0} nt\n'.format(contigs_stats.total_nt)
         if args.true_references:
             b += '\tError rate: {0:.2f}%\n'.format(contigs_error_rate)
+            b += '\tError rate 2: {0:.2f}%\n'.format(contigs_error_rate_2)
             b += '\tRef coverage: {0:.2f}%\n'.format(contigs_ref_coverage)
         b += '\n'
 
@@ -1356,6 +1363,7 @@ if __name__ == '__main__':
         b += '\tSeq total size: {0} nt\n'.format(large_NR_contigs_stats.total_nt)
         if args.true_references:
             b += '\tError rate: {0:.2f}%\n'.format(large_NR_contigs_error_rate)
+            b += '\tError rate 2: {0:.2f}%\n'.format(large_NR_contigs_error_rate_2)
             b += '\tRef coverage: {0:.2f}%\n'.format(large_NR_contigs_ref_coverage)
         b += '\n'
 
@@ -1367,6 +1375,7 @@ if __name__ == '__main__':
         b += '\tSeq total size: {0} nt\n'.format(scaffolds_stats.total_nt)
         if args.true_references:
             b += '\tError rate: {0:.2f}%\n'.format(scaffolds_error_rate)
+            b += '\tError rate 2: {0:.2f}%\n'.format(scaffolds_error_rate_2)
             b += '\tRef coverage: {0:.2f}%\n'.format(scaffolds_ref_coverage)
         b += '\n'
 
@@ -1378,8 +1387,44 @@ if __name__ == '__main__':
         b += '\tSeq total size: {0} nt\n'.format(large_NR_scaffolds_stats.total_nt)
         if args.true_references:
             b += '\tError rate: {0:.2f}%\n'.format(large_NR_scaffolds_error_rate)
+            b += '\tError rate 2: {0:.2f}%\n'.format(large_NR_scaffolds_error_rate_2)
             b += '\tRef coverage: {0:.2f}%\n'.format(large_NR_scaffolds_ref_coverage)
         b += '\n'
+
+        if args.debug:
+            b += 'One-line stats\n'
+            b += '{}\t{}\t{}\t{}\t'.format(int(input_reads_nb), int(selected_reads_nb),
+                                           ovgraph_nodes_nb, ovgraph_edges_nb)
+            b += '{}\t{}\t{}\t{}\t{:.2f}%\t{}\t'.format(compressed_graph_nodes_nb, compressed_graph_edges_nb,
+                                                       compressed_graph_reads_nb, compressed_graph_excluded_reads_nb,
+                                                       excluded_reads_percent, components_nb)
+            b += '{}\t{}\t{}\t{:.2f}\t{}\t'.format(contigs_stats.seq_num, contigs_stats.get_min_length(), contigs_stats.get_max_length(),
+                                                  contigs_stats.get_avg_length(), contigs_stats.total_nt)
+            if args.true_references:
+                b += '{:.2f}%\t{:.2f}%\t{:.2f}%\t'.format(contigs_error_rate, contigs_error_rate_2, contigs_ref_coverage)
+            if large_NR_contigs_stats.seq_num:
+                b += '{}\t{}\t{}\t{:.2f}\t{}\t'.format(large_NR_contigs_stats.seq_num, large_NR_contigs_stats.get_min_length(), large_NR_contigs_stats.get_max_length(),
+                                                      large_NR_contigs_stats.get_avg_length(), large_NR_contigs_stats.total_nt)
+                if args.true_references:
+                    b += '{:.2f}%\t{:.2f}%\t{:.2f}%\t'.format(large_NR_contigs_error_rate, large_NR_contigs_error_rate_2, large_NR_contigs_ref_coverage)
+            else:
+                b += '0\tNA\tNA\tNA\t0\t'
+                if args.true_references:
+                    b += 'NA\tNA\t0%\t'
+            b += '{}\t{}\t{}\t{:.2f}\t{}\t'.format(scaffolds_stats.seq_num, scaffolds_stats.get_min_length(), scaffolds_stats.get_max_length(),
+                                                  scaffolds_stats.get_avg_length(), scaffolds_stats.total_nt)
+            if args.true_references:
+                b += '{:.2f}%\t{:.2f}%\t{:.2f}%\t'.format(scaffolds_error_rate, scaffolds_error_rate_2, scaffolds_ref_coverage)
+            if large_NR_scaffolds_stats.seq_num:
+                b += '{}\t{}\t{}\t{:.2f}\t{}\t'.format(large_NR_scaffolds_stats.seq_num, large_NR_scaffolds_stats.get_min_length(), large_NR_scaffolds_stats.get_max_length(),
+                                                      large_NR_scaffolds_stats.get_avg_length(), large_NR_scaffolds_stats.total_nt)
+                if args.true_references:
+                    b += '{:.2f}%\t{:.2f}%\t{:.2f}%\t'.format(large_NR_scaffolds_error_rate, large_NR_scaffolds_error_rate_2, large_NR_scaffolds_ref_coverage)
+            else:
+                b += '0\tNA\tNA\tNA\t0'
+                if args.true_references:
+                    b += '\tNA\tNA\t0%'
+            b += '\n'
 
         sys.stderr.write(b)
 
