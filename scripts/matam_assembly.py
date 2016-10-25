@@ -750,7 +750,7 @@ if __name__ == '__main__':
     selected_reads_nb = float()
     if input_fastx_extension in ('.fq', '.fastq'):
         selected_fastx_line_nb = int(subprocess.check_output('wc -l {0}'.format(sortme_output_fastx_filepath), shell=True).split()[0])
-        selected_reads_nb = input_fastx_line_nb / 4.0
+        selected_reads_nb = selected_fastx_line_nb / 4.0
     elif input_fastx_extension in ('.fa', '.fasta'):
         selected_reads_nb = int(subprocess.check_output('grep -c "^>" {0}'.format(sortme_output_fastx_filepath), shell=True))
 
