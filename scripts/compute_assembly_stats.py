@@ -180,7 +180,10 @@ if __name__ == '__main__':
 
     # Final stats
     total_leven_distance = total_mismatches_num + total_indel_num + total_overhang_num
-    error_rate = total_leven_distance * 100.0 / total_aligned_contigs_length
+    total_alignment_length = total_matches_num + total_mismatches_num + total_indel_num + total_overhang_num
+    error_rate = total_leven_distance * 100.0 / total_alignment_length
+
+    error_rate_no_overlap = (total_mismatches_num + total_indel_num) * 100.0 / (total_matches_num + total_mismatches_num + total_indel_num)
 
     total_covered_positions_count = 0
     coverage_count_list = [0 for i in range(11)]
@@ -219,13 +222,14 @@ if __name__ == '__main__':
     sys.stdout.write('\tTotal aligned contigs num  = {0}\n'.format(total_aligned_contigs_num))
     sys.stdout.write('\tTotal aligned contigs len  = {0}\n\n'.format(total_aligned_contigs_length))
 
-    sys.stdout.write('\tTotal matches num    = {0}\n'.format(total_matches_num))
-    sys.stdout.write('\tTotal mismatches num = {0}\n'.format(total_mismatches_num))
-    sys.stdout.write('\tTotal indel num      = {0}\n'.format(total_indel_num))
-    sys.stdout.write('\tTotal overhang num   = {0}\n\n'.format(total_overhang_num))
+    sys.stdout.write('\tTotal matches num     = {0}\n'.format(total_matches_num))
+    sys.stdout.write('\tTotal mismatches num  = {0}\n'.format(total_mismatches_num))
+    sys.stdout.write('\tTotal indel num       = {0}\n'.format(total_indel_num))
+    sys.stdout.write('\tTotal overhang num    = {0}\n\n'.format(total_overhang_num))
 
-    sys.stdout.write('\tTotal leven distance = {0}\n'.format(total_leven_distance))
-    sys.stdout.write('\tAssembly error rate  = {0:.2f}%\n\n'.format(error_rate))
+    sys.stdout.write('\tTotal leven distance  = {0}\n'.format(total_leven_distance))
+    sys.stdout.write('\tAssembly error rate   = {0:.2f}%\n\n'.format(error_rate))
+    sys.stdout.write('\tAssembly error rate 2 = {0:.2f}%\n\n'.format(error_rate_no_overlap))
 
     sys.stdout.write('ALL BEST MATCHES:\n')
     sys.stdout.write('\tTotal ref coverage   = {0:.2f}%\n'.format(total_ref_coverage))
