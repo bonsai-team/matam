@@ -328,6 +328,15 @@ def parse_arguments():
     # Computing compressed graph stats
 
     # Contigs assembly
+    group_contig = parser.add_argument_group('Contigs assembly')
+    # --read_correction
+    group_contig.add_argument('--read_correction',
+                              action = 'store',
+                              type = str,
+                              choices = ['no', 'yes', 'auto'],
+                              default = 'no',
+                              help = 'Set the assembler read correction step. '
+                                     'Default is %(default)s')
 
     # Scaffolding
     group_scaff = parser.add_argument_group('Scaffolding')
@@ -457,6 +466,7 @@ def print_intro(args):
     # Computing compressed graph stats
 
     # Contigs assembly
+    cmd_line += '--read_correction {0} '.format(args.read_correction)
 
     # Scaffolding
 
@@ -1038,7 +1048,8 @@ if __name__ == '__main__':
             cmd_line += contigs_assembly_log_filepath + ' && '
             cmd_line += sga_assemble_bin + ' -i reads_single_component.fq'
             cmd_line += ' -o contigs.fa --sga_bin ' + assembler_bin
-            cmd_line += ' --no_correction' # !!! desactivate all SGA error corrections and filters
+            if args.read_correction in ('no', 'auto'):
+                cmd_line += ' --no_correction' # !!! desactivate all SGA error corrections and filters
             cmd_line += ' --cpu ' + str(args.cpu)
             cmd_line += ' --tmp_dir tmp'
             cmd_line += ' >> ' + contigs_assembly_log_filepath + ' 2>&1'
