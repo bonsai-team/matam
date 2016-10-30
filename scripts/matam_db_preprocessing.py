@@ -25,6 +25,7 @@ matam_script_dir = os.path.join(matam_root_dir, 'scripts')
 extract_taxo_bin = os.path.join(matam_script_dir, 'extract_taxo_from_fasta.py')
 replace_Ns_bin = os.path.join(matam_script_dir, 'replace_Ns_by_rand_nu.py')
 sort_fasta_bin = os.path.join(matam_script_dir, 'sort_fasta_by_length.py')
+fasta_length_filter_bin = os.path.join(matam_script_dir, 'fasta_length_filter.py')
 fasta_name_filter_bin = os.path.join(matam_script_dir, 'fasta_name_filter.py')
 clean_name_bin = os.path.join(matam_script_dir, 'fasta_clean_name.py')
 
@@ -102,6 +103,20 @@ def parse_arguments():
 
     # Advanced parameters
     group_adv = parser.add_argument_group('Advanced parameters')
+    # -m / --min_length
+    group_adv.add_argument('-m', '--min_length',
+                           action = 'store',
+                           metavar = 'MINLGTH',
+                           type = int,
+                           default = None,
+                           help = 'Ref sequences minimum length')
+    # -M / --max_length
+    group_adv.add_argument('-M', '--max_length',
+                           action = 'store',
+                           metavar = 'MAXLGTH',
+                           type = int,
+                           default = None,
+                           help = 'Ref sequences maximum length')
     # --remove_Ns
     group_adv.add_argument('--remove_Ns',
                            action = 'store_true',
@@ -192,6 +207,11 @@ def print_intro(args):
            memory=args.max_memory)
 
     # Advanced parameters
+    if args.min_length:
+        cmd_line += '--min_length {} '.format(args.min_length)
+    if args.max_length:
+        cmd_line += '--max_length {} '.format(args.max_length)
+
     if args.remove_Ns:
         cmd_line += '--remove_Ns '
 
@@ -348,7 +368,6 @@ if __name__ == '__main__':
 
     # TO DO, maybe, one day:
     # Trim Ns from both sides
-    # Filter out small sequences
 
     # NB: There is no need to remove sequences with Ns if we dont
     # replace them with random nucl, because sumaclust filters out
@@ -356,6 +375,7 @@ if __name__ == '__main__':
 
     # Convert Us in Ts
     # Option: Either filter out seq with Ns or replace Ns with random nucl
+    # Option: Filter too small or too long sequences
     # Sort sequences by decreasing length
     logger.info('Cleaning reference db')
 
@@ -363,6 +383,12 @@ if __name__ == '__main__':
     cmd_line += ' | sed "/^>/!s/U/T/g" | sed "/^>/!s/u/t/g" | sed "/^>/!s/ //g"'
     if not args.remove_Ns:
         cmd_line += ' | ' + replace_Ns_bin
+    if args.min_length or args.max_length:
+        cmd_line += ' | ' + fasta_length_filter_bin
+        if args.min_length:
+            cmd_line += ' -m ' + str(args.min_length)
+        if args.max_length:
+            cmd_line += ' -M ' + str(args.max_length)
     cmd_line += ' | ' + sort_fasta_bin + ' --reverse > '
     cmd_line += cleaned_complete_ref_db_filepath
 
