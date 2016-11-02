@@ -302,7 +302,7 @@ def parse_arguments():
                              action = 'store',
                              metavar = 'INT',
                              type = int,
-                             default = 2,
+                             default = 1,
                              help = 'Minimum number of read to keep a node. '
                                     'Default is %(default)s')
     # -E / --min_overlap_edge
@@ -310,7 +310,7 @@ def parse_arguments():
                              action = 'store',
                              metavar = 'INT',
                              type = int,
-                             default = 10,
+                             default = 1,
                              help = 'Minimum number of overlap to keep an edge. '
                                     'Default is %(default)s')
 
