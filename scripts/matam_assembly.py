@@ -23,7 +23,7 @@ matam_root_dir = os.path.dirname(matam_bin_dir)
 matam_db_dir = os.path.join(matam_root_dir, 'db')
 
 # Set default ref db
-default_ref_db = os.path.join(matam_db_dir, 'SILVA_123_SSURef_rdNs_NR95')
+default_ref_db = os.path.join(matam_db_dir, 'SILVA_128_SSURef_rdNs_NR95')
 
 # Get all dependencies bin
 matam_script_dir = os.path.join(matam_root_dir, 'scripts')
