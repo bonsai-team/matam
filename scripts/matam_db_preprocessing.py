@@ -23,7 +23,7 @@ matam_root_dir = os.path.dirname(matam_bin_dir)
 # Get all dependencies bin
 matam_script_dir = os.path.join(matam_root_dir, 'scripts')
 extract_taxo_bin = os.path.join(matam_script_dir, 'extract_taxo_from_fasta.py')
-replace_Ns_bin = os.path.join(matam_script_dir, 'replace_Ns_by_rand_nu.py')
+replace_Ns_bin = os.path.join(matam_script_dir, 'replace_Ns_by_As.py')
 sort_fasta_bin = os.path.join(matam_script_dir, 'sort_fasta_by_length.py')
 fasta_length_filter_bin = os.path.join(matam_script_dir, 'fasta_length_filter.py')
 fasta_name_filter_bin = os.path.join(matam_script_dir, 'fasta_name_filter.py')
@@ -117,6 +117,16 @@ def parse_arguments():
                            type = int,
                            default = None,
                            help = 'Ref sequences maximum length')
+    # -n / --max_consecutive_n
+    group_adv.add_argument('-n', '--max_consecutive_n',
+                           action = 'store',
+                           metavar = 'MAXN',
+                           type = int,
+                           default = 5,
+                           help = 'Maximum nb of consecutive Ns a sequence is allowed to have. '
+                                  'Default is %(default)s. Setting it to 0 will remove all '
+                                  'sequences with Ns. Ns in accepted sequences will be replaced '
+                                  'by As')
     # --remove_Ns
     group_adv.add_argument('--remove_Ns',
                            action = 'store_true',
@@ -212,8 +222,7 @@ def print_intro(args):
     if args.max_length:
         cmd_line += '--max_length {} '.format(args.max_length)
 
-    if args.remove_Ns:
-        cmd_line += '--remove_Ns '
+    cmd_line += '--max_consecutive_n {0} '.format(args.max_consecutive_n)
 
     cmd_line += '--clustering_id_threshold {0} '.format(args.clustering_id_threshold)
 
@@ -304,10 +313,6 @@ if __name__ == '__main__':
     complete_ref_db_taxo_filepath = os.path.join(args.db_dir, complete_ref_db_taxo_filename)
 
     cleaned_complete_ref_db_basename = complete_ref_db_basename
-    if args.remove_Ns:
-        cleaned_complete_ref_db_basename += '_noNs'
-    else:
-        cleaned_complete_ref_db_basename += '_rdNs'
     cleaned_complete_ref_db_filename = cleaned_complete_ref_db_basename + '.cleaned.fasta'
     cleaned_complete_ref_db_filepath = os.path.join(args.db_dir, cleaned_complete_ref_db_filename)
 
@@ -381,8 +386,7 @@ if __name__ == '__main__':
 
     cmd_line = 'cat ' + complete_ref_db_filepath
     cmd_line += ' | sed "/^>/!s/U/T/g" | sed "/^>/!s/u/t/g" | sed "/^>/!s/ //g"'
-    if not args.remove_Ns:
-        cmd_line += ' | ' + replace_Ns_bin
+    cmd_line += ' | ' + replace_Ns_bin + ' -n {0} '.format(args.max_consecutive_n)
     if args.min_length or args.max_length:
         cmd_line += ' | ' + fasta_length_filter_bin
         if args.min_length:

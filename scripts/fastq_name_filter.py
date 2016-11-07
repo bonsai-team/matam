@@ -61,6 +61,7 @@ def read_fastq_file_handle(fastq_file_handle):
             seq = line
         elif count % 4 == 0:
             qual = line
+    # yield last fastq sequence
     yield header, seq, qual
     # Close input file
     fastq_file_handle.close()
