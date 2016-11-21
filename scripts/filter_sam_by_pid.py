@@ -156,9 +156,12 @@ if __name__ == '__main__':
                 indel_num += count
             elif operation == 'S':
                 overhang_num += count
-                mismatches_num += count
+                if args.soft_clip_as_mismatch:
+                    mismatches_num += count
 
         identity = float(matches_num) / (matches_num + mismatches_num + indel_num)
+
+        # sys.stderr.write('query: {}\tsubject: {}\tidentity = {:.2f}\n'.format(query_id, subject_id, identity))
 
         if identity >= args.id_threshold:
             args.output_sam.write('{0}\n'.format('\t'.join(tab)))
