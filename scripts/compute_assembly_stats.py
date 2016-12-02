@@ -228,7 +228,7 @@ if __name__ == '__main__':
     sys.stdout.write('\tTotal overhang num    = {0}\n\n'.format(total_overhang_num))
 
     sys.stdout.write('\tTotal leven distance  = {0}\n'.format(total_leven_distance))
-    sys.stdout.write('\tAssembly error rate   = {0:.2f}%\n\n'.format(error_rate))
+    sys.stdout.write('\tAssembly error rate   = {0:.2f}%\n'.format(error_rate))
     sys.stdout.write('\tAssembly error rate 2 = {0:.2f}%\n\n'.format(error_rate_no_overlap))
 
     sys.stdout.write('ALL BEST MATCHES:\n')

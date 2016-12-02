@@ -127,11 +127,6 @@ def parse_arguments():
                                   'Default is %(default)s. Setting it to 0 will remove all '
                                   'sequences with Ns. Ns in accepted sequences will be replaced '
                                   'by As')
-    # --remove_Ns
-    group_adv.add_argument('--remove_Ns',
-                           action = 'store_true',
-                           help = 'Remove sequences with Ns. '
-                                  'Default is replacing Ns with random nucleotides')
     # --clustering_id_threshold
     group_adv.add_argument('--clustering_id_threshold',
                            action = 'store',

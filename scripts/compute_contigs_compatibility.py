@@ -227,7 +227,7 @@ def compute_bin_list(compatibility_matrix):
                         for x in range(j+1, len(compatibility_matrix)):
                             status_i = compatibility_matrix[i][x]
                             status_j = compatibility_matrix[j][x]
-                            if status_i and status_j:
+                            if status_i and status_j: # contigs i and j both overlap with contig x
                                 if status_i != status_j:
                                     is_incompatible_with_b = True
                                     break
