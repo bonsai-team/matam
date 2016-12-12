@@ -770,7 +770,7 @@ if __name__ == '__main__':
     logger.info('Alignment filtering')
 
     cmd_line = 'cat ' + sortme_output_sam_filepath
-    cmd_line += ' | grep -v "^@" | sort -k 1,1V -k 12,12nr'
+    cmd_line += ' | grep -v "^@" | sort -k 1,1V -k 12,12nr -T ' + args.out_dir
     cmd_line += ' | ' + filter_score_bin + ' -t ' + str(args.score_threshold)
     if not args.straight_mode:
         cmd_line += ' --geometric'
