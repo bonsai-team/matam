@@ -28,6 +28,7 @@ default_ref_db = os.path.join(matam_db_dir, 'SILVA_128_SSURef_rdNs_NR95')
 # Get all dependencies bin
 matam_script_dir = os.path.join(matam_root_dir, 'scripts')
 clean_name_bin = os.path.join(matam_script_dir, 'fasta_clean_name.py')
+filter_sam_cov_bin = os.path.join(matam_script_dir, 'fasta_clean_name.py')
 filter_score_bin = os.path.join(matam_script_dir, 'filter_score_multialign.py')
 compute_lca_bin = os.path.join(matam_script_dir, 'compute_lca_from_tab.py')
 compute_compressed_graph_stats_bin = os.path.join(matam_script_dir, 'compute_compressed_graph_stats.py')
@@ -275,6 +276,14 @@ def parse_arguments():
                             action = 'store_true',
                             help = 'Use straight mode filtering. '
                                    'Default is geometric mode')
+    # --coverage_threshold
+    group_filt.add_argument('--coverage_threshold',
+                            action = 'store',
+                            metavar = 'INT',
+                            type = int,
+                            default = 0,
+                            help = 'Ref coverage threshold. '
+                                   'By default set to 0 to desactivate filtering')
 
     # Overlap-graph building parameters
     group_ovg = parser.add_argument_group('Overlap-graph building')
@@ -450,6 +459,7 @@ def print_intro(args):
     cmd_line += '--score_threshold {0:.2f} '.format(args.score_threshold)
     if args.straight_mode:
         cmd_line += '--straight_mode '
+    cmd_line += '--coverage_threshold {0} '.format(args.coverage_threshold)
 
     # Overlap-graph building
     cmd_line += '--min_identity {0:.2f} '.format(args.min_identity)
@@ -571,7 +581,7 @@ if __name__ == '__main__':
     sortme_output_fastx_filepath = sortme_output_basepath + input_fastx_extension
     sortme_output_sam_filepath = sortme_output_basepath + '.sam'
 
-    # Alignment filtering
+    # Bad alignments filtering
     score_threshold_int = int(args.score_threshold * 100)
 
     sam_filt_basename = sortme_output_basename + '.scr_filt_'
@@ -582,6 +592,13 @@ if __name__ == '__main__':
     sam_filt_basename += str(score_threshold_int) + 'pct'
     sam_filt_filename = sam_filt_basename + '.sam'
     sam_filt_filepath = os.path.join(args.out_dir, sam_filt_filename)
+
+    # Poorly covered references filtering
+    sam_cov_filt_basename = sam_filt_basename
+    if args.coverage_threshold:
+        sam_cov_filt_basename += '.cov_filt_{0}'.format(args.coverage_thresold)
+    sam_cov_filt_filename = sam_cov_filt_basename + '.sam'
+    sam_cov_filt_filepath = os.path.join(args.out_dir, sam_cov_filt_filename)
 
     # Overlap-graph building
     min_identity_int = int(args.min_identity * 100)
@@ -788,6 +805,23 @@ if __name__ == '__main__':
     to_rm_filepath_list.append(sortme_output_sam_filepath)
     to_rm_filepath_list.append(sortme_output_basepath + '.log')
     to_rm_filepath_list.append(sortme_output_basepath + '.blast')
+
+    if args.coverage_threshold:
+        cmd_line = 'cat ' + sam_filt_filepath
+        cmd_line += ' | sort -k 3,3 -k 4,4n -T ' + args.out_dir
+        cmd_line += ' | ' + filter_sam_cov_bin + ' -c ' + str(args.coverage_threshold)
+        cmd_line += ' | sort -k 1,1V -k 12,12nr -T ' + args.out_dir
+        cmd_line += ' > ' + sam_cov_filt_filepath
+
+        # Set t0
+        t0_wall = time.time()
+
+        logger.debug('CMD: {0}'.format(cmd_line))
+        error_code += subprocess.call(cmd_line, shell=True)
+
+        # Output running time
+        logger.debug('Ref coverage filtering terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
+
 
     #########################
     # Overlap-graph building
