@@ -810,6 +810,7 @@ if __name__ == '__main__':
         cmd_line = 'cat ' + sam_filt_filepath
         cmd_line += ' | sort -k 3,3 -k 4,4n -T ' + args.out_dir
         cmd_line += ' | ' + filter_sam_cov_bin + ' -c ' + str(args.coverage_threshold)
+        cmd_line += ' -r ' + clustered_ref_db_filepath
         cmd_line += ' | sort -k 1,1V -k 12,12nr -T ' + args.out_dir
         cmd_line += ' > ' + sam_cov_filt_filepath
 
@@ -834,7 +835,7 @@ if __name__ == '__main__':
     cmd_line += ' --csv --output_basename '
     cmd_line += ovgraphbuild_basepath
     cmd_line += ' -r ' + clustered_ref_db_filepath
-    cmd_line += ' -s ' + sam_filt_filepath
+    cmd_line += ' -s ' + sam_cov_filt_filepath
     if args.verbose:
         cmd_line += ' -v'
     if args.debug:
