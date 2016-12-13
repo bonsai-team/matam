@@ -439,9 +439,8 @@ def print_intro(args):
         cmd_line += '--keep_tmp '
 
     # Performance
-    cmd_line += """--cpu {cpu} --max_memory {memory} \
-""".format(cpu=args.cpu,
-           memory=args.max_memory)
+    cmd_line += '--cpu {0} '.format(args.cpu)
+    cmd_line += '--max_memory {0} '.format(args.max_memory)
 
     # Read mapping
     cmd_line += '--best {0} '.format(args.best)
@@ -473,9 +472,9 @@ def print_intro(args):
     # Visualization
 
     # Main parameters
-    cmd_line += '--out_dir {0}'.format(args.out_dir)
+    cmd_line += '--out_dir {0} '.format(args.out_dir)
     cmd_line += '--ref_db {0} '.format(args.ref_db)
-    cmd_line += '--input_fastx {0}'.format(args.input_fastx)
+    cmd_line += '--input_fastx {0} '.format(args.input_fastx)
 
     # Print cmd line
     sys.stderr.write('CMD: {0}\n\n'.format(cmd_line))
