@@ -596,7 +596,7 @@ if __name__ == '__main__':
     # Poorly covered references filtering
     sam_cov_filt_basename = sam_filt_basename
     if args.coverage_threshold:
-        sam_cov_filt_basename += '.cov_filt_{0}'.format(args.coverage_thresold)
+        sam_cov_filt_basename += '.cov_filt_{0}'.format(args.coverage_threshold)
     sam_cov_filt_filename = sam_cov_filt_basename + '.sam'
     sam_cov_filt_filepath = os.path.join(args.out_dir, sam_cov_filt_filename)
 
