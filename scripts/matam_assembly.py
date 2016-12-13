@@ -28,7 +28,7 @@ default_ref_db = os.path.join(matam_db_dir, 'SILVA_128_SSURef_rdNs_NR95')
 # Get all dependencies bin
 matam_script_dir = os.path.join(matam_root_dir, 'scripts')
 clean_name_bin = os.path.join(matam_script_dir, 'fasta_clean_name.py')
-filter_sam_cov_bin = os.path.join(matam_script_dir, 'fasta_clean_name.py')
+filter_sam_cov_bin = os.path.join(matam_script_dir, 'filter_sam_by_coverage.py')
 filter_score_bin = os.path.join(matam_script_dir, 'filter_score_multialign.py')
 compute_lca_bin = os.path.join(matam_script_dir, 'compute_lca_from_tab.py')
 compute_compressed_graph_stats_bin = os.path.join(matam_script_dir, 'compute_compressed_graph_stats.py')
