@@ -447,6 +447,12 @@ def print_intro(args):
     if args.keep_tmp:
         cmd_line += '--keep_tmp '
 
+    if args.true_references:
+        cmd_line += '--true_references {0} '.format(args.true_references)
+
+    if args.true_ref_taxo:
+        cmd_line += '--true_ref_taxo {0} '.format(args.true_ref_taxo)
+
     # Performance
     cmd_line += '--cpu {0} '.format(args.cpu)
     cmd_line += '--max_memory {0} '.format(args.max_memory)
