@@ -23,9 +23,10 @@ matam_scripts_dirpath = os.path.join(matam_root_dirpath, 'scripts')
 index_ref_db_bin = os.path.join(matam_scripts_dirpath, 'index_ref_db.py')
 
 # Set default ref db name
-default_ref_db_basename = 'SILVA_128_SSURef_rdNs_NR95'
+default_ref_db_basename = 'SILVA_123_SSURef_rdNs_NR95'
 default_ref_db_basepath = os.path.join(matam_db_dirpath, default_ref_db_basename)
 default_ref_db_archive_filename = default_ref_db_basename + '.tar.bz2'
+default_ref_db_archive_url = 'http://bioinfo.lifl.fr/matam/' + default_ref_db_archive_filename
 default_ref_db_archive_filepath = os.path.join(matam_db_dirpath, default_ref_db_archive_filename)
 
 
@@ -85,7 +86,9 @@ if __name__ == '__main__':
     os.chdir(matam_root_dirpath)
     logger.debug('PWD: {0}'.format(matam_root_dirpath))
 
-    cmd_line = 'git lfs pull'
+    cmd_line = 'mkdir ' + matam_db_dirpath
+    cmd_line += '; wget ' + default_ref_db_archive_url
+    cmd_line += ' -O ' + default_ref_db_archive_filepath
 
     logger.debug('CMD: {0}'.format(cmd_line))
     error_code = subprocess.call(cmd_line, shell=True)
@@ -105,7 +108,7 @@ if __name__ == '__main__':
     os.chdir(matam_db_dirpath)
     logger.debug('PWD: {0}'.format(matam_db_dirpath))
 
-    cmd_line = 'tar jxvf ' + default_ref_db_archive_filepath
+    cmd_line = 'tar jxvf ' + default_ref_db_archive_filename
 
     logger.debug('CMD: {0}'.format(cmd_line))
     error_code = subprocess.call(cmd_line, shell=True)
