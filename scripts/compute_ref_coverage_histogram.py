@@ -187,5 +187,5 @@ if __name__ == '__main__':
     plt.xlabel("Coverage")
     plt.ylabel("Frequency")
     plt.ylim([0,200])
-    plt.savefig(arg.histo)
+    plt.savefig(args.histo)
     plt.show()
