@@ -176,7 +176,7 @@ if __name__ == '__main__':
 
     # Writing ref coverage tab
     logger.info('Writing output ref coverage tab file')
-    sorted_ref_coverage_frequency_tuple_tuple = tuple(sorted(frequency_count_dict.items(), key=lambda: x: x[0]))
+    sorted_ref_coverage_frequency_tuple_tuple = tuple(sorted(frequency_count_dict.items(), key=lambda x: x[0]))
     for frequency_tuple in sorted_ref_coverage_frequency_tuple_tuple:
         args.output_cov.write('{}\t{}\n'.format(*frequency_tuple))
 
