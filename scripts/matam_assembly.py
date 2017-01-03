@@ -550,6 +550,9 @@ if __name__ == '__main__':
     ##############################################
     # Set all files and directories names + paths
 
+    sort_bin = 'sort -T ' + args.out_dir + ' -S ' + str(args.max_memory)
+    sort_bin += 'M --parallel ' + str(args.cpu)
+
     input_fastx_filepath = args.input_fastx
     input_fastx_filename = os.path.basename(input_fastx_filepath)
     input_fastx_basename, input_fastx_extension = os.path.splitext(input_fastx_filename)
@@ -792,7 +795,8 @@ if __name__ == '__main__':
     logger.info('Alignment filtering')
 
     cmd_line = 'cat ' + sortme_output_sam_filepath
-    cmd_line += ' | grep -v "^@" | sort -k 1,1V -k 12,12nr -T ' + args.out_dir
+    cmd_line += ' | grep -v "^@" | '
+    cmd_line += sort_bin + ' -k 1,1V -k 12,12nr'
     cmd_line += ' | ' + filter_score_bin + ' -t ' + str(args.score_threshold)
     if not args.straight_mode:
         cmd_line += ' --geometric'
@@ -814,10 +818,10 @@ if __name__ == '__main__':
 
     if args.coverage_threshold:
         cmd_line = 'cat ' + sam_filt_filepath
-        cmd_line += ' | sort -k 3,3 -k 4,4n -T ' + args.out_dir
+        cmd_line += ' | ' + sort_bin + ' -k 3,3 -k 4,4n'
         cmd_line += ' | ' + filter_sam_cov_bin + ' -c ' + str(args.coverage_threshold)
         cmd_line += ' -r ' + clustered_ref_db_filepath
-        cmd_line += ' | sort -k 1,1V -k 12,12nr -T ' + args.out_dir
+        cmd_line += ' | ' + sort_bin + ' -k 1,1V -k 12,12nr'
         cmd_line += ' > ' + sam_cov_filt_filepath
 
         # Set t0
@@ -900,7 +904,7 @@ if __name__ == '__main__':
     compressed_graph_reads_nb = int(subprocess.check_output('wc -l {0}'.format(contracted_components_filepath), shell=True).split()[0]) - 1
     compressed_graph_excluded_reads_nb = ovgraph_nodes_nb - compressed_graph_reads_nb
     excluded_reads_percent = compressed_graph_excluded_reads_nb * 100.0 / ovgraph_nodes_nb
-    components_nb = int(subprocess.check_output('cut -d ";" -f1 {0} | sort | uniq | wc -l'.format(contracted_components_filepath), shell=True).split()[0]) - 1
+    components_nb = int(subprocess.check_output('cut -d ";" -f1 {0} | {1} | uniq | wc -l'.format(contracted_components_filepath, sort_bin), shell=True).split()[0]) - 1
 
     ################
     # LCA labelling
@@ -917,7 +921,7 @@ if __name__ == '__main__':
 
     # Convert CSV component file to TAB format and sort by read id
     cmd_line = 'tail -n +2 ' + contracted_components_filepath
-    cmd_line += ' | sed "s/;/\\t/g" | sort -k2,2 > '
+    cmd_line += ' | sed "s/;/\\t/g" | ' + sort_bin + ' -k2,2 '
     cmd_line += componentsearch_basepath + '.components.tab'
 
     logger.debug('CMD: {0}'.format(cmd_line))
@@ -925,7 +929,7 @@ if __name__ == '__main__':
 
     # Convert CSV node file to TAB format and sort by read id
     cmd_line = 'tail -n +2 ' + ovgraphbuild_nodes_csv_filepath
-    cmd_line += ' | sed "s/;/\\t/g" | sort -k1,1 > '
+    cmd_line += ' | sed "s/;/\\t/g" | ' + sort_bin + ' -k1,1 > '
     cmd_line += ovgraphbuild_basepath + '.nodes.tab'
 
     logger.debug('CMD: {0}'.format(cmd_line))
@@ -935,7 +939,7 @@ if __name__ == '__main__':
     cmd_line = 'join -a1 -e"NULL" -o "1.2,0,2.3,2.1" -11 -22 '
     cmd_line += ovgraphbuild_basepath + '.nodes.tab '
     cmd_line += componentsearch_basepath + '.components.tab '
-    cmd_line += '| sed "s/ /\\t/g" | sort -k1,1  > '
+    cmd_line += '| sed "s/ /\\t/g" | ' + sort_bin + ' -k1,1  > '
     cmd_line += read_id_metanode_component_filepath
 
     logger.debug('CMD: {0}'.format(cmd_line))
@@ -944,9 +948,9 @@ if __name__ == '__main__':
     # Join sam file with ref taxo on ref name, and join it to the
     # component-node file on read name.
     # Output is (read, metanode, component, taxo) file
-    cmd_line = 'cat ' + sam_filt_filepath + ' | cut -f1,3 | sort -k2,2'
+    cmd_line = 'cat ' + sam_filt_filepath + ' | cut -f1,3 | ' + sort_bin + ' -k2,2'
     cmd_line += ' | join -12 -21 - ' + complete_ref_db_taxo_filepath
-    cmd_line += ' | sort -k2,2 | awk "{print \$2,\$3}" | sed "s/ /\\t/g" '
+    cmd_line += ' | ' + sort_bin + ' -k2,2 | awk "{print \$2,\$3}" | sed "s/ /\\t/g" '
     cmd_line += ' | join -11 -21 ' + read_id_metanode_component_filepath
     cmd_line += ' - | sed "s/ /\\t/g" | cut -f2-5 > '
     cmd_line += complete_taxo_filepath
@@ -955,7 +959,7 @@ if __name__ == '__main__':
     error_code += subprocess.call(cmd_line, shell=True)
 
     # Compute LCA at component level using quorum threshold
-    cmd_line = 'cat ' + complete_taxo_filepath + ' | sort -k3,3 -k1,1 | '
+    cmd_line = 'cat ' + complete_taxo_filepath + ' | ' + sort_bin + ' -k3,3 -k1,1 | '
     cmd_line += compute_lca_bin + ' -t 4 -f 3 -g 1 -m ' + str(args.quorum)
     cmd_line += ' -o ' + components_lca_filepath
 
@@ -1003,7 +1007,7 @@ if __name__ == '__main__':
 
     # Generate the read_id-->component_id file
     cmd_line = 'cat ' + read_id_metanode_component_filepath
-    cmd_line += ' | awk \' {print $4"\\t"$1}\' | sort -k1,1n > '
+    cmd_line += ' | awk \' {print $4"\\t"$1}\' | ' + sort_bin + ' -k1,1n > '
     cmd_line += component_read_filepath
 
     logger.debug('CMD: {0}'.format(cmd_line))
@@ -1011,7 +1015,7 @@ if __name__ == '__main__':
 
     # Count the number of components to assemble
     cmd_line = 'cat ' + component_read_filepath
-    cmd_line += ' | cut -f1 | grep -v "NULL" | sort | uniq | wc -l'
+    cmd_line += ' | cut -f1 | grep -v "NULL" | ' + sort_bin + ' | uniq | wc -l'
 
     logger.debug('CMD: {0}'.format(cmd_line))
     components_num = int(subprocess.check_output(cmd_line, shell=True))
@@ -1238,7 +1242,7 @@ if __name__ == '__main__':
     # Keep only quasi-equivalent best matches for each contig
     # -p 0.99 is used because of the tendency of SortMeRNA to soft-clip
     # a few nucleotides at 5’ and 3’ ends
-    cmd_line = 'sort -k1,1V -k12,12nr ' + scaff_sortme_output_blast_filepath
+    cmd_line = sort_bin + ' -k1,1V -k12,12nr ' + scaff_sortme_output_blast_filepath
     cmd_line += ' | ' + get_best_matches_bin + ' -p 0.99 -o ' + best_only_blast_filepath
 
     logger.debug('CMD: {0}'.format(cmd_line))
@@ -1254,7 +1258,7 @@ if __name__ == '__main__':
     # Filter sam file based on blast scaffolding file
     cmd_line = filter_sam_blast_bin + ' -i ' + scaff_sortme_output_sam_filepath
     cmd_line += ' -b ' +  selected_best_only_blast_filepath
-    cmd_line += ' | sort -k3,3 -k4,4n > ' + selected_sam_filepath
+    cmd_line += ' | ' + sort_bin + ' -k3,3 -k4,4n > ' + selected_sam_filepath
 
     logger.debug('CMD: {0}'.format(cmd_line))
     error_code += subprocess.call(cmd_line, shell=True)
@@ -1263,7 +1267,7 @@ if __name__ == '__main__':
     if not args.no_binning:
         cmd_line = compute_contigs_compatibility_bin
         cmd_line += ' -i ' + selected_sam_filepath
-        cmd_line += ' | sort -k1,1n > ' + binned_sam_filepath
+        cmd_line += ' | ' + sort_bin + ' -k1,1n > ' + binned_sam_filepath
 
         logger.debug('CMD: {0}'.format(cmd_line))
         error_code += subprocess.call(cmd_line, shell=True)
