@@ -754,6 +754,7 @@ if __name__ == '__main__':
         input_reads_nb = int(subprocess.check_output('grep -c "^>" {0}'.format(input_fastx_filepath), shell=True))
     else:
         logger.warning('Input fastx file extension was not recognised ({0})'.format(input_fastx_extension))
+    logger.info('Input file reads nb: {}'.format(input_reads_nb))
 
     ###############################
     # Reads mapping against ref db
@@ -809,7 +810,7 @@ if __name__ == '__main__':
     error_code += subprocess.call(cmd_line, shell=True)
 
     # Output running time
-    logger.debug('Alignment filtering terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
+    logger.debug('Good alignments filtering terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
 
     # Tag tmp files for removal
     to_rm_filepath_list.append(sortme_output_sam_filepath)
@@ -921,7 +922,7 @@ if __name__ == '__main__':
 
     # Convert CSV component file to TAB format and sort by read id
     cmd_line = 'tail -n +2 ' + contracted_components_filepath
-    cmd_line += ' | sed "s/;/\\t/g" | ' + sort_bin + ' -k2,2 '
+    cmd_line += ' | sed "s/;/\\t/g" | ' + sort_bin + ' -k2,2 > '
     cmd_line += componentsearch_basepath + '.components.tab'
 
     logger.debug('CMD: {0}'.format(cmd_line))
