@@ -612,7 +612,7 @@ if __name__ == '__main__':
     # Overlap-graph building
     min_identity_int = int(args.min_identity * 100)
 
-    ovgraphbuild_basename = sam_filt_basename + '.ovgb_i' + str(min_identity_int)
+    ovgraphbuild_basename = sam_cov_filt_basename + '.ovgb_i' + str(min_identity_int)
     ovgraphbuild_basename += '_o' + str(args.min_overlap_length)
     ovgraphbuild_basepath = os.path.join(args.out_dir, ovgraphbuild_basename)
 
@@ -759,7 +759,7 @@ if __name__ == '__main__':
     ###############################
     # Reads mapping against ref db
 
-    logger.info('Reads mapping against ref db')
+    logger.info('=== Reads mapping against ref db ===')
 
     cmd_line = sortmerna_bin + ' --ref ' + clustered_ref_db_filepath
     cmd_line += ',' + clustered_ref_db_basepath + ' --reads '
@@ -793,7 +793,7 @@ if __name__ == '__main__':
     #############################
     # Alignment filtering
 
-    logger.info('Alignment filtering')
+    logger.info('=== Alignment filtering ===')
 
     cmd_line = 'cat ' + sortme_output_sam_filepath
     cmd_line += ' | grep -v "^@" | '
@@ -838,7 +838,7 @@ if __name__ == '__main__':
     #########################
     # Overlap-graph building
 
-    logger.info('Overlap-graph building')
+    logger.info('=== Overlap-graph building ===')
 
     cmd_line = ovgraphbuild_bin
     cmd_line += ' -i ' + str(args.min_identity)
@@ -871,7 +871,7 @@ if __name__ == '__main__':
     ###############################################
     # Graph compaction & Components identification
 
-    logger.info('Graph compaction & Components identification')
+    logger.info('=== Graph compaction & Components identification ===')
 
     cmd_line = 'java -Xmx' + str(args.max_memory) + 'M -cp "'
     cmd_line += componentsearch_jar + '" main.Main'
@@ -910,7 +910,7 @@ if __name__ == '__main__':
     ################
     # LCA labelling
 
-    logger.info('LCA labelling')
+    logger.info('=== LCA labelling ===')
 
     # Set t0
     t0_wall = time.time()
@@ -978,7 +978,7 @@ if __name__ == '__main__':
     ###################################
     # Computing compressed graph stats
 
-    logger.info('Computing compressed graph stats')
+    logger.info('=== Computing compressed graph stats ===')
 
     cmd_line = compute_compressed_graph_stats_bin + ' --nodes_contracted '
     cmd_line += contracted_nodes_filepath + ' --edges_contracted '
@@ -1001,7 +1001,7 @@ if __name__ == '__main__':
     ###################
     # Contigs assembly
 
-    logger.info('Starting contigs assembly')
+    logger.info('=== Starting contigs assembly ===')
 
     # Set t0
     t0_wall = time.time()
@@ -1208,7 +1208,7 @@ if __name__ == '__main__':
     ##############
     # Scaffolding
 
-    logger.info('Scaffolding')
+    logger.info('=== Scaffolding ===')
 
     # Set t0
     t0_wall = time.time()
@@ -1385,7 +1385,7 @@ if __name__ == '__main__':
     if args.verbose:
         sys.stderr.write('\n')
 
-        b = 'MATAM Statistics\n\n'
+        b = '=== MATAM Statistics ===\n\n'
         b += 'Input reads nb: {0}\n'.format(int(input_reads_nb))
         b += 'Selected reads nb: {0}\n\n'.format(int(selected_reads_nb))
 
