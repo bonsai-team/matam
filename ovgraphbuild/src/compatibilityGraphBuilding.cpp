@@ -111,7 +111,12 @@ void buildCompatibilityGraph(TGraph &graph,
                                           options);
 
             if (options.verbose)
-                printProgress(std::cout, 100000, numConsideredReadsPairs, maxReadsPairs);
+            {
+                if (numConsideredReadsPairs <= (float)maxReadsPairs / 100.0)
+                    printProgress(std::cout, maxReadsPairs/100000, numConsideredReadsPairs, maxReadsPairs);
+                else
+                    printProgress(std::cout, maxReadsPairs/1000, numConsideredReadsPairs, maxReadsPairs);
+            }
 
             ++j;
         }
@@ -262,7 +267,7 @@ void computeReadsPairCompatibility(GlobalStatistics &globalStats,
     // TO DO: Envisager de parcourir la double boucle en proposant les paires
     // d'alignements de bonne qualité en premier si possible
     // int32_t min_align_num = std::min(readBamRecordBufferI.size(), readBamRecordBufferJ.size());
-    
+
     for (auto const &bamRecordI : readBamRecordBufferI)
     {
         for (auto const &bamRecordJ : readBamRecordBufferJ)
