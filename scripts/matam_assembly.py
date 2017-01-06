@@ -746,7 +746,7 @@ if __name__ == '__main__':
     # Compute input reads statistics
 
     # Get input reads number
-    input_reads_nb = float()
+    input_reads_nb = int()
     if input_fastx_extension in ('.fq', '.fastq'):
         input_fastx_line_nb = int(subprocess.check_output('wc -l {0}'.format(input_fastx_filepath), shell=True).split()[0])
         input_reads_nb = input_fastx_line_nb / 4.0
@@ -754,7 +754,11 @@ if __name__ == '__main__':
         input_reads_nb = int(subprocess.check_output('grep -c "^>" {0}'.format(input_fastx_filepath), shell=True))
     else:
         logger.warning('Input fastx file extension was not recognised ({0})'.format(input_fastx_extension))
-    logger.info('Input file reads nb: {}'.format(input_reads_nb))
+
+    logger.info('Input file: {}'.format(input_fastx_filepath))
+    logger.info('Input file reads nb: {} reads'.format(input_reads_nb))
+    if args.verbose:
+        sys.stderr.write('\n')
 
     ###############################
     # Reads mapping against ref db
@@ -783,12 +787,16 @@ if __name__ == '__main__':
     logger.debug('Reads mapping terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
 
     # Get selected reads number
-    selected_reads_nb = float()
+    selected_reads_nb = int()
     if input_fastx_extension in ('.fq', '.fastq'):
         selected_fastx_line_nb = int(subprocess.check_output('wc -l {0}'.format(sortme_output_fastx_filepath), shell=True).split()[0])
         selected_reads_nb = selected_fastx_line_nb / 4.0
     elif input_fastx_extension in ('.fa', '.fasta'):
         selected_reads_nb = int(subprocess.check_output('grep -c "^>" {0}'.format(sortme_output_fastx_filepath), shell=True))
+
+    logger.info('Identified as marker: {} / {} reads ({:.2f}%)'.format(selected_reads_nb, input_reads_nb, selected_reads_nb*100.0/input_reads_nb))
+    if args.verbose:
+        sys.stderr.write('\n')
 
     #############################
     # Alignment filtering
@@ -834,6 +842,8 @@ if __name__ == '__main__':
         # Output running time
         logger.debug('Ref coverage filtering terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
 
+    if args.verbose:
+        sys.stderr.write('\n')
 
     #########################
     # Overlap-graph building
@@ -1386,8 +1396,8 @@ if __name__ == '__main__':
         sys.stderr.write('\n')
 
         b = '=== MATAM Statistics ===\n\n'
-        b += 'Input reads nb: {0}\n'.format(int(input_reads_nb))
-        b += 'Selected reads nb: {0}\n\n'.format(int(selected_reads_nb))
+        b += 'Input reads nb: {0}\n'.format(input_reads_nb)
+        b += 'Selected reads nb: {0}\n\n'.format(selected_reads_nb)
 
         b += 'Ov. Graph nodes nb: {0}\n'.format(ovgraph_nodes_nb)
         b += 'Ov. Graph edges nb: {0}\n\n'.format(ovgraph_edges_nb)
@@ -1449,7 +1459,7 @@ if __name__ == '__main__':
 
         if args.debug:
             b += 'One-line stats\n'
-            b += '{}\t{}\t{}\t{}\t'.format(int(input_reads_nb), int(selected_reads_nb),
+            b += '{}\t{}\t{}\t{}\t'.format(input_reads_nb, selected_reads_nb,
                                            ovgraph_nodes_nb, ovgraph_edges_nb)
             b += '{}\t{}\t{}\t{}\t{:.2f}%\t{}\t'.format(compressed_graph_nodes_nb, compressed_graph_edges_nb,
                                                        compressed_graph_reads_nb, compressed_graph_excluded_reads_nb,
