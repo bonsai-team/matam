@@ -8,6 +8,7 @@ import statistics
 import subprocess
 import time
 import logging
+from collections import defaultdict
 
 
 # Create logger
@@ -112,6 +113,32 @@ def read_fasta_file_handle(fasta_file_handle):
         yield (header, ''.join(seqlines))
     # Close input file
     fasta_file_handle.close()
+
+
+def read_fastq_file_handle(fastq_file_handle):
+    """
+    Parse a fastq file and return a generator
+    """
+    # Variables initialization
+    count = 0
+    header = ''
+    seq = ''
+    qual = ''
+    # Reading input file
+    for line in (l.strip() for l in fastq_file_handle if l.strip()):
+        count += 1
+        if count % 4 == 1:
+            if header:
+                yield header, seq, qual
+            header = line[1:]
+        elif count % 4 == 2:
+            seq = line
+        elif count % 4 == 0:
+            qual = line
+    # yield last fastq sequence
+    yield header, seq, qual
+    # Close input file
+    fastq_file_handle.close()
 
 
 class FastaStats():
@@ -749,7 +776,9 @@ if __name__ == '__main__':
     input_reads_nb = int()
     if input_fastx_extension in ('.fq', '.fastq'):
         input_fastx_line_nb = int(subprocess.check_output('wc -l {0}'.format(input_fastx_filepath), shell=True).split()[0])
-        input_reads_nb = input_fastx_line_nb / 4.0
+        if input_fastx_line_nb % 4 != 0:
+            logger.warning('FastQ input file does not have a number of lines multiple of 4')
+        input_reads_nb = input_fastx_line_nb // 4
     elif input_fastx_extension in ('.fa', '.fasta'):
         input_reads_nb = int(subprocess.check_output('grep -c "^>" {0}'.format(input_fastx_filepath), shell=True))
     else:
@@ -878,6 +907,10 @@ if __name__ == '__main__':
     ovgraph_nodes_nb = int(subprocess.check_output('wc -l {0}'.format(ovgraphbuild_nodes_csv_filepath), shell=True).split()[0]) - 1
     ovgraph_edges_nb = int(subprocess.check_output('wc -l {0}'.format(ovgraphbuild_edges_csv_filepath), shell=True).split()[0]) - 1
 
+    logger.info('Overlap graph stats: {} nodes, {} edges'.format(ovgraph_nodes_nb, ovgraph_edges_nb))
+    if args.verbose:
+        sys.stderr.write('\n')
+
     ###############################################
     # Graph compaction & Components identification
 
@@ -916,6 +949,10 @@ if __name__ == '__main__':
     compressed_graph_excluded_reads_nb = ovgraph_nodes_nb - compressed_graph_reads_nb
     excluded_reads_percent = compressed_graph_excluded_reads_nb * 100.0 / ovgraph_nodes_nb
     components_nb = int(subprocess.check_output('cut -d ";" -f1 {0} | {1} | uniq | wc -l'.format(contracted_components_filepath, sort_bin), shell=True).split()[0]) - 1
+
+    logger.info('Compressed graph: {} components'.format(components_nb))
+    if args.verbose:
+        sys.stderr.write('\n')
 
     ################
     # LCA labelling
@@ -985,6 +1022,9 @@ if __name__ == '__main__':
     to_rm_filepath_list.append(ovgraphbuild_basepath + '.nodes.tab')
     to_rm_filepath_list.append(complete_taxo_filepath)
 
+    if args.verbose:
+        sys.stderr.write('\n')
+
     ###################################
     # Computing compressed graph stats
 
@@ -1007,6 +1047,8 @@ if __name__ == '__main__':
 
     # Output running time
     logger.debug('Computing compressed graph stats terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
+    if args.verbose:
+        sys.stderr.write('\n')
 
     ###################
     # Contigs assembly
@@ -1016,21 +1058,6 @@ if __name__ == '__main__':
     # Set t0
     t0_wall = time.time()
 
-    # Generate the read_id-->component_id file
-    cmd_line = 'cat ' + read_id_metanode_component_filepath
-    cmd_line += ' | awk \' {print $4"\\t"$1}\' | ' + sort_bin + ' -k1,1n > '
-    cmd_line += component_read_filepath
-
-    logger.debug('CMD: {0}'.format(cmd_line))
-    error_code += subprocess.call(cmd_line, shell=True)
-
-    # Count the number of components to assemble
-    cmd_line = 'cat ' + component_read_filepath
-    cmd_line += ' | cut -f1 | grep -v "NULL" | ' + sort_bin + ' | uniq | wc -l'
-
-    logger.debug('CMD: {0}'.format(cmd_line))
-    components_num = int(subprocess.check_output(cmd_line, shell=True))
-
     # TO DO, one day, maybe:
     # Convert input fastq to tab, join it to the component-read file
     # on the read name. Then generate a fastq file for each component.
@@ -1039,100 +1066,96 @@ if __name__ == '__main__':
 
     # Reading components LCA and storing them in a dict
     logger.debug('Reading components LCA assignment from {0}'.format(components_lca_filepath))
-
     component_lca_dict = dict()
     with open(components_lca_filepath, 'r') as component_lca_fh:
         component_lca_dict = {t[0]: t[1] for t in (l.split() for l in component_lca_fh) if len(t) == 2}
 
+    # Reading read --> component file
+    logger.debug('Reading read-->component from {}'.format(read_id_metanode_component_filepath))
+    read_component_dict = dict()
+    with open(read_id_metanode_component_filepath, 'r') as read_id_metanode_component_fh:
+        read_component_dict = {t[0]:t[3] for t in (l.split() for l in read_id_metanode_component_fh) if t[3]!='NULL'}
+
+    # Storing reads for each component
+    logger.debug('Storing reads by component from {}'.format(sortme_output_fastx_filepath))
+    component_reads_dict = defaultdict(list)
+    with open(sortme_output_fastx_filepath, 'r') as sortme_output_fastx_fh:
+        for header, seq, qual in read_fastq_file_handle(sortme_output_fastx_fh):
+            try:
+                component_reads_dict[read_component_dict[header]].append(tuple((header, seq, qual)))
+            except KeyError:
+                pass
+    components_num = len(component_reads_dict)
+    logger.info('{} components to be assembled'.format(components_num))
+
     # Open output contigs file
     contigs_fh = open(contigs_filepath, 'w')
+
+    # We will be working in the assembly directory because assembly tools
+    # generate lots of files we dont want in our matam assembly directory
+    os.chdir(contigs_assembly_wkdir)
 
     # Begin reading read-->component file (sorted by component)
     contig_count = 0
     component_count = 0
+    logger.info('Assembling component #')
 
-    with open(component_read_filepath, 'r') as component_read_fh:
-        # We will be working in the assembly directory because assembly tools
-        # generate lots of files we dont want in our matam assembly directory
-        os.chdir(contigs_assembly_wkdir)
+    #
+    for component_id, reads_list in component_reads_dict.items():
 
-        #
-        logger.info('Assembling component #')
+        component_count += 1
 
-        # Assembling all reads of every component, one at a time
-        for component_tab_list in read_tab_file_handle_sorted(component_read_fh, 0):
-
-            component_id = component_tab_list[0][0]
-
-            # To prevent assembly of singleton reads
-            if component_id == 'NULL':
-                continue
-
-            component_count += 1
-
-            # Starting component assembly
-            if args.verbose:
-                sys.stderr.write('\r{0} / {1}'.format(component_count, components_num))
-                sys.stderr.flush()
-
-            # Cleaning previous assembly
-            if os.path.exists('contigs.fa'):
-                os.remove('contigs.fa')
-            if os.path.exists('tmp'):
-                subprocess.call('rm -rf tmp', shell=True)
-
-            # Write the component reads ids
-            read_num = 0
-            with open('reads_single_component.ids', 'w') as wfh:
-                for tab in component_tab_list:
-                    read_id = tab[1]
-                    read_num += 1
-                    wfh.write('{0}\n'.format(read_id))
-
-            #~ logger.debug('{0} reads are in component #{1}'.format(read_num, component_id))
-
-            # Generate a fastq file with this component reads
-            cmd_line = fastq_name_filter_bin + ' -f reads_single_component.ids'
-            cmd_line += ' -i ' + sortme_output_fastx_filepath + ' -o reads_single_component.fq'
-
-            #~ logger.debug('CMD: {0}'.format(cmd_line))
-            error_code += subprocess.call(cmd_line, shell=True)
-
-            # Assemble those reads with SGA
-            cmd_line = 'echo "component #' + component_id + '" >> '
-            cmd_line += contigs_assembly_log_filepath + ' && '
-            cmd_line += sga_assemble_bin + ' -i reads_single_component.fq'
-            cmd_line += ' -o contigs.fa --sga_bin ' + assembler_bin
-            if args.read_correction in ('no', 'auto'):
-                cmd_line += ' --no_correction' # !!! desactivate all SGA error corrections and filters
-            cmd_line += ' --cpu ' + str(args.cpu)
-            cmd_line += ' --tmp_dir tmp'
-            cmd_line += ' >> ' + contigs_assembly_log_filepath + ' 2>&1'
-
-            #~ logger.debug('CMD: {0}'.format(cmd_line))
-            error_code += subprocess.call(cmd_line, shell=True)
-
-            # Concatenate the component contigs in the output contigs file
-            component_lca = 'NULL'
-            component_contigs_num = 0
-            if component_id in component_lca_dict:
-                component_lca = component_lca_dict[component_id]
-            with open('contigs.fa', 'r') as sga_contigs_fh:
-                for header, seq in read_fasta_file_handle(sga_contigs_fh):
-                    if len(seq):
-                        contig_count += 1
-                        component_contigs_num += 1
-                        contigs_fh.write('>{0} component={1} '.format(contig_count, component_id))
-                        contigs_fh.write('lca={0}\n{1}\n'.format(component_lca, format_seq(seq)))
-
-            #~ logger.debug('{0} contigs were written to assembly fasta file'.format(component_contigs_num))
-
-        #
+        # Printing progress
         if args.verbose:
-            sys.stderr.write('\n')
+            sys.stderr.write('\r{0} / {1}'.format(component_count, components_num))
+            sys.stderr.flush()
 
-        # Return to matam assembly directory
-        os.chdir(args.out_dir)
+        # Cleaning previous assembly
+        if os.path.exists('contigs.fa'):
+            os.remove('contigs.fa')
+        if os.path.exists('tmp'):
+            subprocess.call('rm -rf tmp', shell=True)
+
+        # Writing fastq file with this component reads
+        with open('reads_single_component.fq', 'w') as reads_single_component_fh:
+            for (header, seq, qual) in reads_list:
+                reads_single_component_fh.write('@{}\n{}\n+\n{}\n'.format(header, seq, qual))
+
+        # Assemble those reads with SGA
+        cmd_line = 'echo "component #' + component_id + '" >> '
+        cmd_line += contigs_assembly_log_filepath + ' && '
+        cmd_line += sga_assemble_bin + ' -i reads_single_component.fq'
+        cmd_line += ' -o contigs.fa --sga_bin ' + assembler_bin
+        if args.read_correction in ('no', 'auto'):
+            cmd_line += ' --no_correction' # !!! desactivate all SGA error corrections and filters
+        cmd_line += ' --cpu ' + str(args.cpu)
+        cmd_line += ' --tmp_dir tmp'
+        cmd_line += ' >> ' + contigs_assembly_log_filepath + ' 2>&1'
+
+        #~ logger.debug('CMD: {0}'.format(cmd_line))
+        error_code += subprocess.call(cmd_line, shell=True)
+
+        # Concatenate the component contigs in the output contigs file
+        component_lca = 'NULL'
+        component_contigs_num = 0
+        if component_id in component_lca_dict:
+            component_lca = component_lca_dict[component_id]
+        with open('contigs.fa', 'r') as sga_contigs_fh:
+            for header, seq in read_fasta_file_handle(sga_contigs_fh):
+                if len(seq):
+                    contig_count += 1
+                    component_contigs_num += 1
+                    contigs_fh.write('>{0} component={1} '.format(contig_count, component_id))
+                    contigs_fh.write('lca={0}\n{1}\n'.format(component_lca, format_seq(seq)))
+
+        #~ logger.debug('{0} contigs were written to assembly fasta file'.format(component_contigs_num))
+
+    #
+    if args.verbose:
+        sys.stderr.write('\n')
+
+    # Return to matam assembly directory
+    os.chdir(args.out_dir)
 
     # Close assembly contigs file
     contigs_fh.close()
