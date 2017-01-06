@@ -8,6 +8,7 @@ import statistics
 import subprocess
 import time
 import logging
+import cProfile
 from collections import defaultdict
 
 
@@ -130,7 +131,7 @@ def read_fastq_file_handle(fastq_file_handle):
         if count % 4 == 1:
             if header:
                 yield header, seq, qual
-            header = line[1:]
+            header = line[1:].split()[0]
         elif count % 4 == 2:
             seq = line
         elif count % 4 == 0:
@@ -537,8 +538,9 @@ def rm_files(filepath_list):
             pass
 
 
-if __name__ == '__main__':
-
+def main():
+    """
+    """
     # Set global t0
     global_t0_wall = time.time()
 
@@ -819,7 +821,7 @@ if __name__ == '__main__':
     selected_reads_nb = int()
     if input_fastx_extension in ('.fq', '.fastq'):
         selected_fastx_line_nb = int(subprocess.check_output('wc -l {0}'.format(sortme_output_fastx_filepath), shell=True).split()[0])
-        selected_reads_nb = selected_fastx_line_nb / 4.0
+        selected_reads_nb = selected_fastx_line_nb // 4
     elif input_fastx_extension in ('.fa', '.fasta'):
         selected_reads_nb = int(subprocess.check_output('grep -c "^>" {0}'.format(sortme_output_fastx_filepath), shell=True))
 
@@ -1068,13 +1070,13 @@ if __name__ == '__main__':
     logger.debug('Reading components LCA assignment from {0}'.format(components_lca_filepath))
     component_lca_dict = dict()
     with open(components_lca_filepath, 'r') as component_lca_fh:
-        component_lca_dict = {t[0]: t[1] for t in (l.split() for l in component_lca_fh) if len(t) == 2}
+        component_lca_dict = {t[0]:t[1] for t in (l.split() for l in component_lca_fh) if len(t) == 2}
 
     # Reading read --> component file
     logger.debug('Reading read-->component from {}'.format(read_id_metanode_component_filepath))
     read_component_dict = dict()
     with open(read_id_metanode_component_filepath, 'r') as read_id_metanode_component_fh:
-        read_component_dict = {t[0]:t[3] for t in (l.split() for l in read_id_metanode_component_fh) if t[3]!='NULL'}
+        read_component_dict = {t[0]:t[3] for t in (l.split() for l in read_id_metanode_component_fh) if t[3] != 'NULL'}
 
     # Storing reads for each component
     logger.debug('Storing reads by component from {}'.format(sortme_output_fastx_filepath))
@@ -1237,6 +1239,9 @@ if __name__ == '__main__':
     # Compute contigs assembly stats
     contigs_stats = compute_fasta_stats(contigs_filepath)
     large_NR_contigs_stats = compute_fasta_stats(large_NR_contigs_filepath)
+
+    if args.verbose:
+        sys.stderr.write('\n')
 
     ##############
     # Scaffolding
@@ -1412,12 +1417,13 @@ if __name__ == '__main__':
     scaffolds_stats = compute_fasta_stats(scaffolds_filepath)
     large_NR_scaffolds_stats = compute_fasta_stats(large_NR_scaffolds_filepath)
 
+    if args.verbose:
+        sys.stderr.write('\n')
+
     ###########################
     # Print Assembly Statistics
 
     if args.verbose:
-        sys.stderr.write('\n')
-
         b = '=== MATAM Statistics ===\n\n'
         b += 'Input reads nb: {0}\n'.format(input_reads_nb)
         b += 'Selected reads nb: {0}\n\n'.format(selected_reads_nb)
@@ -1541,5 +1547,13 @@ if __name__ == '__main__':
         exit_code = 1
 
     logger.info('Run terminated in {0:.4f} seconds wall time'.format(time.time() - global_t0_wall))
+
+    return exit_code
+
+
+if __name__ == '__main__':
+
+    cProfile.run('main()')
+    # exit_code = main()
 
     exit(exit_code)
