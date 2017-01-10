@@ -407,6 +407,15 @@ def parse_arguments():
     group_adv.add_argument('--debug',
                             action = 'store_true',
                             help = 'Output debug infos')
+    # --resume_from
+    group_adv.add_argument('--resume_from',
+                           action = 'store',
+                           metavar = 'STEP',
+                           type = str,
+                           choices = ['reads_mapping', 'alignments_filtering', 'overlap_graph_building',
+                                      'graph_compaction', 'contigs_assembly', 'scaffolding'],
+                           help = 'Try to resume from given step. '
+                                  'Steps are: %(choices)s')
 
     #
     args = parser.parse_args()
@@ -474,6 +483,9 @@ def print_intro(args):
 
     if args.keep_tmp:
         cmd_line += '--keep_tmp '
+
+    if args.resume_from:
+        cmd_line += '--resume_from {} '.format(args.resume_from)
 
     if args.true_references:
         cmd_line += '--true_references {0} '.format(args.true_references)
@@ -575,6 +587,11 @@ def main():
 
     # Init list of tmp files to delete at the end
     to_rm_filepath_list = list()
+
+    # Set resume tag
+    run_step = True
+    if args.resume_from:
+        run_step = False
 
     ##############################################
     # Set all files and directories names + paths
@@ -774,95 +791,90 @@ def main():
     #################################
     # Compute input reads statistics
 
-    # Get input reads number
-    input_reads_nb = int()
-    if input_fastx_extension in ('.fq', '.fastq'):
-        input_fastx_line_nb = int(subprocess.check_output('wc -l {0}'.format(input_fastx_filepath), shell=True).split()[0])
-        if input_fastx_line_nb % 4 != 0:
-            logger.warning('FastQ input file does not have a number of lines multiple of 4')
-        input_reads_nb = input_fastx_line_nb // 4
-    elif input_fastx_extension in ('.fa', '.fasta'):
-        input_reads_nb = int(subprocess.check_output('grep -c "^>" {0}'.format(input_fastx_filepath), shell=True))
-    else:
-        logger.warning('Input fastx file extension was not recognised ({0})'.format(input_fastx_extension))
+    if args.resume_from == 'reads_mapping':
+        run_step = True
 
-    logger.info('Input file: {}'.format(input_fastx_filepath))
-    logger.info('Input file reads nb: {} reads'.format(input_reads_nb))
-    if args.verbose:
-        sys.stderr.write('\n')
+    # Get input reads number
+    input_reads_nb = -1
+
+    if run_step:
+        if input_fastx_extension in ('.fq', '.fastq'):
+            input_fastx_line_nb = int(subprocess.check_output('wc -l {0}'.format(input_fastx_filepath), shell=True).split()[0])
+            if input_fastx_line_nb % 4 != 0:
+                logger.warning('FastQ input file does not have a number of lines multiple of 4')
+            input_reads_nb = input_fastx_line_nb // 4
+        elif input_fastx_extension in ('.fa', '.fasta'):
+            input_reads_nb = int(subprocess.check_output('grep -c "^>" {0}'.format(input_fastx_filepath), shell=True))
+        else:
+            logger.warning('Input fastx file extension was not recognised ({0})'.format(input_fastx_extension))
+
+        logger.info('Input file: {}'.format(input_fastx_filepath))
+        logger.info('Input file reads nb: {} reads'.format(input_reads_nb))
+        if args.verbose:
+            sys.stderr.write('\n')
 
     ###############################
     # Reads mapping against ref db
 
-    logger.info('=== Reads mapping against ref db ===')
+    if args.resume_from == 'reads_mapping':
+        logger.info('Resuming from reads mapping')
+        run_step = True
 
-    cmd_line = sortmerna_bin + ' --ref ' + clustered_ref_db_filepath
-    cmd_line += ',' + clustered_ref_db_basepath + ' --reads '
-    cmd_line += input_fastx_filepath + ' --aligned ' + sortme_output_basepath
-    cmd_line += ' --fastx --sam --blast "1" --log --best '
-    cmd_line += str(args.best) + ' --min_lis ' + str(args.min_lis)
-    cmd_line += ' -e {0:.2e}'.format(args.evalue)
-    cmd_line += ' -a ' + str(args.cpu)
-    if args.verbose:
-        cmd_line += ' -v '
+    if run_step:
+        logger.info('=== Reads mapping against ref db ===')
 
-    # Set t0
-    t0_wall = time.time()
+        cmd_line = sortmerna_bin + ' --ref ' + clustered_ref_db_filepath
+        cmd_line += ',' + clustered_ref_db_basepath + ' --reads '
+        cmd_line += input_fastx_filepath + ' --aligned ' + sortme_output_basepath
+        cmd_line += ' --fastx --sam --blast "1" --log --best '
+        cmd_line += str(args.best) + ' --min_lis ' + str(args.min_lis)
+        cmd_line += ' -e {0:.2e}'.format(args.evalue)
+        cmd_line += ' -a ' + str(args.cpu)
+        if args.verbose:
+            cmd_line += ' -v '
 
-    logger.debug('CMD: {0}'.format(cmd_line))
-    error_code += subprocess.call(cmd_line, shell=True)
-    if args.verbose:
-        sys.stderr.write('\n')
+        # Set t0
+        t0_wall = time.time()
 
-    # Output running time
-    logger.debug('Reads mapping terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
+        logger.debug('CMD: {0}'.format(cmd_line))
+        error_code += subprocess.call(cmd_line, shell=True)
+        if args.verbose:
+            sys.stderr.write('\n')
+
+        # Output running time
+        logger.debug('Reads mapping terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
 
     # Get selected reads number
-    selected_reads_nb = int()
-    if input_fastx_extension in ('.fq', '.fastq'):
-        selected_fastx_line_nb = int(subprocess.check_output('wc -l {0}'.format(sortme_output_fastx_filepath), shell=True).split()[0])
-        selected_reads_nb = selected_fastx_line_nb // 4
-    elif input_fastx_extension in ('.fa', '.fasta'):
-        selected_reads_nb = int(subprocess.check_output('grep -c "^>" {0}'.format(sortme_output_fastx_filepath), shell=True))
+    selected_reads_nb = -1
 
-    logger.info('Identified as marker: {} / {} reads ({:.2f}%)'.format(selected_reads_nb, input_reads_nb, selected_reads_nb*100.0/input_reads_nb))
-    if args.verbose:
-        sys.stderr.write('\n')
+    if run_step:
+        if input_fastx_extension in ('.fq', '.fastq'):
+            selected_fastx_line_nb = int(subprocess.check_output('wc -l {0}'.format(sortme_output_fastx_filepath), shell=True).split()[0])
+            selected_reads_nb = selected_fastx_line_nb // 4
+        elif input_fastx_extension in ('.fa', '.fasta'):
+            selected_reads_nb = int(subprocess.check_output('grep -c "^>" {0}'.format(sortme_output_fastx_filepath), shell=True))
+
+        logger.info('Identified as marker: {} / {} reads ({:.2f}%)'.format(selected_reads_nb, input_reads_nb, selected_reads_nb*100.0/input_reads_nb))
+        if args.verbose:
+            sys.stderr.write('\n')
 
     #############################
     # Alignment filtering
 
-    logger.info('=== Alignment filtering ===')
+    if args.resume_from == 'alignments_filtering':
+        logger.info('Resuming from alignments filtering')
+        run_step = True
 
-    cmd_line = 'cat ' + sortme_output_sam_filepath
-    cmd_line += ' | grep -v "^@" | '
-    cmd_line += sort_bin + ' -k 1,1V -k 12,12nr'
-    cmd_line += ' | ' + filter_score_bin + ' -t ' + str(args.score_threshold)
-    if not args.straight_mode:
-        cmd_line += ' --geometric'
-    cmd_line += ' > ' + sam_filt_filepath
+    if run_step:
+        logger.info('=== Alignment filtering ===')
 
-    # Set t0
-    t0_wall = time.time()
-
-    logger.debug('CMD: {0}'.format(cmd_line))
-    error_code += subprocess.call(cmd_line, shell=True)
-
-    # Output running time
-    logger.debug('Good alignments filtering terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
-
-    # Tag tmp files for removal
-    to_rm_filepath_list.append(sortme_output_sam_filepath)
-    to_rm_filepath_list.append(sortme_output_basepath + '.log')
-    to_rm_filepath_list.append(sortme_output_basepath + '.blast')
-
-    if args.coverage_threshold:
-        cmd_line = 'cat ' + sam_filt_filepath
-        cmd_line += ' | ' + sort_bin + ' -k 3,3 -k 4,4n'
-        cmd_line += ' | ' + filter_sam_cov_bin + ' -c ' + str(args.coverage_threshold)
-        cmd_line += ' -r ' + clustered_ref_db_filepath
-        cmd_line += ' | ' + sort_bin + ' -k 1,1V -k 12,12nr'
-        cmd_line += ' > ' + sam_cov_filt_filepath
+        cmd_line = 'cat ' + sortme_output_sam_filepath
+        cmd_line += ' | grep -v "^@" | '
+        cmd_line += sort_bin + ' -k 1,1V -k 12,12nr'
+        cmd_line += ' | ' + filter_score_bin + ' -t ' + str(args.score_threshold)
+        if not args.straight_mode:
+            cmd_line += ' --geometric'
+        cmd_line += ' > ' + sam_filt_filepath
 
         # Set t0
         t0_wall = time.time()
@@ -871,41 +883,71 @@ def main():
         error_code += subprocess.call(cmd_line, shell=True)
 
         # Output running time
-        logger.debug('Ref coverage filtering terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
+        logger.debug('Good alignments filtering terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
 
-    if args.verbose:
-        sys.stderr.write('\n')
+        # Tag tmp files for removal
+        to_rm_filepath_list.append(sortme_output_sam_filepath)
+        to_rm_filepath_list.append(sortme_output_basepath + '.log')
+        to_rm_filepath_list.append(sortme_output_basepath + '.blast')
+
+        if args.coverage_threshold:
+            cmd_line = 'cat ' + sam_filt_filepath
+            cmd_line += ' | ' + sort_bin + ' -k 3,3 -k 4,4n'
+            cmd_line += ' | ' + filter_sam_cov_bin + ' -c ' + str(args.coverage_threshold)
+            cmd_line += ' -r ' + clustered_ref_db_filepath
+            cmd_line += ' | ' + sort_bin + ' -k 1,1V -k 12,12nr'
+            cmd_line += ' > ' + sam_cov_filt_filepath
+
+            # Set t0
+            t0_wall = time.time()
+
+            logger.debug('CMD: {0}'.format(cmd_line))
+            error_code += subprocess.call(cmd_line, shell=True)
+
+            # Output running time
+            logger.debug('Ref coverage filtering terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
+
+        if args.verbose:
+            sys.stderr.write('\n')
 
     #########################
     # Overlap-graph building
 
-    logger.info('=== Overlap-graph building ===')
+    if args.resume_from == 'overlap_graph_building':
+        logger.info('Resuming from overlap-graph building')
+        run_step = True
 
-    cmd_line = ovgraphbuild_bin
-    cmd_line += ' -i ' + str(args.min_identity)
-    cmd_line += ' -m ' + str(args.min_overlap_length)
-    if args.debug:
-        cmd_line += ' --asqg'
-    cmd_line += ' --csv --output_basename '
-    cmd_line += ovgraphbuild_basepath
-    cmd_line += ' -r ' + clustered_ref_db_filepath
-    cmd_line += ' -s ' + sam_cov_filt_filepath
-    if args.verbose:
-        cmd_line += ' -v'
-    if args.debug:
-        cmd_line += ' --debug'
+    ovgraph_nodes_nb = -1
+    ovgraph_edges_nb = -1
 
-    # Set t0
-    t0_wall = time.time()
+    if run_step:
+        logger.info('=== Overlap-graph building ===')
 
-    logger.debug('CMD: {0}'.format(cmd_line))
-    error_code += subprocess.call(cmd_line, shell=True)
+        cmd_line = ovgraphbuild_bin
+        cmd_line += ' -i ' + str(args.min_identity)
+        cmd_line += ' -m ' + str(args.min_overlap_length)
+        if args.debug:
+            cmd_line += ' --asqg'
+        cmd_line += ' --csv --output_basename '
+        cmd_line += ovgraphbuild_basepath
+        cmd_line += ' -r ' + clustered_ref_db_filepath
+        cmd_line += ' -s ' + sam_cov_filt_filepath
+        if args.verbose:
+            cmd_line += ' -v'
+        if args.debug:
+            cmd_line += ' --debug'
 
-    # Output running time
-    logger.debug('Overlap-graph building terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
+        # Set t0
+        t0_wall = time.time()
 
-    # Tag tmp files for removal
-    to_rm_filepath_list.append(sam_filt_filepath)
+        logger.debug('CMD: {0}'.format(cmd_line))
+        error_code += subprocess.call(cmd_line, shell=True)
+
+        # Output running time
+        logger.debug('Overlap-graph building terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
+
+        # Tag tmp files for removal
+        to_rm_filepath_list.append(sam_filt_filepath)
 
     # Get overlap graph stats
     ovgraph_nodes_nb = int(subprocess.check_output('wc -l {0}'.format(ovgraphbuild_nodes_csv_filepath), shell=True).split()[0]) - 1
@@ -918,33 +960,38 @@ def main():
     ###############################################
     # Graph compaction & Components identification
 
-    logger.info('=== Graph compaction & Components identification ===')
+    if args.resume_from == 'graph_compaction':
+        logger.info('Resuming from graph compaction & components identification')
+        run_step = True
 
-    cmd_line = 'java -Xmx' + str(args.max_memory) + 'M -cp "'
-    cmd_line += componentsearch_jar + '" main.Main'
-    cmd_line += ' -N ' + str(args.min_read_node)
-    cmd_line += ' -E ' + str(args.min_overlap_edge)
-    cmd_line += ' -b ' + componentsearch_basepath
-    cmd_line += ' -n ' + ovgraphbuild_nodes_csv_filepath
-    cmd_line += ' -e ' + ovgraphbuild_edges_csv_filepath
+    if run_step:
+        logger.info('=== Graph compaction & Components identification ===')
 
-    # Set t0
-    t0_wall = time.time()
+        cmd_line = 'java -Xmx' + str(args.max_memory) + 'M -cp "'
+        cmd_line += componentsearch_jar + '" main.Main'
+        cmd_line += ' -N ' + str(args.min_read_node)
+        cmd_line += ' -E ' + str(args.min_overlap_edge)
+        cmd_line += ' -b ' + componentsearch_basepath
+        cmd_line += ' -n ' + ovgraphbuild_nodes_csv_filepath
+        cmd_line += ' -e ' + ovgraphbuild_edges_csv_filepath
 
-    logger.debug('CMD: {0}'.format(cmd_line))
-    if args.verbose:
-        error_code += subprocess.call(cmd_line, shell=True)
-    else:
-        # Needed because ComponentSearch doesnt have a verbose option
-        # and output everything to stderr
-        error_code += subprocess.call(cmd_line, shell=True, stderr=FNULL)
+        # Set t0
+        t0_wall = time.time()
 
-    # Output running time
-    logger.debug('Graph compaction & Components identification terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
+        logger.debug('CMD: {0}'.format(cmd_line))
+        if args.verbose:
+            error_code += subprocess.call(cmd_line, shell=True)
+        else:
+            # Needed because ComponentSearch doesnt have a verbose option
+            # and output everything to stderr
+            error_code += subprocess.call(cmd_line, shell=True, stderr=FNULL)
 
-    # Tag tmp files for removal
-    to_rm_filepath_list.append(ovgraphbuild_nodes_csv_filepath)
-    to_rm_filepath_list.append(ovgraphbuild_edges_csv_filepath)
+        # Output running time
+        logger.debug('Graph compaction & Components identification terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
+
+        # Tag tmp files for removal
+        to_rm_filepath_list.append(ovgraphbuild_nodes_csv_filepath)
+        to_rm_filepath_list.append(ovgraphbuild_edges_csv_filepath)
 
     # Get compressed graph stats
     compressed_graph_nodes_nb = int(subprocess.check_output('wc -l {0}'.format(contracted_nodes_filepath), shell=True).split()[0]) - 1
@@ -961,282 +1008,289 @@ def main():
     ################
     # LCA labelling
 
-    logger.info('=== LCA labelling ===')
+    if run_step:
+        logger.info('=== LCA labelling ===')
 
-    # Set t0
-    t0_wall = time.time()
+        # Set t0
+        t0_wall = time.time()
 
-    # Note: some of the manipulations here are needed because ComponentSearch
-    # works with read ids rather than read names. The goal of this part is to
-    # regroup all the infos in one file (component, metanode, read, ref taxo)
-    # in order to compute LCA at metanode or component level
+        # Note: some of the manipulations here are needed because ComponentSearch
+        # works with read ids rather than read names. The goal of this part is to
+        # regroup all the infos in one file (component, metanode, read, ref taxo)
+        # in order to compute LCA at metanode or component level
 
-    # Convert CSV component file to TAB format and sort by read id
-    cmd_line = 'tail -n +2 ' + contracted_components_filepath
-    cmd_line += ' | sed "s/;/\\t/g" | ' + sort_bin + ' -k2,2 > '
-    cmd_line += componentsearch_basepath + '.components.tab'
+        # Convert CSV component file to TAB format and sort by read id
+        cmd_line = 'tail -n +2 ' + contracted_components_filepath
+        cmd_line += ' | sed "s/;/\\t/g" | ' + sort_bin + ' -k2,2 > '
+        cmd_line += componentsearch_basepath + '.components.tab'
 
-    logger.debug('CMD: {0}'.format(cmd_line))
-    error_code += subprocess.call(cmd_line, shell=True)
+        logger.debug('CMD: {0}'.format(cmd_line))
+        error_code += subprocess.call(cmd_line, shell=True)
 
-    # Convert CSV node file to TAB format and sort by read id
-    cmd_line = 'tail -n +2 ' + ovgraphbuild_nodes_csv_filepath
-    cmd_line += ' | sed "s/;/\\t/g" | ' + sort_bin + ' -k1,1 > '
-    cmd_line += ovgraphbuild_basepath + '.nodes.tab'
+        # Convert CSV node file to TAB format and sort by read id
+        cmd_line = 'tail -n +2 ' + ovgraphbuild_nodes_csv_filepath
+        cmd_line += ' | sed "s/;/\\t/g" | ' + sort_bin + ' -k1,1 > '
+        cmd_line += ovgraphbuild_basepath + '.nodes.tab'
 
-    logger.debug('CMD: {0}'.format(cmd_line))
-    error_code += subprocess.call(cmd_line, shell=True)
+        logger.debug('CMD: {0}'.format(cmd_line))
+        error_code += subprocess.call(cmd_line, shell=True)
 
-    # Join component and node files on read id, and sort by read name
-    cmd_line = 'join -a1 -e"NULL" -o "1.2,0,2.3,2.1" -11 -22 '
-    cmd_line += ovgraphbuild_basepath + '.nodes.tab '
-    cmd_line += componentsearch_basepath + '.components.tab '
-    cmd_line += '| sed "s/ /\\t/g" | ' + sort_bin + ' -k1,1  > '
-    cmd_line += read_id_metanode_component_filepath
+        # Join component and node files on read id, and sort by read name
+        cmd_line = 'join -a1 -e"NULL" -o "1.2,0,2.3,2.1" -11 -22 '
+        cmd_line += ovgraphbuild_basepath + '.nodes.tab '
+        cmd_line += componentsearch_basepath + '.components.tab '
+        cmd_line += '| sed "s/ /\\t/g" | ' + sort_bin + ' -k1,1  > '
+        cmd_line += read_id_metanode_component_filepath
 
-    logger.debug('CMD: {0}'.format(cmd_line))
-    error_code += subprocess.call(cmd_line, shell=True)
+        logger.debug('CMD: {0}'.format(cmd_line))
+        error_code += subprocess.call(cmd_line, shell=True)
 
-    # Join sam file with ref taxo on ref name, and join it to the
-    # component-node file on read name.
-    # Output is (read, metanode, component, taxo) file
-    cmd_line = 'cat ' + sam_filt_filepath + ' | cut -f1,3 | ' + sort_bin + ' -k2,2'
-    cmd_line += ' | join -12 -21 - ' + complete_ref_db_taxo_filepath
-    cmd_line += ' | ' + sort_bin + ' -k2,2 | awk "{print \$2,\$3}" | sed "s/ /\\t/g" '
-    cmd_line += ' | join -11 -21 ' + read_id_metanode_component_filepath
-    cmd_line += ' - | sed "s/ /\\t/g" | cut -f2-5 > '
-    cmd_line += complete_taxo_filepath
+        # Join sam file with ref taxo on ref name, and join it to the
+        # component-node file on read name.
+        # Output is (read, metanode, component, taxo) file
+        cmd_line = 'cat ' + sam_filt_filepath + ' | cut -f1,3 | ' + sort_bin + ' -k2,2'
+        cmd_line += ' | join -12 -21 - ' + complete_ref_db_taxo_filepath
+        cmd_line += ' | ' + sort_bin + ' -k2,2 | awk "{print \$2,\$3}" | sed "s/ /\\t/g" '
+        cmd_line += ' | join -11 -21 ' + read_id_metanode_component_filepath
+        cmd_line += ' - | sed "s/ /\\t/g" | cut -f2-5 > '
+        cmd_line += complete_taxo_filepath
 
-    logger.debug('CMD: {0}'.format(cmd_line))
-    error_code += subprocess.call(cmd_line, shell=True)
+        logger.debug('CMD: {0}'.format(cmd_line))
+        error_code += subprocess.call(cmd_line, shell=True)
 
-    # Compute LCA at component level using quorum threshold
-    cmd_line = 'cat ' + complete_taxo_filepath + ' | ' + sort_bin + ' -k3,3 -k1,1 | '
-    cmd_line += compute_lca_bin + ' -t 4 -f 3 -g 1 -m ' + str(args.quorum)
-    cmd_line += ' -o ' + components_lca_filepath
+        # Compute LCA at component level using quorum threshold
+        cmd_line = 'cat ' + complete_taxo_filepath + ' | ' + sort_bin + ' -k3,3 -k1,1 | '
+        cmd_line += compute_lca_bin + ' -t 4 -f 3 -g 1 -m ' + str(args.quorum)
+        cmd_line += ' -o ' + components_lca_filepath
 
-    logger.debug('CMD: {0}'.format(cmd_line))
-    error_code += subprocess.call(cmd_line, shell=True)
+        logger.debug('CMD: {0}'.format(cmd_line))
+        error_code += subprocess.call(cmd_line, shell=True)
 
-    # Output running time
-    logger.debug('LCA labelling terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
+        # Output running time
+        logger.debug('LCA labelling terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
 
-    # Tag tmp files for removal
-    to_rm_filepath_list.append(componentsearch_basepath + '.components.tab')
-    to_rm_filepath_list.append(ovgraphbuild_basepath + '.nodes.tab')
-    to_rm_filepath_list.append(complete_taxo_filepath)
+        # Tag tmp files for removal
+        to_rm_filepath_list.append(componentsearch_basepath + '.components.tab')
+        to_rm_filepath_list.append(ovgraphbuild_basepath + '.nodes.tab')
+        to_rm_filepath_list.append(complete_taxo_filepath)
 
-    if args.verbose:
-        sys.stderr.write('\n')
+        if args.verbose:
+            sys.stderr.write('\n')
 
     ###################################
     # Computing compressed graph stats
 
-    logger.info('=== Computing compressed graph stats ===')
+    if run_step:
+        logger.info('=== Computing compressed graph stats ===')
 
-    cmd_line = compute_compressed_graph_stats_bin + ' --nodes_contracted '
-    cmd_line += contracted_nodes_filepath + ' --edges_contracted '
-    cmd_line += contracted_edges_filepath + ' --components_lca '
-    cmd_line += components_lca_filepath
-    if args.true_ref_taxo:
-        cmd_line += ' --species_taxo ' + args.true_ref_taxo
-        cmd_line += ' --read_node_component ' + read_id_metanode_component_filepath
-    cmd_line += ' -o ' + stats_filepath
+        cmd_line = compute_compressed_graph_stats_bin + ' --nodes_contracted '
+        cmd_line += contracted_nodes_filepath + ' --edges_contracted '
+        cmd_line += contracted_edges_filepath + ' --components_lca '
+        cmd_line += components_lca_filepath
+        if args.true_ref_taxo:
+            cmd_line += ' --species_taxo ' + args.true_ref_taxo
+            cmd_line += ' --read_node_component ' + read_id_metanode_component_filepath
+        cmd_line += ' -o ' + stats_filepath
 
-    # Set t0
-    t0_wall = time.time()
+        # Set t0
+        t0_wall = time.time()
 
-    logger.debug('CMD: {0}'.format(cmd_line))
-    error_code += subprocess.call(cmd_line, shell=True)
+        logger.debug('CMD: {0}'.format(cmd_line))
+        error_code += subprocess.call(cmd_line, shell=True)
 
-    # Output running time
-    logger.debug('Computing compressed graph stats terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
-    if args.verbose:
-        sys.stderr.write('\n')
+        # Output running time
+        logger.debug('Computing compressed graph stats terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
+        if args.verbose:
+            sys.stderr.write('\n')
 
     ###################
     # Contigs assembly
 
-    logger.info('=== Starting contigs assembly ===')
+    if args.resume_from == 'contigs_assembly':
+        logger.info('Resuming from contigs assembly')
+        run_step = True
 
-    # Set t0
-    t0_wall = time.time()
+    if run_step:
+        logger.info('=== Starting contigs assembly ===')
 
-    # TO DO, one day, maybe:
-    # Convert input fastq to tab, join it to the component-read file
-    # on the read name. Then generate a fastq file for each component.
-    # This would take more space but be faster and less error prone
-    # than using name filtering on the complete fastq each time
+        # Set t0
+        t0_wall = time.time()
 
-    # Reading components LCA and storing them in a dict
-    logger.debug('Reading components LCA assignment from {0}'.format(components_lca_filepath))
-    component_lca_dict = dict()
-    with open(components_lca_filepath, 'r') as component_lca_fh:
-        component_lca_dict = {t[0]:t[1] for t in (l.split() for l in component_lca_fh) if len(t) == 2}
+        # TO DO, one day, maybe:
+        # Convert input fastq to tab, join it to the component-read file
+        # on the read name. Then generate a fastq file for each component.
+        # This would take more space but be faster and less error prone
+        # than using name filtering on the complete fastq each time
 
-    # Reading read --> component file
-    logger.debug('Reading read-->component from {}'.format(read_id_metanode_component_filepath))
-    read_component_dict = dict()
-    with open(read_id_metanode_component_filepath, 'r') as read_id_metanode_component_fh:
-        read_component_dict = {t[0]:t[3] for t in (l.split() for l in read_id_metanode_component_fh) if t[3] != 'NULL'}
+        # Reading components LCA and storing them in a dict
+        logger.debug('Reading components LCA assignment from {0}'.format(components_lca_filepath))
+        component_lca_dict = dict()
+        with open(components_lca_filepath, 'r') as component_lca_fh:
+            component_lca_dict = {t[0]:t[1] for t in (l.split() for l in component_lca_fh) if len(t) == 2}
 
-    # Storing reads for each component
-    logger.debug('Storing reads by component from {}'.format(sortme_output_fastx_filepath))
-    component_reads_dict = defaultdict(list)
-    with open(sortme_output_fastx_filepath, 'r') as sortme_output_fastx_fh:
-        for header, seq, qual in read_fastq_file_handle(sortme_output_fastx_fh):
-            try:
-                component_reads_dict[read_component_dict[header]].append(tuple((header, seq, qual)))
-            except KeyError:
-                pass
-    components_num = len(component_reads_dict)
-    logger.info('{} components to be assembled'.format(components_num))
+        # Reading read --> component file
+        logger.debug('Reading read-->component from {}'.format(read_id_metanode_component_filepath))
+        read_component_dict = dict()
+        with open(read_id_metanode_component_filepath, 'r') as read_id_metanode_component_fh:
+            read_component_dict = {t[0]:t[3] for t in (l.split() for l in read_id_metanode_component_fh) if t[3] != 'NULL'}
 
-    # Open output contigs file
-    contigs_fh = open(contigs_filepath, 'w')
+        # Storing reads for each component
+        logger.debug('Storing reads by component from {}'.format(sortme_output_fastx_filepath))
+        component_reads_dict = defaultdict(list)
+        with open(sortme_output_fastx_filepath, 'r') as sortme_output_fastx_fh:
+            for header, seq, qual in read_fastq_file_handle(sortme_output_fastx_fh):
+                try:
+                    component_reads_dict[read_component_dict[header]].append(tuple((header, seq, qual)))
+                except KeyError:
+                    pass
+        components_num = len(component_reads_dict)
+        logger.info('{} components to be assembled'.format(components_num))
 
-    # We will be working in the assembly directory because assembly tools
-    # generate lots of files we dont want in our matam assembly directory
-    os.chdir(contigs_assembly_wkdir)
+        # Open output contigs file
+        contigs_fh = open(contigs_filepath, 'w')
 
-    # Begin reading read-->component file (sorted by component)
-    contig_count = 0
-    component_count = 0
-    logger.info('Assembling component #')
+        # We will be working in the assembly directory because assembly tools
+        # generate lots of files we dont want in our matam assembly directory
+        os.chdir(contigs_assembly_wkdir)
 
-    #
-    for component_id, reads_list in component_reads_dict.items():
+        # Begin reading read-->component file (sorted by component)
+        contig_count = 0
+        component_count = 0
+        logger.info('Assembling component #')
 
-        component_count += 1
+        #
+        for component_id, reads_list in component_reads_dict.items():
 
-        # Printing progress
+            component_count += 1
+
+            # Printing progress
+            if args.verbose:
+                sys.stderr.write('\r{0} / {1}'.format(component_count, components_num))
+                sys.stderr.flush()
+
+            # Cleaning previous assembly
+            if os.path.exists('contigs.fa'):
+                os.remove('contigs.fa')
+            if os.path.exists('tmp'):
+                subprocess.call('rm -rf tmp', shell=True)
+
+            # Writing fastq file with this component reads
+            with open('reads_single_component.fq', 'w') as reads_single_component_fh:
+                for (header, seq, qual) in reads_list:
+                    reads_single_component_fh.write('@{}\n{}\n+\n{}\n'.format(header, seq, qual))
+
+            # Assemble those reads with SGA
+            cmd_line = 'echo "component #' + component_id + '" >> '
+            cmd_line += contigs_assembly_log_filepath + ' && '
+            cmd_line += sga_assemble_bin + ' -i reads_single_component.fq'
+            cmd_line += ' -o contigs.fa --sga_bin ' + assembler_bin
+            if args.read_correction in ('no', 'auto'):
+                cmd_line += ' --no_correction' # !!! desactivate all SGA error corrections and filters
+            cmd_line += ' --cpu ' + str(args.cpu)
+            cmd_line += ' --tmp_dir tmp'
+            cmd_line += ' >> ' + contigs_assembly_log_filepath + ' 2>&1'
+
+            #~ logger.debug('CMD: {0}'.format(cmd_line))
+            error_code += subprocess.call(cmd_line, shell=True)
+
+            # Concatenate the component contigs in the output contigs file
+            component_lca = 'NULL'
+            component_contigs_num = 0
+            if component_id in component_lca_dict:
+                component_lca = component_lca_dict[component_id]
+            with open('contigs.fa', 'r') as sga_contigs_fh:
+                for header, seq in read_fasta_file_handle(sga_contigs_fh):
+                    if len(seq):
+                        contig_count += 1
+                        component_contigs_num += 1
+                        contigs_fh.write('>{0} component={1} '.format(contig_count, component_id))
+                        contigs_fh.write('lca={0}\n{1}\n'.format(component_lca, format_seq(seq)))
+
+            #~ logger.debug('{0} contigs were written to assembly fasta file'.format(component_contigs_num))
+
+        #
         if args.verbose:
-            sys.stderr.write('\r{0} / {1}'.format(component_count, components_num))
-            sys.stderr.flush()
+            sys.stderr.write('\n')
 
-        # Cleaning previous assembly
-        if os.path.exists('contigs.fa'):
-            os.remove('contigs.fa')
-        if os.path.exists('tmp'):
-            subprocess.call('rm -rf tmp', shell=True)
+        # Return to matam assembly directory
+        os.chdir(args.out_dir)
 
-        # Writing fastq file with this component reads
-        with open('reads_single_component.fq', 'w') as reads_single_component_fh:
-            for (header, seq, qual) in reads_list:
-                reads_single_component_fh.write('@{}\n{}\n+\n{}\n'.format(header, seq, qual))
+        # Close assembly contigs file
+        contigs_fh.close()
 
-        # Assemble those reads with SGA
-        cmd_line = 'echo "component #' + component_id + '" >> '
-        cmd_line += contigs_assembly_log_filepath + ' && '
-        cmd_line += sga_assemble_bin + ' -i reads_single_component.fq'
-        cmd_line += ' -o contigs.fa --sga_bin ' + assembler_bin
-        if args.read_correction in ('no', 'auto'):
-            cmd_line += ' --no_correction' # !!! desactivate all SGA error corrections and filters
-        cmd_line += ' --cpu ' + str(args.cpu)
-        cmd_line += ' --tmp_dir tmp'
-        cmd_line += ' >> ' + contigs_assembly_log_filepath + ' 2>&1'
+        # Create symbolic link
+        if os.path.exists(contigs_symlink_filepath):
+            os.remove(contigs_symlink_filepath)
+        os.symlink(os.path.basename(contigs_filepath), contigs_symlink_filepath)
 
-        #~ logger.debug('CMD: {0}'.format(cmd_line))
-        error_code += subprocess.call(cmd_line, shell=True)
+        # TO DO, if it gets better results:
+        # remove redundant sequences in contigs
 
-        # Concatenate the component contigs in the output contigs file
-        component_lca = 'NULL'
-        component_contigs_num = 0
-        if component_id in component_lca_dict:
-            component_lca = component_lca_dict[component_id]
-        with open('contigs.fa', 'r') as sga_contigs_fh:
-            for header, seq in read_fasta_file_handle(sga_contigs_fh):
-                if len(seq):
-                    contig_count += 1
-                    component_contigs_num += 1
-                    contigs_fh.write('>{0} component={1} '.format(contig_count, component_id))
-                    contigs_fh.write('lca={0}\n{1}\n'.format(component_lca, format_seq(seq)))
-
-        #~ logger.debug('{0} contigs were written to assembly fasta file'.format(component_contigs_num))
-
-    #
-    if args.verbose:
-        sys.stderr.write('\n')
-
-    # Return to matam assembly directory
-    os.chdir(args.out_dir)
-
-    # Close assembly contigs file
-    contigs_fh.close()
-
-    # Create symbolic link
-    if os.path.exists(contigs_symlink_filepath):
-        os.remove(contigs_symlink_filepath)
-    os.symlink(os.path.basename(contigs_filepath), contigs_symlink_filepath)
-
-    # TO DO, if it gets better results:
-    # remove redundant sequences in contigs
-
-    # Remove redundant contigs
-    cmd_line = remove_redundant_bin + ' -i ' + contigs_symlink_filepath
-    cmd_line += ' -o ' + contigs_NR_filepath
-
-    logger.debug('CMD: {0}'.format(cmd_line))
-    error_code += subprocess.call(cmd_line, shell=True)
-
-    # Filter out small contigs
-    cmd_line = fasta_length_filter_bin + ' -m ' + str(500)
-    cmd_line += ' -i ' + contigs_NR_filepath
-    cmd_line += ' -o ' + large_NR_contigs_filepath
-
-    logger.debug('CMD: {0}'.format(cmd_line))
-    error_code += subprocess.call(cmd_line, shell=True)
-
-    # Output running time
-    logger.debug('Contigs assembly terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
-
-    # Evaluate assembly if true ref are provided
-    if args.true_references:
-
-        true_ref_filename = os.path.basename(args.true_references)
-        true_ref_basename, true_ref_extension = os.path.splitext(true_ref_filename)
-
-        # Evaluate all contigs
-        cmd_line = evaluate_assembly_bin + ' -r ' + args.true_references
-        cmd_line += ' -i ' + contigs_symlink_filepath
+        # Remove redundant contigs
+        cmd_line = remove_redundant_bin + ' -i ' + contigs_symlink_filepath
+        cmd_line += ' -o ' + contigs_NR_filepath
 
         logger.debug('CMD: {0}'.format(cmd_line))
         error_code += subprocess.call(cmd_line, shell=True)
 
-        contigs_assembly_stats_filename = contigs_symlink_basename + '.exonerate_vs_'
-        contigs_assembly_stats_filename += true_ref_basename + '.assembly.stats'
-        contigs_assembly_stats_filepath = os.path.join(args.out_dir, contigs_assembly_stats_filename)
-
-        contigs_error_rate = float(subprocess.check_output('grep "error rate   =" {0}'.format(contigs_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
-        contigs_error_rate_2 = float(subprocess.check_output('grep "error rate 2 =" {0}'.format(contigs_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
-        contigs_ref_coverage = float(subprocess.check_output('grep "ref coverage" {0}'.format(contigs_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
-
-        # Evaluate large NR contigs
-        cmd_line = evaluate_assembly_bin + ' -r ' + args.true_references
-        cmd_line += ' -i ' + large_NR_contigs_filepath
+        # Filter out small contigs
+        cmd_line = fasta_length_filter_bin + ' -m ' + str(500)
+        cmd_line += ' -i ' + contigs_NR_filepath
+        cmd_line += ' -o ' + large_NR_contigs_filepath
 
         logger.debug('CMD: {0}'.format(cmd_line))
         error_code += subprocess.call(cmd_line, shell=True)
 
-        large_NR_contigs_assembly_stats_filename = large_NR_contigs_basename + '.exonerate_vs_'
-        large_NR_contigs_assembly_stats_filename += true_ref_basename + '.assembly.stats'
-        large_NR_contigs_assembly_stats_filepath = os.path.join(args.out_dir, large_NR_contigs_assembly_stats_filename)
+        # Output running time
+        logger.debug('Contigs assembly terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
 
-        try:
-            large_NR_contigs_error_rate = float(subprocess.check_output('grep "error rate   =" {0}'.format(large_NR_contigs_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
-            large_NR_contigs_error_rate_2 = float(subprocess.check_output('grep "error rate 2 =" {0}'.format(large_NR_contigs_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
-            large_NR_contigs_ref_coverage = float(subprocess.check_output('grep "ref coverage" {0}'.format(large_NR_contigs_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
-        except subprocess.CalledProcessError:
-            large_NR_contigs_error_rate = float()
-            large_NR_contigs_error_rate_2 = float()
-            large_NR_contigs_ref_coverage = float()
+        # Evaluate assembly if true ref are provided
+        if args.true_references:
 
-    # Tag tmp files for removal
-    to_rm_filepath_list.append(read_id_metanode_component_filepath)
+            true_ref_filename = os.path.basename(args.true_references)
+            true_ref_basename, true_ref_extension = os.path.splitext(true_ref_filename)
 
-    # Delete assembly directory
-    if not args.keep_tmp:
-        subprocess.call('rm -rf {0}'.format(contigs_assembly_wkdir), shell=True)
+            # Evaluate all contigs
+            cmd_line = evaluate_assembly_bin + ' -r ' + args.true_references
+            cmd_line += ' -i ' + contigs_symlink_filepath
+
+            logger.debug('CMD: {0}'.format(cmd_line))
+            error_code += subprocess.call(cmd_line, shell=True)
+
+            contigs_assembly_stats_filename = contigs_symlink_basename + '.exonerate_vs_'
+            contigs_assembly_stats_filename += true_ref_basename + '.assembly.stats'
+            contigs_assembly_stats_filepath = os.path.join(args.out_dir, contigs_assembly_stats_filename)
+
+            contigs_error_rate = float(subprocess.check_output('grep "error rate   =" {0}'.format(contigs_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
+            contigs_error_rate_2 = float(subprocess.check_output('grep "error rate 2 =" {0}'.format(contigs_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
+            contigs_ref_coverage = float(subprocess.check_output('grep "ref coverage" {0}'.format(contigs_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
+
+            # Evaluate large NR contigs
+            cmd_line = evaluate_assembly_bin + ' -r ' + args.true_references
+            cmd_line += ' -i ' + large_NR_contigs_filepath
+
+            logger.debug('CMD: {0}'.format(cmd_line))
+            error_code += subprocess.call(cmd_line, shell=True)
+
+            large_NR_contigs_assembly_stats_filename = large_NR_contigs_basename + '.exonerate_vs_'
+            large_NR_contigs_assembly_stats_filename += true_ref_basename + '.assembly.stats'
+            large_NR_contigs_assembly_stats_filepath = os.path.join(args.out_dir, large_NR_contigs_assembly_stats_filename)
+
+            try:
+                large_NR_contigs_error_rate = float(subprocess.check_output('grep "error rate   =" {0}'.format(large_NR_contigs_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
+                large_NR_contigs_error_rate_2 = float(subprocess.check_output('grep "error rate 2 =" {0}'.format(large_NR_contigs_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
+                large_NR_contigs_ref_coverage = float(subprocess.check_output('grep "ref coverage" {0}'.format(large_NR_contigs_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
+            except subprocess.CalledProcessError:
+                large_NR_contigs_error_rate = float()
+                large_NR_contigs_error_rate_2 = float()
+                large_NR_contigs_ref_coverage = float()
+
+        # Tag tmp files for removal
+        to_rm_filepath_list.append(read_id_metanode_component_filepath)
+
+        # Delete assembly directory
+        if not args.keep_tmp:
+            subprocess.call('rm -rf {0}'.format(contigs_assembly_wkdir), shell=True)
 
     # Compute contigs assembly stats
     contigs_stats = compute_fasta_stats(contigs_filepath)
@@ -1248,172 +1302,177 @@ def main():
     ##############
     # Scaffolding
 
-    logger.info('=== Scaffolding ===')
+    if args.resume_from == 'scaffolding':
+        logger.info('Resuming from scaffolding')
+        run_step = True
 
-    # Set t0
-    t0_wall = time.time()
+    if run_step:
+        logger.info('=== Scaffolding ===')
 
-    # Contigs remapping on the complete database
-    scaff_evalue = 1e-05
+        # Set t0
+        t0_wall = time.time()
 
-    cmd_line = sortmerna_bin
-    cmd_line += ' --ref ' + complete_ref_db_filepath + ',' + complete_ref_db_basepath
-    cmd_line += ' --reads ' + contigs_filepath
-    cmd_line += ' --aligned ' + scaff_sortme_output_basepath
-    cmd_line += ' --sam --blast "1"'
-    cmd_line += ' --num_alignments 0 '
-    #cmd_line += ' --num_seeds 3 '
-    #cmd_line += ' --best 0 --min_lis 10 '
-    cmd_line += ' -e {0:.2e}'.format(scaff_evalue)
-    cmd_line += ' -a ' + str(args.cpu)
-    if args.verbose:
-        cmd_line += ' -v '
+        # Contigs remapping on the complete database
+        scaff_evalue = 1e-05
 
-    logger.debug('CMD: {0}'.format(cmd_line))
-    error_code += subprocess.call(cmd_line, shell=True)
-    if args.verbose:
-        sys.stderr.write('\n')
+        cmd_line = sortmerna_bin
+        cmd_line += ' --ref ' + complete_ref_db_filepath + ',' + complete_ref_db_basepath
+        cmd_line += ' --reads ' + contigs_filepath
+        cmd_line += ' --aligned ' + scaff_sortme_output_basepath
+        cmd_line += ' --sam --blast "1"'
+        cmd_line += ' --num_alignments 0 '
+        #cmd_line += ' --num_seeds 3 '
+        #cmd_line += ' --best 0 --min_lis 10 '
+        cmd_line += ' -e {0:.2e}'.format(scaff_evalue)
+        cmd_line += ' -a ' + str(args.cpu)
+        if args.verbose:
+            cmd_line += ' -v '
 
-    # Output running time
-    logger.debug('[scaff] Contig mapping terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
+        logger.debug('CMD: {0}'.format(cmd_line))
+        error_code += subprocess.call(cmd_line, shell=True)
+        if args.verbose:
+            sys.stderr.write('\n')
 
-    # Set t0
-    t0_wall = time.time()
+        # Output running time
+        logger.debug('[scaff] Contig mapping terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
 
-    # Keep only quasi-equivalent best matches for each contig
-    # -p 0.99 is used because of the tendency of SortMeRNA to soft-clip
-    # a few nucleotides at 5’ and 3’ ends
-    cmd_line = sort_bin + ' -k1,1V -k12,12nr ' + scaff_sortme_output_blast_filepath
-    cmd_line += ' | ' + get_best_matches_bin + ' -p 0.99 -o ' + best_only_blast_filepath
+        # Set t0
+        t0_wall = time.time()
 
-    logger.debug('CMD: {0}'.format(cmd_line))
-    error_code += subprocess.call(cmd_line, shell=True)
-
-    # Select blast matches for scaffolding using a specific-first conserved-later approach
-    cmd_line = gener_scaff_blast_bin + ' -i ' + best_only_blast_filepath
-    cmd_line += ' -o ' + selected_best_only_blast_filepath
-
-    logger.debug('CMD: {0}'.format(cmd_line))
-    error_code += subprocess.call(cmd_line, shell=True)
-
-    # Filter sam file based on blast scaffolding file
-    cmd_line = filter_sam_blast_bin + ' -i ' + scaff_sortme_output_sam_filepath
-    cmd_line += ' -b ' +  selected_best_only_blast_filepath
-    cmd_line += ' | ' + sort_bin + ' -k3,3 -k4,4n > ' + selected_sam_filepath
-
-    logger.debug('CMD: {0}'.format(cmd_line))
-    error_code += subprocess.call(cmd_line, shell=True)
-
-    # Bin compatible contigs matching on the same reference
-    if not args.no_binning:
-        cmd_line = compute_contigs_compatibility_bin
-        cmd_line += ' -i ' + selected_sam_filepath
-        cmd_line += ' | ' + sort_bin + ' -k1,1n > ' + binned_sam_filepath
+        # Keep only quasi-equivalent best matches for each contig
+        # -p 0.99 is used because of the tendency of SortMeRNA to soft-clip
+        # a few nucleotides at 5’ and 3’ ends
+        cmd_line = sort_bin + ' -k1,1V -k12,12nr ' + scaff_sortme_output_blast_filepath
+        cmd_line += ' | ' + get_best_matches_bin + ' -p 0.99 -o ' + best_only_blast_filepath
 
         logger.debug('CMD: {0}'.format(cmd_line))
         error_code += subprocess.call(cmd_line, shell=True)
 
-    # Convert sam to bam
-    cmd_line = 'samtools view -b -S ' + processed_sam_filepath
-    cmd_line += ' -o ' + bam_filepath
-
-    logger.debug('CMD: {0}'.format(cmd_line))
-    error_code += subprocess.call(cmd_line, shell=True)
-
-    # Sort bam
-    cmd_line = 'samtools sort ' + bam_filepath + ' ' + sorted_bam_basepath
-
-    logger.debug('CMD: {0}'.format(cmd_line))
-    error_code += subprocess.call(cmd_line, shell=True)
-
-    # Generate mpileup
-    cmd_line = 'samtools mpileup -d 10000 ' + sorted_bam_filepath
-    cmd_line += ' > ' + mpileup_filepath
-
-    logger.debug('CMD: {0}'.format(cmd_line))
-    error_code += subprocess.call(cmd_line, shell=True)
-
-    # Scaffold contigs based on mpileup
-    cmd_line = scaffold_contigs_bin + ' -i ' + mpileup_filepath
-    cmd_line += ' -o ' + scaffolds_filepath
-
-    logger.debug('CMD: {0}'.format(cmd_line))
-    error_code += subprocess.call(cmd_line, shell=True)
-
-    # Create symbolic link
-    if os.path.exists(scaffolds_symlink_filepath):
-        os.remove(scaffolds_symlink_filepath)
-    os.symlink(os.path.basename(scaffolds_filepath), scaffolds_symlink_filepath)
-
-    # Remove redundant scaffolds
-    cmd_line = remove_redundant_bin + ' -i ' + scaffolds_symlink_filepath
-    cmd_line += ' -o ' + scaffolds_NR_filepath
-
-    logger.debug('CMD: {0}'.format(cmd_line))
-    error_code += subprocess.call(cmd_line, shell=True)
-
-    # Filter out small scaffolds
-    cmd_line = fasta_length_filter_bin + ' -m ' + str(500)
-    cmd_line += ' -i ' + scaffolds_NR_filepath
-    cmd_line += ' -o ' + large_NR_scaffolds_filepath
-
-    logger.debug('CMD: {0}'.format(cmd_line))
-    error_code += subprocess.call(cmd_line, shell=True)
-
-    # Output running time
-    logger.debug('[scaff] Scaffolding terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
-
-    # Evaluate assembly if true ref are provided
-    if args.true_references:
-
-        true_ref_filename = os.path.basename(args.true_references)
-        true_ref_basename, true_ref_extension = os.path.splitext(true_ref_filename)
-
-        # Evaluate all scaffolds
-        cmd_line = evaluate_assembly_bin + ' -r ' + args.true_references
-        cmd_line += ' -i ' + scaffolds_symlink_filepath
+        # Select blast matches for scaffolding using a specific-first conserved-later approach
+        cmd_line = gener_scaff_blast_bin + ' -i ' + best_only_blast_filepath
+        cmd_line += ' -o ' + selected_best_only_blast_filepath
 
         logger.debug('CMD: {0}'.format(cmd_line))
         error_code += subprocess.call(cmd_line, shell=True)
 
-        scaffolds_assembly_stats_filename = scaffolds_symlink_basename + '.exonerate_vs_'
-        scaffolds_assembly_stats_filename += true_ref_basename + '.assembly.stats'
-        scaffolds_assembly_stats_filepath = os.path.join(args.out_dir, scaffolds_assembly_stats_filename)
-
-        scaffolds_error_rate = float(subprocess.check_output('grep "error rate   =" {0}'.format(scaffolds_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
-        scaffolds_error_rate_2 = float(subprocess.check_output('grep "error rate 2 =" {0}'.format(scaffolds_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
-        scaffolds_ref_coverage = float(subprocess.check_output('grep "ref coverage" {0}'.format(scaffolds_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
-
-        # Evaluate large NR scaffolds
-        cmd_line = evaluate_assembly_bin + ' -r ' + args.true_references
-        cmd_line += ' -i ' + large_NR_scaffolds_filepath
+        # Filter sam file based on blast scaffolding file
+        cmd_line = filter_sam_blast_bin + ' -i ' + scaff_sortme_output_sam_filepath
+        cmd_line += ' -b ' +  selected_best_only_blast_filepath
+        cmd_line += ' | ' + sort_bin + ' -k3,3 -k4,4n > ' + selected_sam_filepath
 
         logger.debug('CMD: {0}'.format(cmd_line))
         error_code += subprocess.call(cmd_line, shell=True)
 
-        large_NR_scaffolds_assembly_stats_filename = large_NR_scaffolds_basename + '.exonerate_vs_'
-        large_NR_scaffolds_assembly_stats_filename += true_ref_basename + '.assembly.stats'
-        large_NR_scaffolds_assembly_stats_filepath = os.path.join(args.out_dir, large_NR_scaffolds_assembly_stats_filename)
+        # Bin compatible contigs matching on the same reference
+        if not args.no_binning:
+            cmd_line = compute_contigs_compatibility_bin
+            cmd_line += ' -i ' + selected_sam_filepath
+            cmd_line += ' | ' + sort_bin + ' -k1,1n > ' + binned_sam_filepath
 
-        try:
-            large_NR_scaffolds_error_rate = float(subprocess.check_output('grep "error rate   =" {0}'.format(large_NR_scaffolds_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
-            large_NR_scaffolds_error_rate_2 = float(subprocess.check_output('grep "error rate 2 =" {0}'.format(large_NR_scaffolds_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
-            large_NR_scaffolds_ref_coverage = float(subprocess.check_output('grep "ref coverage" {0}'.format(large_NR_scaffolds_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
-        except subprocess.CalledProcessError:
-            large_NR_scaffolds_error_rate = float()
-            large_NR_scaffolds_error_rate_2 = float()
-            large_NR_scaffolds_ref_coverage = float()
+            logger.debug('CMD: {0}'.format(cmd_line))
+            error_code += subprocess.call(cmd_line, shell=True)
 
-    # Tag tmp files for removal
-    to_rm_filepath_list.append(scaff_sortme_output_blast_filepath)
-    to_rm_filepath_list.append(scaff_sortme_output_sam_filepath)
-    to_rm_filepath_list.append(best_only_blast_filepath)
-    to_rm_filepath_list.append(selected_best_only_blast_filepath)
-    to_rm_filepath_list.append(selected_sam_filepath)
-    to_rm_filepath_list.append(binned_sam_filepath)
-    to_rm_filepath_list.append(bam_filepath)
-    to_rm_filepath_list.append(sorted_bam_filepath)
-    to_rm_filepath_list.append(mpileup_filepath)
+        # Convert sam to bam
+        cmd_line = 'samtools view -b -S ' + processed_sam_filepath
+        cmd_line += ' -o ' + bam_filepath
+
+        logger.debug('CMD: {0}'.format(cmd_line))
+        error_code += subprocess.call(cmd_line, shell=True)
+
+        # Sort bam
+        cmd_line = 'samtools sort ' + bam_filepath + ' ' + sorted_bam_basepath
+
+        logger.debug('CMD: {0}'.format(cmd_line))
+        error_code += subprocess.call(cmd_line, shell=True)
+
+        # Generate mpileup
+        cmd_line = 'samtools mpileup -d 10000 ' + sorted_bam_filepath
+        cmd_line += ' > ' + mpileup_filepath
+
+        logger.debug('CMD: {0}'.format(cmd_line))
+        error_code += subprocess.call(cmd_line, shell=True)
+
+        # Scaffold contigs based on mpileup
+        cmd_line = scaffold_contigs_bin + ' -i ' + mpileup_filepath
+        cmd_line += ' -o ' + scaffolds_filepath
+
+        logger.debug('CMD: {0}'.format(cmd_line))
+        error_code += subprocess.call(cmd_line, shell=True)
+
+        # Create symbolic link
+        if os.path.exists(scaffolds_symlink_filepath):
+            os.remove(scaffolds_symlink_filepath)
+        os.symlink(os.path.basename(scaffolds_filepath), scaffolds_symlink_filepath)
+
+        # Remove redundant scaffolds
+        cmd_line = remove_redundant_bin + ' -i ' + scaffolds_symlink_filepath
+        cmd_line += ' -o ' + scaffolds_NR_filepath
+
+        logger.debug('CMD: {0}'.format(cmd_line))
+        error_code += subprocess.call(cmd_line, shell=True)
+
+        # Filter out small scaffolds
+        cmd_line = fasta_length_filter_bin + ' -m ' + str(500)
+        cmd_line += ' -i ' + scaffolds_NR_filepath
+        cmd_line += ' -o ' + large_NR_scaffolds_filepath
+
+        logger.debug('CMD: {0}'.format(cmd_line))
+        error_code += subprocess.call(cmd_line, shell=True)
+
+        # Output running time
+        logger.debug('[scaff] Scaffolding terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
+
+        # Evaluate assembly if true ref are provided
+        if args.true_references:
+
+            true_ref_filename = os.path.basename(args.true_references)
+            true_ref_basename, true_ref_extension = os.path.splitext(true_ref_filename)
+
+            # Evaluate all scaffolds
+            cmd_line = evaluate_assembly_bin + ' -r ' + args.true_references
+            cmd_line += ' -i ' + scaffolds_symlink_filepath
+
+            logger.debug('CMD: {0}'.format(cmd_line))
+            error_code += subprocess.call(cmd_line, shell=True)
+
+            scaffolds_assembly_stats_filename = scaffolds_symlink_basename + '.exonerate_vs_'
+            scaffolds_assembly_stats_filename += true_ref_basename + '.assembly.stats'
+            scaffolds_assembly_stats_filepath = os.path.join(args.out_dir, scaffolds_assembly_stats_filename)
+
+            scaffolds_error_rate = float(subprocess.check_output('grep "error rate   =" {0}'.format(scaffolds_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
+            scaffolds_error_rate_2 = float(subprocess.check_output('grep "error rate 2 =" {0}'.format(scaffolds_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
+            scaffolds_ref_coverage = float(subprocess.check_output('grep "ref coverage" {0}'.format(scaffolds_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
+
+            # Evaluate large NR scaffolds
+            cmd_line = evaluate_assembly_bin + ' -r ' + args.true_references
+            cmd_line += ' -i ' + large_NR_scaffolds_filepath
+
+            logger.debug('CMD: {0}'.format(cmd_line))
+            error_code += subprocess.call(cmd_line, shell=True)
+
+            large_NR_scaffolds_assembly_stats_filename = large_NR_scaffolds_basename + '.exonerate_vs_'
+            large_NR_scaffolds_assembly_stats_filename += true_ref_basename + '.assembly.stats'
+            large_NR_scaffolds_assembly_stats_filepath = os.path.join(args.out_dir, large_NR_scaffolds_assembly_stats_filename)
+
+            try:
+                large_NR_scaffolds_error_rate = float(subprocess.check_output('grep "error rate   =" {0}'.format(large_NR_scaffolds_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
+                large_NR_scaffolds_error_rate_2 = float(subprocess.check_output('grep "error rate 2 =" {0}'.format(large_NR_scaffolds_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
+                large_NR_scaffolds_ref_coverage = float(subprocess.check_output('grep "ref coverage" {0}'.format(large_NR_scaffolds_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
+            except subprocess.CalledProcessError:
+                large_NR_scaffolds_error_rate = float()
+                large_NR_scaffolds_error_rate_2 = float()
+                large_NR_scaffolds_ref_coverage = float()
+
+        # Tag tmp files for removal
+        to_rm_filepath_list.append(scaff_sortme_output_blast_filepath)
+        to_rm_filepath_list.append(scaff_sortme_output_sam_filepath)
+        to_rm_filepath_list.append(best_only_blast_filepath)
+        to_rm_filepath_list.append(selected_best_only_blast_filepath)
+        to_rm_filepath_list.append(selected_sam_filepath)
+        to_rm_filepath_list.append(binned_sam_filepath)
+        to_rm_filepath_list.append(bam_filepath)
+        to_rm_filepath_list.append(sorted_bam_filepath)
+        to_rm_filepath_list.append(mpileup_filepath)
 
     # Compute scaffolds assemblies stats
     scaffolds_stats = compute_fasta_stats(scaffolds_filepath)
@@ -1555,7 +1614,9 @@ def main():
 
 if __name__ == '__main__':
 
-    cProfile.run('main()')
-    # exit_code = main()
+    exit_code = 0
+
+    # cProfile.run('main()')
+    exit_code = main()
 
     exit(exit_code)
