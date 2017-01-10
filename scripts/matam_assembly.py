@@ -884,6 +884,8 @@ def main():
     cmd_line = ovgraphbuild_bin
     cmd_line += ' -i ' + str(args.min_identity)
     cmd_line += ' -m ' + str(args.min_overlap_length)
+    if args.debug:
+        cmd_line += ' --asqg'
     cmd_line += ' --csv --output_basename '
     cmd_line += ovgraphbuild_basepath
     cmd_line += ' -r ' + clustered_ref_db_filepath
