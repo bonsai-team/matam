@@ -36,7 +36,7 @@ To install all the needed depencies, you can run the following command-line in D
 
 ### Full dependencies list
 
-* **gcc v4.9.0 or superior** (full C++11 support, \<regex\> included, and partial C++14 support)
+* **gcc v4.9.0 or superior, v5.0.0 or superior. gcc v6 is not yet supported (pb with bamtools)** (full C++11 support, \<regex\> included, and partial C++14 support)
 * C++ libraries: rt, pthread, zlib
 * Python 3
 * Java SE 7 JDK. OpenJDK is ok (openjdk-7-jdk paquet on debian)
