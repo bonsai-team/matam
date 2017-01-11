@@ -197,7 +197,7 @@ if __name__ == '__main__':
     os.chdir(bamtools_lib_build_dirpath)
     logger.debug('PWD: {0}'.format(bamtools_lib_build_dirpath))
 
-    cmd_line = 'cmake .. && make'
+    cmd_line = 'CC=gcc CXX=g++ cmake .. && make'
 
     logger.debug('CMD: {0}'.format(cmd_line))
     error_code = subprocess.call(cmd_line, shell=True)
@@ -219,7 +219,7 @@ if __name__ == '__main__':
     logger.debug('PWD: {0}'.format(sga_src_dirpath))
 
     cmd_line = './autogen.sh && '
-    cmd_line += './configure --with-bamtools=' + bamtools_lib_dirpath + ' && make'
+    cmd_line += 'CC=gcc CXX=g++ ./configure --with-bamtools=' + bamtools_lib_dirpath + ' && make'
 
     logger.debug('CMD: {0}'.format(cmd_line))
     error_code = subprocess.call(cmd_line, shell=True)
