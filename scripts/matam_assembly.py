@@ -11,6 +11,8 @@ import logging
 import cProfile
 from collections import defaultdict
 
+# Set LC_LANG to C for standart sort behaviour
+os.environ["LC_ALL"] = "C"
 
 # Create logger
 logger = logging.getLogger(__name__)
