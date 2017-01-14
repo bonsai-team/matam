@@ -18,7 +18,6 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     git \
     gcc \
     g++ \
-\#    python3 \ Python3 now comes from conda
     default-jdk \
     automake \
     make \
@@ -26,6 +25,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     libsparsehash-dev \
     zlib1g-dev \
     bzip2
+    # Python 3 now comes from conda
 
 # Install Conda
 RUN wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh \
