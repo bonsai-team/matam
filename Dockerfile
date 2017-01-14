@@ -15,11 +15,10 @@ MAINTAINER Pierre Pericard
 
 # Install dependencies
 RUN apt-get update && apt-get install --no-install-recommends -y \
-    curl \
     git \
     gcc \
     g++ \
-    python3 \
+\#    python3 \ Python3 now comes from conda
     default-jdk \
     automake \
     make \
@@ -28,9 +27,16 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     zlib1g-dev \
     bzip2
 
-# Install git lfs repository and paquet
-RUN curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash \
-&& apt-get install -y git-lfs
+# Install Conda
+RUN wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh \
+    && bash Miniconda3-latest-Linux-x86_64.sh -b
+
+# Install Bioconda and samtools
+RUN conda config --add channels conda-forge \
+    && conda config --add channels defaults \
+    && conda config --add channels r \
+    && conda config --add channels bioconda
+RUN conda install --update-dependencies -y samtools
 
 # Clean apt cache
 RUN rm -rf /var/lib/apt/lists/*
