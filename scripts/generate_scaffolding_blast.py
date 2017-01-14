@@ -92,7 +92,7 @@ if __name__ == '__main__':
                     tab = tab_list[0]
                     kept_references_ids_set.add(tab[1]) # Add the matching ref id to the set
                     # Write the alignment
-                    output_tab_buffer.add('\t'.join(tab))
+                    output_tab_buffer.append('\t'.join(tab))
                     dealt_contigs_id.add(tab[0])
                     dealt_contigs_num += 1
                 else:
@@ -109,7 +109,7 @@ if __name__ == '__main__':
 
             kept_references_ids_set.add(selected_tab[1]) # Add the matching ref id to the set
             # Write the alignment
-            output_tab_buffer.add('\t'.join(selected_tab))
+            output_tab_buffer.append('\t'.join(selected_tab))
             dealt_contigs_id.add(selected_tab[0])
             dealt_contigs_num += 1
 
@@ -127,7 +127,7 @@ if __name__ == '__main__':
             for tab in tab_list:
                 reference_id = tab[1]
                 if reference_id in references_intersection:
-                    output_tab_buffer.add('\t'.join(tab))
+                    output_tab_buffer.append('\t'.join(tab))
                     dealt_contigs_id.add(tab[0])
                 else:
                     # Store the alignments not already used
@@ -150,7 +150,7 @@ if __name__ == '__main__':
                 for tab in tab_list:
                     reference_id = tab[1]
                     if reference_id in references_intersection:
-                        output_tab_buffer.add('\t'.join(tab))
+                        output_tab_buffer.append('\t'.join(tab))
                         dealt_contigs_id.add(tab[0])
                     else:
                         # Store the alignments not already used
