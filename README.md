@@ -30,14 +30,17 @@ Some steps of MATAM are highly paralelized. You can get a significant speed incr
 
 ### Quick install
 
-To install all the needed depencies, you can run the following command-line in Debian-like distributions :
+To install most of the needed depencies, you can run the following command-line in Debian-like distributions :
 
   `sudo apt-get update && sudo apt-get install curl git gcc g++ python3 default-jdk automake make cmake libsparsehash-dev zlib1g-dev bzip2`
+  
+Warning: the samtools package in current Ubuntu-like distributions is usualy a deprecated version (v0.1.19)
 
 ### Full dependencies list
 
 * **gcc v4.9.0 or superior, v5.0.0 or superior. gcc v6 is not yet supported (pb with bamtools)** (full C++11 support, \<regex\> included, and partial C++14 support)
 * C++ libraries: rt, pthread, zlib
+* Samtools v1.x or superior
 * Python 3
 * Java SE 7 JDK. OpenJDK is ok (openjdk-7-jdk paquet on debian)
 * automake, make, cmake
