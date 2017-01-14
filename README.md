@@ -22,7 +22,7 @@
 
 ## Hardware requirements
 
-Recommanded free RAM when using provided default reference database is 10 Go, but MATAM should also work with less RAM if --max\_memory is set to a lower value (eg. --max\_memory 4000 for 4Go)
+Most MATAM steps will run with less than 10 Go of RAM and can run with less RAM if --max\_memory is set to a lower value (eg. --max\_memory 4000 for 4Go). However if the analysed sample is complex, the resulting graph can be huge and need to be stored in RAM by the graph_compaction step. In those cases you may need from 10s Go to 100s Go RAM.
 
 Some steps of MATAM are highly paralelized. You can get a significant speed increase during these steps by setting the --cpu option to a higher value
 
