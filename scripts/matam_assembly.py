@@ -1380,14 +1380,14 @@ def main():
         error_code += subprocess.call(cmd_line, shell=True)
 
         # Sort bam
-        cmd_line = 'samtools sort ' + bam_filepath + ' ' + sorted_bam_basepath
+        cmd_line = 'samtools sort -o ' + sorted_bam_filepath + ' ' + bam_filepath 
 
         logger.debug('CMD: {0}'.format(cmd_line))
         error_code += subprocess.call(cmd_line, shell=True)
 
         # Generate mpileup
-        cmd_line = 'samtools mpileup -d 10000 ' + sorted_bam_filepath
-        cmd_line += ' > ' + mpileup_filepath
+        cmd_line = 'samtools mpileup -d 10000 -o ' + mpileup_filepath
+        cmd_line += ' ' + sorted_bam_filepath
 
         logger.debug('CMD: {0}'.format(cmd_line))
         error_code += subprocess.call(cmd_line, shell=True)
