@@ -526,6 +526,8 @@ def print_intro(args):
     cmd_line += '--read_correction {0} '.format(args.read_correction)
 
     # Scaffolding
+    if args.no_binning:
+        cmd_line += '--no_binning '
 
     # Visualization
 
