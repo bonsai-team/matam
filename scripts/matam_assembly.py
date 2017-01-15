@@ -1376,6 +1376,8 @@ def main():
 
         # Convert sam to bam
         cmd_line = 'samtools view -b -S ' + processed_sam_filepath
+        if not args.no_binning:
+            cmd_line += ' -T ' + complete_ref_db_filepath
         cmd_line += ' -o ' + bam_filepath
 
         logger.debug('CMD: {0}'.format(cmd_line))
