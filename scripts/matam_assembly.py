@@ -781,6 +781,8 @@ def main():
     scaffolds_filepath = os.path.join(args.out_dir, scaffolds_filename)
 
     scaffolds_symlink_basename = 'scaffolds'
+    if args.no_binning:
+        scaffold_symlink_basename += '.no_binning'
     scaffolds_symlink_filename = scaffolds_symlink_basename + '.fasta'
     scaffolds_symlink_filepath = os.path.join(args.out_dir, scaffolds_symlink_filename)
 
