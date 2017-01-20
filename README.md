@@ -38,7 +38,7 @@ Since the samtools package in current Ubuntu-like distributions is usualy a depr
 
 ### Full dependencies list
 
-* **gcc v4.9.0 or superior, (full C++11 support, \<regex\> included, and partial C++14 support)
+* **gcc v4.9.0 or superior**, (full C++11 support, \<regex\> included, and partial C++14 support)
 * C++ libraries: rt, pthread, zlib
 * Samtools v1.x or superior
 * Python 3
