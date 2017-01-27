@@ -213,6 +213,9 @@ normally created by building the program. Default is %(default)s",
 
     if args.target == 'clean':
         info = '-- Cleaning SGA --'
+        # "make distclean" is not enough, use git clean instead.
+        # Be aware that all local changes to SGA submodule
+        # will be lost
         cmd_line = 'git clean -xfd'
         warning = 'A problem might have happened while cleaning SGA. Check log above'
         global_error_code += execute_cmd(cmd_line, sga_dirpath, info, warning)
