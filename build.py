@@ -89,7 +89,7 @@ if __name__ == '__main__':
         nargs='?',
         default='build',
         help="Delete all files in the current directory that are \
-normally created by building the program.",
+normally created by building the program. Default is %(default)s",
         choices=valid_targets)
 
     args = parser.parse_args()
