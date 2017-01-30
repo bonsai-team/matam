@@ -6,7 +6,7 @@
 
 1. Cloning MATAM repository
 
-  `git clone https://github.com/ppericard/matam.git`
+  `git clone https://github.com/bonsai-team/matam.git`
 
 2. Compiling MATAM and dependencies
 
