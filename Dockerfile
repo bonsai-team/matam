@@ -7,11 +7,11 @@
 FROM debian
 
 # File Author / Maintainer
-MAINTAINER Pierre Pericard
+MAINTAINER Bonsai Team
 
 ################## BEGIN INSTALLATION ######################
 # Install MATAM following the instructions from Github repository
-# Ref: https://github.com/ppericard/matam
+# Ref: https://github.com/bonsai-team/matam
 
 # Install dependencies
 RUN apt-get update && apt-get install --no-install-recommends -y \
@@ -45,7 +45,7 @@ RUN conda install --update-dependencies -y samtools
 RUN rm -rf /var/lib/apt/lists/*
 
 # Cloning MATAM
-RUN git clone https://github.com/ppericard/matam.git
+RUN git clone https://github.com/bonsai-team/matam.git
 
 # Build MATAM
 WORKDIR /matam
