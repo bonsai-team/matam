@@ -6,7 +6,7 @@
 
 1. Cloning MATAM repository
 
-  `git clone https://github.com/ppericard/matam.git`
+  `git clone https://github.com/bonsai-team/matam.git`
 
 2. Compiling MATAM and dependencies
 
@@ -51,7 +51,7 @@ Since the samtools package in current Ubuntu-like distributions is usualy a depr
 
 To run MATAM using docker, just run:
 
-`docker run ppericard/matam matam_assembly.py`
+`docker run bonsaiteam/matam matam_assembly.py`
 
 ## Running example datasets
 

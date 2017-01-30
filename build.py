@@ -40,6 +40,25 @@ def makedir(dirpath):
         raise
 
 
+def execute_cmd(cmd_line, directory, info, warning, createdir=False):
+    logger.info(info)
+
+    if createdir:
+        makedir(directory)
+
+    os.chdir(directory)
+    logger.debug('PWD: {0}'.format(directory))
+
+    logger.debug('CMD: {0}'.format(cmd_line))
+    error_code = subprocess.call(cmd_line, shell=True)
+
+    if error_code > 0:
+        logger.warning(warning)
+
+    sys.stderr.write('\n')
+
+    return error_code
+
 if __name__ == '__main__':
 
     # Set logging
@@ -63,208 +82,196 @@ if __name__ == '__main__':
     #
     sys.stderr.write('\n')
 
+    parser = argparse.ArgumentParser()
+    valid_targets = ['build', 'clean']
+    parser.add_argument(
+        "target",
+        nargs='?',
+        default='build',
+        help="Delete all files in the current directory that are \
+normally created by building the program. Default is %(default)s",
+        choices=valid_targets)
+
+    args = parser.parse_args()
+    print(args)
+
     ########################
     # Update git submodules
 
-    logger.info('-- Updating git submodules --')
-
-    os.chdir(matam_root_dirpath)
-    logger.debug('PWD: {0}'.format(matam_root_dirpath))
-
-    cmd_line = 'git submodule update --init --recursive'
-
-    logger.debug('CMD: {0}'.format(cmd_line))
-    error_code = subprocess.call(cmd_line, shell=True)
-
-    if error_code > 0:
-        logger.warning('A problem might have happened while updating git submodules. Check log above')
-
-    global_error_code += error_code
-
-    sys.stderr.write('\n')
+    if args.target == 'build':
+        info = '-- Updating git submodules --'
+        cmd_line = 'git submodule update --init --recursive'
+        warning = 'A problem might have happened while updating git submodules. Check log above'
+        global_error_code += execute_cmd(cmd_line,
+                                         matam_root_dirpath, info, warning)
 
     ############################
     # Compiling ComponentSearch
 
-    logger.info('-- Compiling ComponentSearch --')
+    if args.target == 'clean':
+        info = '-- Cleaning ComponentSearch --'
+        cmd_line = 'rm ComponentSearch.jar'
+        warning = 'A problem might have happened while cleaning ComponentSearch. Check log above'
+        global_error_code += execute_cmd(cmd_line,
+                                         componentsearch_dirpath, info, warning)
 
-    os.chdir(componentsearch_dirpath)
-    logger.debug('PWD: {0}'.format(componentsearch_dirpath))
-
-    cmd_line = './compile.sh'
-
-    logger.debug('CMD: {0}'.format(cmd_line))
-    error_code = subprocess.call(cmd_line, shell=True)
-
-    if error_code > 0:
-        logger.warning('A problem might have happened while compiling ComponentSearch. Check log above')
-
-    global_error_code += error_code
-
-    sys.stderr.write('\n')
+    elif args.target == 'build':
+        info = '-- Compiling ComponentSearch --'
+        cmd_line = './compile.sh'
+        warning = 'A problem might have happened while compiling ComponentSearch. Check log above'
+        global_error_code += execute_cmd(cmd_line,
+                                         componentsearch_dirpath, info, warning)
 
     #########################
     # Compiling ovgraphbuild
 
-    logger.info('-- Compiling ovgraphbuild --')
+    if args.target == 'clean':
+        info = '-- Cleaning ovgraphbuild --'
+        cmd_line = 'rm -rf build bin'
+        warning = 'A problem might have happened while cleaning ovgraphbuild. Check log above'
+        global_error_code += execute_cmd(cmd_line,
+                                         ovgraphbuild_dirpath, info, warning)
 
-    ovgraphbuild_build_dirpath = os.path.join(ovgraphbuild_dirpath, 'build')
-    makedir(ovgraphbuild_build_dirpath)
-    os.chdir(ovgraphbuild_build_dirpath)
-    logger.debug('PWD: {0}'.format(ovgraphbuild_build_dirpath))
-
-    #~ cmd_line = 'cmake .. '
-    cmd_line = 'cmake .. -G"CodeBlocks - Unix Makefiles"'
-    cmd_line += '&& make'
-
-    logger.debug('CMD: {0}'.format(cmd_line))
-    error_code = subprocess.call(cmd_line, shell=True)
-
-    if error_code > 0:
-        logger.warning('A problem might have happened while compiling ovgraphbuild. Check log above')
-
-    global_error_code += error_code
-
-    sys.stderr.write('\n')
+    elif args.target == 'build':
+        info = '-- Compiling ovgraphbuild --'
+        ovgraphbuild_build_dirpath = os.path.join(
+            ovgraphbuild_dirpath, 'build')
+        cmd_line = 'cmake .. -G"CodeBlocks - Unix Makefiles"'
+        cmd_line += '&& make'
+        warning = 'A problem might have happened while compiling ovgraphbuild. Check log above'
+        global_error_code += execute_cmd(cmd_line,
+                                         ovgraphbuild_build_dirpath,
+                                         info,
+                                         warning,
+                                         createdir=True)
 
     #####################
     # Building SortMeRNA
 
-    logger.info('-- Building SortMeRNA --')
+    if args.target == 'clean':
+        info = '-- Cleaning SortMeRNA --'
+        cmd_line = 'make distclean'
+        warning = 'A problem might have happened while cleaning SortMeRNA. Check log above'
+        global_error_code += execute_cmd(cmd_line,
+                                         sortmerna_dirpath, info, warning)
 
-    os.chdir(sortmerna_dirpath)
-    logger.debug('PWD: {0}'.format(sortmerna_dirpath))
-
-    cmd_line = './build.sh'
-
-    logger.debug('CMD: {0}'.format(cmd_line))
-    error_code = subprocess.call(cmd_line, shell=True)
-
-    if error_code > 0:
-        logger.warning('A problem might have happened while building SortMeRNA. Check log above')
-
-    global_error_code += error_code
-
-    sys.stderr.write('\n')
+    elif args.target == 'build':
+        info = '-- Building SortMeRNA --'
+        cmd_line = './build.sh'
+        warning = 'A problem might have happened while building SortMeRNA. Check log above'
+        global_error_code += execute_cmd(cmd_line,
+                                         sortmerna_dirpath, info, warning)
 
     ######################
     # Compiling Sumaclust
 
-    logger.info('-- Compiling Sumaclust --')
+    if args.target == 'clean':
+        info = '-- Cleaning Sumaclust --'
+        cmd_line = 'make clean'
+        warning = 'A problem might have happened while cleaning Sumaclust. Check log above'
+        global_error_code += execute_cmd(cmd_line,
+                                         sumaclust_dirpath, info, warning)
 
-    # Update Sumalibs to the last version
-    # !! Tmp fix to get the last patches
-    sumalibs_dirpath = os.path.join(sumaclust_dirpath, 'sumalibs')
+    elif args.target == 'build':
+        info = '-- Compiling Sumaclust --'
+        # Update Sumalibs to the last version
+        # !! Tmp fix to get the last patches
+        sumalibs_dirpath = os.path.join(sumaclust_dirpath, 'sumalibs')
+        cmd_line = 'git checkout master'
+        warning = 'A problem might have happened while updating Sumalibs. Check log above'
+        global_error_code += execute_cmd(cmd_line,
+                                         sumalibs_dirpath, info, warning)
 
-    os.chdir(sumalibs_dirpath)
-    logger.debug('PWD: {0}'.format(sumalibs_dirpath))
-
-    cmd_line = 'git checkout master'
-
-    logger.debug('CMD: {0}'.format(cmd_line))
-    error_code = subprocess.call(cmd_line, shell=True)
-
-    if error_code > 0:
-        logger.warning('A problem might have happened while updating Sumalibs. Check log above')
-
-    global_error_code += error_code
-
-    sys.stderr.write('\n')
-
-    #
-    os.chdir(sumaclust_dirpath)
-    logger.debug('PWD: {0}'.format(sumaclust_dirpath))
-
-    cmd_line = 'make'
-
-    logger.debug('CMD: {0}'.format(cmd_line))
-    error_code = subprocess.call(cmd_line, shell=True)
-
-    if error_code > 0:
-        logger.warning('A problem might have happened while compiling Sumaclust. Check log above')
-
-    global_error_code += error_code
-
-    sys.stderr.write('\n')
+        cmd_line = 'make'
+        warning = 'A problem might have happened while compiling Sumaclust. Check log above'
+        global_error_code += execute_cmd(cmd_line,
+                                         sumaclust_dirpath, info, warning)
 
     #########################
     # Compiling Bamtools lib
 
-    logger.info('-- Compiling Bamtools lib (for SGA) --')
-
-    bamtools_lib_build_dirpath = os.path.join(bamtools_lib_dirpath, 'build')
-    makedir(bamtools_lib_build_dirpath)
-    os.chdir(bamtools_lib_build_dirpath)
-    logger.debug('PWD: {0}'.format(bamtools_lib_build_dirpath))
-
-    cmd_line = 'CC=gcc CXX=g++ cmake .. && make'
-
-    logger.debug('CMD: {0}'.format(cmd_line))
-    error_code = subprocess.call(cmd_line, shell=True)
-
-    if error_code > 0:
-        logger.warning('A problem might have happened while compiling Bamtools lib. Check log above')
-
-    global_error_code += error_code
-
-    sys.stderr.write('\n')
+    if args.target == 'clean':
+        info = '-- Cleaning Bamtools lib (for SGA) --'
+        warning = 'A problem might have happened while cleaning Bamtools lib. Check log above'
+        cmd_line = 'rm -rf build bin include lib src/toolkit/bamtools_version.h'
+        global_error_code += execute_cmd(cmd_line,
+                                         bamtools_lib_dirpath, info, warning,)
+    elif args.target == 'build':
+        info = '-- Compiling Bamtools lib (for SGA) --'
+        bamtools_lib_build_dirpath = os.path.join(
+            bamtools_lib_dirpath, 'build')
+        cmd_line = 'CC=gcc CXX=g++ cmake .. && make'
+        warning = 'A problem might have happened while compiling Bamtools lib. Check log above'
+        global_error_code += execute_cmd(cmd_line,
+                                         bamtools_lib_build_dirpath,
+                                         info,
+                                         warning,
+                                         createdir=True)
 
     ################
     # Compiling SGA
 
-    logger.info('-- Compiling SGA --')
-
-    sga_src_dirpath = os.path.join(sga_dirpath, 'src')
-    os.chdir(sga_src_dirpath)
-    logger.debug('PWD: {0}'.format(sga_src_dirpath))
-
-    cmd_line = './autogen.sh && '
-    cmd_line += 'CC=gcc CXX=g++ ./configure --with-bamtools=' + bamtools_lib_dirpath + ' && make'
-
-    logger.debug('CMD: {0}'.format(cmd_line))
-    error_code = subprocess.call(cmd_line, shell=True)
-
-    if error_code > 0:
-        logger.warning('A problem might have happened while compiling SGA. Check log above')
-
-    global_error_code += error_code
-
-    sys.stderr.write('\n')
+    if args.target == 'clean':
+        info = '-- Cleaning SGA --'
+        # "make distclean" is not enough, use git clean instead.
+        # Be aware that all local changes to SGA submodule
+        # will be lost
+        cmd_line = 'git clean -xfd'
+        warning = 'A problem might have happened while cleaning SGA. Check log above'
+        global_error_code += execute_cmd(cmd_line, sga_dirpath, info, warning)
+    elif args.target == 'build':
+        info = '-- Compiling SGA --'
+        sga_src_dirpath = os.path.join(sga_dirpath, 'src')
+        cmd_line = './autogen.sh && '
+        cmd_line += 'CC=gcc CXX=g++ ./configure --with-bamtools=' + \
+            bamtools_lib_dirpath + ' && make'
+        warning = 'A problem might have happened while compiling SGA. Check log above'
+        global_error_code += execute_cmd(cmd_line,
+                                         sga_src_dirpath, info, warning)
 
     ##############################
     # Creating links into bin dir
 
-    logger.info('-- Creating links into bin dir --')
-
-    matam_bin_dirpath = os.path.join(matam_root_dirpath, 'bin')
-    makedir(matam_bin_dirpath)
-    os.chdir(matam_bin_dirpath)
-    logger.debug('PWD: {0}'.format(matam_bin_dirpath))
-
-    cmd_line = 'ln -sf ' + os.path.join(matam_scripts_dirpath, 'matam_*.py')
-    cmd_line += ' ' + os.path.join(matam_bin_dirpath, '.')
-
-    logger.debug('CMD: {0}'.format(cmd_line))
-    error_code = subprocess.call(cmd_line, shell=True)
-
-    if error_code > 0:
-        logger.warning('A problem might have happened while creating links into bin dir. Check log above')
-
-    global_error_code += error_code
-
-    sys.stderr.write('\n')
+    if args.target == 'clean':
+        pass
+    elif args.target == 'build':
+        info = '-- Creating links into bin dir --'
+        matam_bin_dirpath = os.path.join(matam_root_dirpath, 'bin')
+        cmd_line = 'ln -sf ' + \
+            os.path.join(matam_scripts_dirpath, 'matam_*.py')
+        cmd_line += ' ' + os.path.join(matam_bin_dirpath, '.')
+        warning = 'A problem might have happened while creating links into bin dir. Check log above'
+        global_error_code += execute_cmd(cmd_line,
+                                         matam_bin_dirpath,
+                                         info,
+                                         warning,
+                                         createdir=True)
 
     #######
     # Exit
 
-    logger.info('-- MATAM building complete --')
+    if args.target == 'clean':
+        logger.info('-- MATAM cleaning complete --')
+        if global_error_code > 0:
+            logger.warning(
+                'Problems might have happened during MATAM cleaning. Please check log above')
+        else:
+            logger.debug(
+                'Cleaning completed in {0:.2f} seconds'.format(
+                    time.time() - global_t0_wall))
+            logger.info('MATAM cleaning went well. ')
 
-    if global_error_code > 0:
-        logger.warning('Problems might have happened during MATAM building. Please check log above')
-    else:
-        logger.debug('Building completed in {0:.2f} seconds'.format(time.time() - global_t0_wall))
-        logger.info('MATAM building went well. '
-                    'Program executables can be found in '
-                    'MATAM bin directory: {0}'.format(matam_bin_dirpath))
+    elif args.target == 'build':
+        logger.info('-- MATAM building complete --')
+        if global_error_code > 0:
+            logger.warning(
+                'Problems might have happened during MATAM building. Please check log above')
+        else:
+            logger.debug(
+                'Building completed in {0:.2f} seconds'.format(
+                    time.time() - global_t0_wall))
+            logger.info('MATAM building went well. '
+                        'Program executables can be found in '
+                        'MATAM bin directory: {0}'.format(matam_bin_dirpath))
 
     sys.stderr.write('\n')
