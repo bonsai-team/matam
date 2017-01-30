@@ -51,7 +51,7 @@ Since the samtools package in current Ubuntu-like distributions is usualy a depr
 
 To run MATAM using docker, just run:
 
-`docker run ppericard/matam matam_assembly.py`
+`docker run bonsaiteam/matam matam_assembly.py`
 
 ## Running example datasets
 
