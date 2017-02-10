@@ -379,10 +379,10 @@ def parse_arguments():
 
     # Scaffolding
     group_scaff = parser.add_argument_group('Scaffolding')
-    # --no_binning
-    group_scaff.add_argument('--no_binning',
+    # --contigs_binning
+    group_scaff.add_argument('--contigs_binning',
                              action = 'store_true',
-                             help = 'Do not perform contig binning during scaffolding')
+                             help = 'Experimental. Perform contigs binning during scaffolding.')
 
     # Visualization
 
@@ -526,8 +526,8 @@ def print_intro(args):
     cmd_line += '--read_correction {0} '.format(args.read_correction)
 
     # Scaffolding
-    if args.no_binning:
-        cmd_line += '--no_binning '
+    if args.contigs_binning:
+        cmd_line += '--contigs_binning '
 
     # Visualization
 
@@ -752,20 +752,23 @@ def main():
     selected_best_only_blast_filename = selected_best_only_blast_basename + '.tab'
     selected_best_only_blast_filepath = os.path.join(args.out_dir, selected_best_only_blast_filename)
 
-    selected_sam_filename = selected_best_only_blast_basename + '.sam'
+    selected_sam_basename = selected_best_only_blast_basename
+    selected_sam_filename = selected_sam_basename + '.sam'
     selected_sam_filepath = os.path.join(args.out_dir, selected_sam_filename)
 
     binned_sam_basename = selected_best_only_blast_basename + '.binned'
     binned_sam_filename = binned_sam_basename + '.sam'
     binned_sam_filepath = os.path.join(args.out_dir, binned_sam_filename)
 
-    processed_sam_basename = binned_sam_basename
-    processed_sam_filepath = binned_sam_filepath
-    if args.no_binning:
-        processed_sam_basename = selected_best_only_blast_basename
-        processed_sam_filepath = selected_sam_filepath
+    processed_sam_basename = selected_sam_basename
+    processed_sam_filepath = selected_sam_filepath
 
-    bam_filename = processed_sam_basename + '.bam'
+    if args.contigs_binning:
+        processed_sam_basename = binned_sam_basename
+        processed_sam_filepath = binned_sam_filepath
+
+    bam_basename = processed_sam_basename
+    bam_filename = bam_basename + '.bam'
     bam_filepath = os.path.join(args.out_dir, bam_filename)
 
     sorted_bam_basename = processed_sam_basename + '.sorted'
@@ -781,8 +784,8 @@ def main():
     scaffolds_filepath = os.path.join(args.out_dir, scaffolds_filename)
 
     scaffolds_symlink_basename = 'scaffolds'
-    if args.no_binning:
-        scaffolds_symlink_basename += '.no_binning'
+    if args.contigs_binning:
+        scaffolds_symlink_basename += '.contigs_binning'
     scaffolds_symlink_filename = scaffolds_symlink_basename + '.fasta'
     scaffolds_symlink_filepath = os.path.join(args.out_dir, scaffolds_symlink_filename)
 
@@ -1370,7 +1373,7 @@ def main():
         error_code += subprocess.call(cmd_line, shell=True)
 
         # Bin compatible contigs matching on the same reference
-        if not args.no_binning:
+        if args.contigs_binning:
             cmd_line = compute_contigs_compatibility_bin
             cmd_line += ' -i ' + selected_sam_filepath
             cmd_line += ' | ' + sort_bin + ' -k1,1n > ' + binned_sam_filepath
@@ -1380,7 +1383,7 @@ def main():
 
         # Convert sam to bam
         cmd_line = 'samtools view -b -S ' + processed_sam_filepath
-        if args.no_binning:
+        if not args.contigs_binning:
             cmd_line += ' -T ' + complete_ref_db_filepath
         cmd_line += ' -o ' + bam_filepath
 
