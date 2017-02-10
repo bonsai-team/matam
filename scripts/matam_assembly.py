@@ -11,7 +11,7 @@ import logging
 import cProfile
 from collections import defaultdict
 
-# Set LC_LANG to C for standart sort behaviour
+# Set LC_LANG to C for standard sort behaviour
 os.environ["LC_ALL"] = "C"
 
 # Create logger
@@ -666,6 +666,7 @@ def main():
     ovgraphbuild_basename += '_o' + str(args.min_overlap_length)
     ovgraphbuild_basepath = os.path.join(args.out_dir, ovgraphbuild_basename)
 
+    ovgraphbuild_asqg_filepath = ovgraphbuild_basepath + '.asqg'
     ovgraphbuild_nodes_csv_filepath = ovgraphbuild_basepath + '.nodes.csv'
     ovgraphbuild_edges_csv_filepath = ovgraphbuild_basepath + '.edges.csv'
 
@@ -700,16 +701,10 @@ def main():
     component_read_filepath = componentsearch_basepath + '.component_read.tab'
 
     contigs_assembly_wkdir = componentsearch_basepath + '.' + assembler_name
-    try:
-        if not os.path.exists(contigs_assembly_wkdir):
-            logger.debug('mkdir {0}'.format(contigs_assembly_wkdir))
-            os.makedirs(contigs_assembly_wkdir)
-    except OSError:
-        logger.exception('Assembly directory {0} cannot be created'.format(contigs_assembly_wkdir))
-        raise
 
     contigs_basename = componentsearch_basename + '.'
     contigs_basename += assembler_name + '_by_component'
+    contigs_basepath = os.path.join(args.out_dir, contigs_basename)
     contigs_filename = contigs_basename + '.fasta'
     contigs_filepath = os.path.join(args.out_dir, contigs_filename)
 
@@ -780,22 +775,26 @@ def main():
     mpileup_filepath = os.path.join(args.out_dir, mpileup_filename)
 
     scaffolds_basename = sorted_bam_basename + '.scaffolds'
-    scaffolds_filename = scaffolds_basename + '.fasta'
+    scaffolds_filename = scaffolds_basename + '.fa'
     scaffolds_filepath = os.path.join(args.out_dir, scaffolds_filename)
 
     scaffolds_symlink_basename = 'scaffolds'
     if args.contigs_binning:
         scaffolds_symlink_basename += '.contigs_binning'
-    scaffolds_symlink_filename = scaffolds_symlink_basename + '.fasta'
+    scaffolds_symlink_filename = scaffolds_symlink_basename + '.fa'
     scaffolds_symlink_filepath = os.path.join(args.out_dir, scaffolds_symlink_filename)
 
     scaffolds_NR_basename = scaffolds_symlink_basename + '.NR'
-    scaffolds_NR_filename = scaffolds_NR_basename + '.fasta'
+    scaffolds_NR_filename = scaffolds_NR_basename + '.fa'
     scaffolds_NR_filepath = os.path.join(args.out_dir, scaffolds_NR_filename)
 
     large_NR_scaffolds_basename = scaffolds_NR_basename + '.min_' + str(500) + 'bp'
-    large_NR_scaffolds_filename = large_NR_scaffolds_basename + '.fasta'
+    large_NR_scaffolds_filename = large_NR_scaffolds_basename + '.fa'
     large_NR_scaffolds_filepath = os.path.join(args.out_dir, large_NR_scaffolds_filename)
+
+    final_assembly_symlink_basename = 'final_assembly'
+    final_assembly_symlink_filename = final_assembly_symlink_basename + '.fa'
+    final_assembly_symlink_filepath = os.path.join(args.out_dir, final_assembly_symlink_filename)
 
     #################################
     # Compute input reads statistics
@@ -851,21 +850,24 @@ def main():
             sys.stderr.write('\n')
 
         # Output running time
-        logger.debug('Reads mapping terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
+        logger.info('Reads mapping terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
 
     # Get selected reads number
     selected_reads_nb = -1
 
-    if run_step:
-        if input_fastx_extension in ('.fq', '.fastq'):
-            selected_fastx_line_nb = int(subprocess.check_output('wc -l {0}'.format(sortme_output_fastx_filepath), shell=True).split()[0])
-            selected_reads_nb = selected_fastx_line_nb // 4
-        elif input_fastx_extension in ('.fa', '.fasta'):
-            selected_reads_nb = int(subprocess.check_output('grep -c "^>" {0}'.format(sortme_output_fastx_filepath), shell=True))
+    if input_fastx_extension in ('.fq', '.fastq'):
+        selected_fastx_line_nb = int(subprocess.check_output('wc -l {0}'.format(sortme_output_fastx_filepath), shell=True).split()[0])
+        selected_reads_nb = selected_fastx_line_nb // 4
+    elif input_fastx_extension in ('.fa', '.fasta'):
+        selected_reads_nb = int(subprocess.check_output('grep -c "^>" {0}'.format(sortme_output_fastx_filepath), shell=True))
 
-        logger.info('Identified as marker: {} / {} reads ({:.2f}%)'.format(selected_reads_nb, input_reads_nb, selected_reads_nb*100.0/input_reads_nb))
-        if args.verbose:
-            sys.stderr.write('\n')
+    logger.info('Identified as marker: {} / {} reads ({:.2f}%)'.format(selected_reads_nb, input_reads_nb, selected_reads_nb*100.0/input_reads_nb))
+    if args.verbose:
+        sys.stderr.write('\n')
+
+    # Tag tmp files for removal
+    to_rm_filepath_list.append(sortme_output_basepath + '.log')
+    to_rm_filepath_list.append(sortme_output_basepath + '.blast')
 
     #############################
     # Alignment filtering
@@ -892,12 +894,7 @@ def main():
         error_code += subprocess.call(cmd_line, shell=True)
 
         # Output running time
-        logger.debug('Good alignments filtering terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
-
-        # Tag tmp files for removal
-        to_rm_filepath_list.append(sortme_output_sam_filepath)
-        to_rm_filepath_list.append(sortme_output_basepath + '.log')
-        to_rm_filepath_list.append(sortme_output_basepath + '.blast')
+        logger.info('Good alignments filtering terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
 
         if args.coverage_threshold:
             cmd_line = 'cat ' + sam_filt_filepath
@@ -914,10 +911,14 @@ def main():
             error_code += subprocess.call(cmd_line, shell=True)
 
             # Output running time
-            logger.debug('Ref coverage filtering terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
+            logger.info('Ref coverage filtering terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
 
         if args.verbose:
             sys.stderr.write('\n')
+
+    # Tag tmp files for removal
+    if args.coverage_threshold:
+        to_rm_filepath_list.append(sam_filt_filepath)
 
     #########################
     # Overlap-graph building
@@ -953,10 +954,10 @@ def main():
         error_code += subprocess.call(cmd_line, shell=True)
 
         # Output running time
-        logger.debug('Overlap-graph building terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
+        logger.info('Overlap-graph building terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
 
         # Tag tmp files for removal
-        to_rm_filepath_list.append(sam_filt_filepath)
+        to_rm_filepath_list.append(ovgraphbuild_asqg_filepath)
 
     # Get overlap graph stats
     ovgraph_nodes_nb = int(subprocess.check_output('wc -l {0}'.format(ovgraphbuild_nodes_csv_filepath), shell=True).split()[0]) - 1
@@ -996,11 +997,11 @@ def main():
             error_code += subprocess.call(cmd_line, shell=True, stderr=FNULL)
 
         # Output running time
-        logger.debug('Graph compaction & Components identification terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
+        logger.info('Graph compaction & Components identification terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
 
         # Tag tmp files for removal
-        to_rm_filepath_list.append(ovgraphbuild_nodes_csv_filepath)
-        to_rm_filepath_list.append(ovgraphbuild_edges_csv_filepath)
+        #to_rm_filepath_list.append(ovgraphbuild_nodes_csv_filepath)
+        #to_rm_filepath_list.append(ovgraphbuild_edges_csv_filepath)
 
     # Get compressed graph stats
     compressed_graph_nodes_nb = int(subprocess.check_output('wc -l {0}'.format(contracted_nodes_filepath), shell=True).split()[0]) - 1
@@ -1076,7 +1077,7 @@ def main():
         error_code += subprocess.call(cmd_line, shell=True)
 
         # Output running time
-        logger.debug('LCA labelling terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
+        logger.info('LCA labelling terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
 
         # Tag tmp files for removal
         to_rm_filepath_list.append(componentsearch_basepath + '.components.tab')
@@ -1108,7 +1109,7 @@ def main():
         error_code += subprocess.call(cmd_line, shell=True)
 
         # Output running time
-        logger.debug('Computing compressed graph stats terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
+        logger.info('Computing compressed graph stats terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
         if args.verbose:
             sys.stderr.write('\n')
 
@@ -1120,7 +1121,16 @@ def main():
         run_step = True
 
     if run_step:
-        logger.info('=== Starting contigs assembly ===')
+        logger.info('=== Contigs assembly ===')
+
+        # Make contigs assembly directory
+        try:
+            if not os.path.exists(contigs_assembly_wkdir):
+                logger.debug('mkdir {0}'.format(contigs_assembly_wkdir))
+                os.makedirs(contigs_assembly_wkdir)
+        except OSError:
+            logger.exception('Assembly directory {0} cannot be created'.format(contigs_assembly_wkdir))
+            raise
 
         # Set t0
         t0_wall = time.time()
@@ -1251,7 +1261,7 @@ def main():
         error_code += subprocess.call(cmd_line, shell=True)
 
         # Output running time
-        logger.debug('Contigs assembly terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
+        logger.info('Contigs assembly terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
 
         # Evaluate assembly if true ref are provided
         if args.true_references:
@@ -1296,6 +1306,8 @@ def main():
 
         # Tag tmp files for removal
         to_rm_filepath_list.append(read_id_metanode_component_filepath)
+        to_rm_filepath_list.append(contigs_basepath + '.log')
+        to_rm_filepath_list.append(contigs_NR_filepath)
 
         # Delete assembly directory
         if not args.keep_tmp:
@@ -1343,7 +1355,7 @@ def main():
             sys.stderr.write('\n')
 
         # Output running time
-        logger.debug('[scaff] Contig mapping terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
+        logger.info('[scaff] Contig mapping terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
 
         # Set t0
         t0_wall = time.time()
@@ -1430,8 +1442,13 @@ def main():
         logger.debug('CMD: {0}'.format(cmd_line))
         error_code += subprocess.call(cmd_line, shell=True)
 
+        # Create final assembly symbolic link
+        if os.path.exists(final_assembly_symlink_filepath):
+            os.remove(final_assembly_symlink_filepath)
+        os.symlink(os.path.basename(large_NR_scaffolds_filepath), final_assembly_symlink_filepath)
+
         # Output running time
-        logger.debug('[scaff] Scaffolding terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
+        logger.info('[scaff] Scaffolding terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
 
         # Evaluate assembly if true ref are provided
         if args.true_references:
@@ -1484,6 +1501,7 @@ def main():
         to_rm_filepath_list.append(bam_filepath)
         to_rm_filepath_list.append(sorted_bam_filepath)
         to_rm_filepath_list.append(mpileup_filepath)
+        to_rm_filepath_list.append(scaffolds_NR_filepath)
 
     # Compute scaffolds assemblies stats
     scaffolds_stats = compute_fasta_stats(scaffolds_filepath)
