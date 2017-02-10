@@ -14,12 +14,10 @@
 struct AlphaOptions
 {
     seqan::CharString myRefFastaFile;
-    seqan::CharString myRefPairwiseAlignFile;
     seqan::CharString mySamFile;
     seqan::CharString outputBasename;
     bool outputASQG;
     bool outputCSV;
-    double minRefPairwisePercentId;
     int minOverlapLength;
     double idRateThreshold;
     int minNumTrailingMatches;
@@ -30,9 +28,8 @@ struct AlphaOptions
 
     // Initialize the variables with initializer lists
     AlphaOptions() :
-        myRefFastaFile(""), myRefPairwiseAlignFile(""), mySamFile(""),
+        myRefFastaFile(""), mySamFile(""),
         outputBasename(""), outputASQG(false), outputCSV(false),
-        minRefPairwisePercentId(0),
         minOverlapLength(0), idRateThreshold(100.0), minNumTrailingMatches(0),
         verbose(false), debug(false), test(false),
         noIndel(false)

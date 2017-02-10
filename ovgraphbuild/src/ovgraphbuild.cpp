@@ -347,14 +347,17 @@ int main(int argc, char const ** argv)
 
     auto mappedAlignmentsNum = globalStats.totalBamRecords - globalStats.unmappedAlignmentsNum;
 
-    std::cout << "TIME: SAM file reading finished in " << double(clock() - begin_tmp) / CLOCKS_PER_SEC
-              << " seconds." << "\n";
-    std::cout << "INFO: " << globalStats.totalBamRecords << " bam records were read"
-              << ", representing " << globalStats.totalReadsNum << " reads"
-              << "\n"
-              << "INFO: " << mappedAlignmentsNum << " bam record were mapped on a reference"
-              << ", representing " << globalStats.mappedReadsNum << " mapped reads"
-              << "\n" << "\n";
+    if (options.verbose)
+    {
+        std::cout << "TIME: SAM file reading finished in " << double(clock() - begin_tmp) / CLOCKS_PER_SEC
+                  << " seconds." << "\n";
+        std::cout << "INFO: " << globalStats.totalBamRecords << " bam records were read"
+                  << ", representing " << globalStats.totalReadsNum << " reads"
+                  << "\n"
+                  << "INFO: " << mappedAlignmentsNum << " bam record were mapped on a reference"
+                  << ", representing " << globalStats.mappedReadsNum << " mapped reads"
+                  << "\n" << "\n";
+    }
 
     // Reset the tmp clock
     begin_tmp = clock();
@@ -373,16 +376,19 @@ int main(int argc, char const ** argv)
                             bamRecordBuffer,
                             options);
 
-    std::cout << "TIME: Compatibility graph was build in " << double(clock() - begin_tmp) / CLOCKS_PER_SEC
-              << " seconds." << "\n";
-    std::cout << "INFO: " << globalStats.numConsideredReadsPairs << " reads pairs were considered" << "\n"
-              << "INFO: Of which " << globalStats.compatibleReadPairsNum
-              << " were found compatible" << "\n"
-              << "INFO:          " << globalStats.incompatibleReadPairsNum
-              << " were found incompatible" << "\n"
-              << "INFO: and      " << globalStats.neitherCompatNorIncompatReadPairsNum
-              << " were neither compatible nor incompatible"
-              << "\n" << "\n";
+    if (options.verbose)
+    {
+        std::cout << "TIME: Compatibility graph was build in " << double(clock() - begin_tmp) / CLOCKS_PER_SEC
+                  << " seconds." << "\n";
+        std::cout << "INFO: " << globalStats.numConsideredReadsPairs << " reads pairs were considered" << "\n"
+                  << "INFO: Of which " << globalStats.compatibleReadPairsNum
+                  << " were found compatible" << "\n"
+                  << "INFO:          " << globalStats.incompatibleReadPairsNum
+                  << " were found incompatible" << "\n"
+                  << "INFO: and      " << globalStats.neitherCompatNorIncompatReadPairsNum
+                  << " were neither compatible nor incompatible"
+                  << "\n" << "\n";
+    }
 
     if (options.debug)
     {

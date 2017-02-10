@@ -18,8 +18,6 @@ parseCommandLine(AlphaOptions &options, int argc, char const **argv)
     seqan::addSection(parser, "Input");
     seqan::addOption(parser, seqan::ArgParseOption( "r", "reference", "Reference fasta file.",
         seqan::ArgParseArgument::INPUT_FILE, "IN_FILE"));
-    seqan::addOption(parser, seqan::ArgParseOption( "p", "pairwise", "Reference pairwise alignment file, fasta format.",
-        seqan::ArgParseArgument::INPUT_FILE, "IN_FILE"));
     seqan::addOption(parser, seqan::ArgParseOption( "s", "sam", "SAM/BAM input file.",
         seqan::ArgParseArgument::INPUT_FILE, "IN_FILE"));
     // Define Options -- Section Output Files
@@ -30,8 +28,6 @@ parseCommandLine(AlphaOptions &options, int argc, char const **argv)
     seqan::addOption(parser, seqan::ArgParseOption( "", "csv", "Output overlap graph in 2 CSV files (nodes and edges)."));
     // Define Options -- Section Parameters
     seqan::addSection(parser, "Parameters");
-    seqan::addOption(parser, seqan::ArgParseOption( "", "min_ref_pairwise_pid", "Minimum percent id for the ref pairwise alignments.",
-        seqan::ArgParseArgument::DOUBLE, "MIN"));
     seqan::addOption(parser, seqan::ArgParseOption( "m", "min_overlap", "Minimum overlap size.",
         seqan::ArgParseArgument::INTEGER, "MIN"));
     seqan::addOption(parser, seqan::ArgParseOption( "i", "id_threshold", "Sequence identity to keep an overlap between [0.0:1.0].",
@@ -49,18 +45,15 @@ parseCommandLine(AlphaOptions &options, int argc, char const **argv)
 
     // Set required options
     setRequired(parser, "reference");
-//    setRequired(parser, "pairwise");
     setRequired(parser, "sam");
 
     // Set format restrictions
     seqan::setValidValues(parser, "reference", "fasta fa");
-    seqan::setValidValues(parser, "pairwise", "fasta fa");
     seqan::setValidValues(parser, "sam", "sam bam");
 
     // Set default values
     seqan::setDefaultValue(parser, "output_basename", "ovgraphbuild_output");
 
-    seqan::setDefaultValue(parser, "min_ref_pairwise_pid", 90);
     seqan::setDefaultValue(parser, "min_overlap", 50);
     seqan::setDefaultValue(parser, "id_threshold", 1);
     seqan::setDefaultValue(parser, "min_trail_matches", 3);
@@ -74,16 +67,12 @@ parseCommandLine(AlphaOptions &options, int argc, char const **argv)
 
     // Extract and print the options.
     seqan::getOptionValue(options.myRefFastaFile, parser, "reference");
-    seqan::getOptionValue(options.myRefPairwiseAlignFile, parser, "pairwise");
     seqan::getOptionValue(options.mySamFile, parser, "sam");
 
     seqan::getOptionValue(options.outputBasename, parser, "output_basename");
     options.outputASQG = seqan::isSet(parser, "asqg");
-//    options.outputASQG = true;
     options.outputCSV = seqan::isSet(parser, "csv");
-//    options.outputCSV = true;
 
-    seqan::getOptionValue(options.minRefPairwisePercentId, parser, "min_ref_pairwise_pid");
     seqan::getOptionValue(options.minOverlapLength, parser, "min_overlap");
     seqan::getOptionValue(options.idRateThreshold, parser, "id_threshold");
     seqan::getOptionValue(options.minNumTrailingMatches, parser, "min_trail_matches");
@@ -135,12 +124,10 @@ int printStartingDebugAndVerboseInfo(AlphaOptions &options)
     if (options.verbose)
     {
         std::cout << "PARAM: References:         \t" << options.myRefFastaFile << "\n"
-                  << "PARAM: Pairwise:           \t" << options.myRefPairwiseAlignFile << "\n"
                   << "PARAM: Sam file:           \t" << options.mySamFile << "\n"
                   << "PARAM: Output basename:    \t" << options.outputBasename << "\n"
                   << "PARAM: ASQG output:        \t" << options.outputASQG << "\n"
                   << "PARAM: CSV output:         \t" << options.outputCSV << "\n"
-                  << "PARAM: Min Ref Pairw. pid: \t" << options.minRefPairwisePercentId << "\n"
                   << "PARAM: Min Overlap:        \t" << options.minOverlapLength << "\n"
                   << "PARAM: Id Threshold:       \t" << options.idRateThreshold << "\n"
                   << "PARAM: NoIndel:            \t" << options.noIndel << "\n"
