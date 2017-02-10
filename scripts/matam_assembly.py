@@ -765,7 +765,7 @@ def main():
         processed_sam_basename = selected_best_only_blast_basename
         processed_sam_filepath = selected_sam_filepath
 
-    bam_filename = processed_sam_filepath + '.bam'
+    bam_filename = processed_sam_basename + '.bam'
     bam_filepath = os.path.join(args.out_dir, bam_filename)
 
     sorted_bam_basename = processed_sam_basename + '.sorted'
