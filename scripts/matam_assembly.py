@@ -352,6 +352,10 @@ def parse_arguments():
                              default = 1,
                              help = 'Minimum number of overlap to keep an edge. '
                                     'Default is %(default)s')
+    # --optimize_components
+    group_gcomp.add_argument('--optimize_components',
+                             action = 'store_true',
+                             help = argparse.SUPPRESS)
 
     # LCA labelling
     group_lca = parser.add_argument_group('LCA labelling')
@@ -516,6 +520,8 @@ def print_intro(args):
     # Graph compaction & Components identification
     cmd_line += '--min_read_node {0} '.format(args.min_read_node)
     cmd_line += '--min_overlap_edge {0} '.format(args.min_overlap_edge)
+    if args.optimize_components:
+        cmd_line += '--optimize_components '
 
     # LCA labelling
     cmd_line += '--quorum {0:.2f} '.format(args.quorum)
@@ -979,6 +985,8 @@ def main():
 
         cmd_line = 'java -Xmx' + str(args.max_memory) + 'M -cp "'
         cmd_line += componentsearch_jar + '" main.Main'
+        if args.optimize_components:
+            cmd_line += ' -oc'
         cmd_line += ' -N ' + str(args.min_read_node)
         cmd_line += ' -E ' + str(args.min_overlap_edge)
         cmd_line += ' -b ' + componentsearch_basepath
@@ -1403,7 +1411,7 @@ def main():
         error_code += subprocess.call(cmd_line, shell=True)
 
         # Sort bam
-        cmd_line = 'samtools sort -o ' + sorted_bam_filepath + ' ' + bam_filepath 
+        cmd_line = 'samtools sort -o ' + sorted_bam_filepath + ' ' + bam_filepath
 
         logger.debug('CMD: {0}'.format(cmd_line))
         error_code += subprocess.call(cmd_line, shell=True)
