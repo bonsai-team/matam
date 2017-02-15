@@ -55,7 +55,7 @@ ovgraphbuild_bin_dir = os.path.join(matam_root_dir, 'ovgraphbuild', 'bin')
 ovgraphbuild_bin = os.path.join(ovgraphbuild_bin_dir, 'ovgraphbuild')
 
 componentsearch_bin_dir = os.path.join(matam_root_dir, 'componentsearch')
-componentsearch_jar = os.path.join(componentsearch_bin_dir, 'ComponentSearch.jar')
+componentsearch_bin = os.path.join(componentsearch_bin_dir, 'componentsearch')
 
 assembler_bin_dir = os.path.join(matam_root_dir, 'sga', 'src', 'SGA')
 assembler_name = 'sga'
@@ -352,6 +352,13 @@ def parse_arguments():
                              default = 1,
                              help = 'Minimum number of overlap to keep an edge. '
                                     'Default is %(default)s')
+    # --seed
+    group_gcomp.add_argument('--seed',
+                             action = 'store',
+                             metavar = 'INT',
+                             type = int,
+                             help = 'Seed to initialize random generator. '
+                                    'Default is picking seed from system time')
     # --optimize_components
     group_gcomp.add_argument('--optimize_components',
                              action = 'store_true',
@@ -677,15 +684,24 @@ def main():
     ovgraphbuild_edges_csv_filepath = ovgraphbuild_basepath + '.edges.csv'
 
     # Graph compaction & Components identification
-    componentsearch_basename = ovgraphbuild_basename + '.ctgs'
+    componentsearch_basename = ovgraphbuild_basename + '.cpts'
     componentsearch_basename += '_N' + str(args.min_read_node)
     componentsearch_basename += '_E' + str(args.min_overlap_edge)
+    if args.optimize_components:
+        componentsearch_basename += '_oc'
     componentsearch_basepath = os.path.join(args.out_dir, componentsearch_basename)
 
-    contracted_nodes_basepath = componentsearch_basepath + '.nodes_contracted'
-    contracted_nodes_filepath = contracted_nodes_basepath + '.csv'
-    contracted_edges_filepath = componentsearch_basepath + '.edges_contracted.csv'
-    contracted_components_filepath = componentsearch_basepath + '.components.csv'
+    componentsearch_metanodes_csv_basename = componentsearch_basename + '.metaNodes'
+    componentsearch_metanodes_csv_filename = componentsearch_metanodes_csv_basename + '.csv'
+    componentsearch_metanodes_csv_filepath = os.path.join(args.out_dir, componentsearch_metanodes_csv_filename)
+
+    componentsearch_metaedges_csv_basename = componentsearch_basename + '.metaEdges'
+    componentsearch_metaedges_csv_filename = componentsearch_metaedges_csv_basename + '.csv'
+    componentsearch_metaedges_csv_filepath = os.path.join(args.out_dir, componentsearch_metaedges_csv_filename)
+
+    componentsearch_components_csv_basename = componentsearch_basename + '.components'
+    componentsearch_components_csv_filename = componentsearch_components_csv_basename + '.csv'
+    componentsearch_components_csv_filepath = os.path.join(args.out_dir, componentsearch_components_csv_filename)
 
     # LCA labelling
     read_id_metanode_component_filepath = componentsearch_basepath + '.read_id_metanode_component.tab'
@@ -693,7 +709,7 @@ def main():
 
     quorum_int = int(args.quorum * 100)
 
-    labelled_nodes_basename = componentsearch_basename + '.nodes_contracted'
+    labelled_nodes_basename = componentsearch_metanodes_csv_basename
     labelled_nodes_basename += '.component_lca' + str(quorum_int) + 'pct'
 
     components_lca_filename = componentsearch_basename + '.component_lca' + str(quorum_int) + 'pct.tab'
@@ -983,10 +999,11 @@ def main():
     if run_step:
         logger.info('=== Graph compaction & Components identification ===')
 
-        cmd_line = 'java -Xmx' + str(args.max_memory) + 'M -cp "'
-        cmd_line += componentsearch_jar + '" main.Main'
+        cmd_line = componentsearch_bin
         if args.optimize_components:
-            cmd_line += ' -oc'
+            cmd_line += ' -o'
+        if args.seed:
+            cmd_line += ' -r ' + str(args.seed)
         cmd_line += ' -N ' + str(args.min_read_node)
         cmd_line += ' -E ' + str(args.min_overlap_edge)
         cmd_line += ' -b ' + componentsearch_basepath
@@ -1012,12 +1029,12 @@ def main():
         #to_rm_filepath_list.append(ovgraphbuild_edges_csv_filepath)
 
     # Get compressed graph stats
-    compressed_graph_nodes_nb = int(subprocess.check_output('wc -l {0}'.format(contracted_nodes_filepath), shell=True).split()[0]) - 1
-    compressed_graph_edges_nb = int(subprocess.check_output('wc -l {0}'.format(contracted_edges_filepath), shell=True).split()[0]) - 1
-    compressed_graph_reads_nb = int(subprocess.check_output('wc -l {0}'.format(contracted_components_filepath), shell=True).split()[0]) - 1
+    compressed_graph_nodes_nb = int(subprocess.check_output('wc -l {0}'.format(componentsearch_metanodes_csv_filepath), shell=True).split()[0]) - 1
+    compressed_graph_edges_nb = int(subprocess.check_output('wc -l {0}'.format(componentsearch_metaedges_csv_filepath), shell=True).split()[0]) - 1
+    compressed_graph_reads_nb = int(subprocess.check_output('wc -l {0}'.format(componentsearch_components_csv_filepath), shell=True).split()[0]) - 1
     compressed_graph_excluded_reads_nb = ovgraph_nodes_nb - compressed_graph_reads_nb
     excluded_reads_percent = compressed_graph_excluded_reads_nb * 100.0 / ovgraph_nodes_nb
-    components_nb = int(subprocess.check_output('cut -d ";" -f1 {0} | {1} | uniq | wc -l'.format(contracted_components_filepath, sort_bin), shell=True).split()[0]) - 1
+    components_nb = int(subprocess.check_output('cut -d ";" -f5 {0} | {1} | uniq | wc -l'.format(componentsearch_components_csv_filepath, sort_bin), shell=True).split()[0]) - 1
 
     logger.info('Compressed graph: {} components'.format(components_nb))
     if args.verbose:
@@ -1062,6 +1079,13 @@ def main():
 
         logger.debug('CMD: {0}'.format(cmd_line))
         error_code += subprocess.call(cmd_line, shell=True)
+
+        #
+        # cmd_line = 'tail -n +2 ' + componentsearch_components_csv_filepath
+        # cmd_line += ' | sed "s/;/\\t/g" | +
+
+
+
 
         # Join sam file with ref taxo on ref name, and join it to the
         # component-node file on read name.
