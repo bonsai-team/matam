@@ -110,14 +110,14 @@ normally created by building the program. Default is %(default)s",
 
     if args.target == 'clean':
         info = '-- Cleaning ComponentSearch --'
-        cmd_line = 'rm ComponentSearch.jar'
+        cmd_line = 'make clean'
         warning = 'A problem might have happened while cleaning ComponentSearch. Check log above'
         global_error_code += execute_cmd(cmd_line,
                                          componentsearch_dirpath, info, warning)
 
     elif args.target == 'build':
         info = '-- Compiling ComponentSearch --'
-        cmd_line = './compile.sh'
+        cmd_line = 'make'
         warning = 'A problem might have happened while compiling ComponentSearch. Check log above'
         global_error_code += execute_cmd(cmd_line,
                                          componentsearch_dirpath, info, warning)
