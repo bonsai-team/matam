@@ -813,12 +813,12 @@ def main():
 
     if run_step:
         if input_fastx_extension in ('.fq', '.fastq'):
-            input_fastx_line_nb = int(subprocess.check_output('wc -l {0}'.format(input_fastx_filepath), shell=True).split()[0])
+            input_fastx_line_nb = int(subprocess.check_output('wc -l {0}'.format(input_fastx_filepath), shell=True, bufsize=0).split()[0])
             if input_fastx_line_nb % 4 != 0:
                 logger.warning('FastQ input file does not have a number of lines multiple of 4')
             input_reads_nb = input_fastx_line_nb // 4
         elif input_fastx_extension in ('.fa', '.fasta'):
-            input_reads_nb = int(subprocess.check_output('grep -c "^>" {0}'.format(input_fastx_filepath), shell=True))
+            input_reads_nb = int(subprocess.check_output('grep -c "^>" {0}'.format(input_fastx_filepath), shell=True, bufsize=0))
         else:
             logger.warning('Input fastx file extension was not recognised ({0})'.format(input_fastx_extension))
 
@@ -851,7 +851,7 @@ def main():
         t0_wall = time.time()
 
         logger.debug('CMD: {0}'.format(cmd_line))
-        error_code += subprocess.call(cmd_line, shell=True)
+        error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
         if args.verbose:
             sys.stderr.write('\n')
 
@@ -862,10 +862,10 @@ def main():
     selected_reads_nb = -1
 
     if input_fastx_extension in ('.fq', '.fastq'):
-        selected_fastx_line_nb = int(subprocess.check_output('wc -l {0}'.format(sortme_output_fastx_filepath), shell=True).split()[0])
+        selected_fastx_line_nb = int(subprocess.check_output('wc -l {0}'.format(sortme_output_fastx_filepath), shell=True, bufsize=0).split()[0])
         selected_reads_nb = selected_fastx_line_nb // 4
     elif input_fastx_extension in ('.fa', '.fasta'):
-        selected_reads_nb = int(subprocess.check_output('grep -c "^>" {0}'.format(sortme_output_fastx_filepath), shell=True))
+        selected_reads_nb = int(subprocess.check_output('grep -c "^>" {0}'.format(sortme_output_fastx_filepath), shell=True, bufsize=0))
 
     logger.info('Identified as marker: {} / {} reads ({:.2f}%)'.format(selected_reads_nb, input_reads_nb, selected_reads_nb*100.0/input_reads_nb))
     if args.verbose:
@@ -897,7 +897,7 @@ def main():
         t0_wall = time.time()
 
         logger.debug('CMD: {0}'.format(cmd_line))
-        error_code += subprocess.call(cmd_line, shell=True)
+        error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
 
         # Output running time
         logger.info('Good alignments filtering terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
@@ -914,7 +914,7 @@ def main():
             t0_wall = time.time()
 
             logger.debug('CMD: {0}'.format(cmd_line))
-            error_code += subprocess.call(cmd_line, shell=True)
+            error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
 
             # Output running time
             logger.info('Ref coverage filtering terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
@@ -957,7 +957,7 @@ def main():
         t0_wall = time.time()
 
         logger.debug('CMD: {0}'.format(cmd_line))
-        error_code += subprocess.call(cmd_line, shell=True)
+        error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
 
         # Output running time
         logger.info('Overlap-graph building terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
@@ -966,8 +966,8 @@ def main():
         to_rm_filepath_list.append(ovgraphbuild_asqg_filepath)
 
     # Get overlap graph stats
-    ovgraph_nodes_nb = int(subprocess.check_output('wc -l {0}'.format(ovgraphbuild_nodes_csv_filepath), shell=True).split()[0]) - 1
-    ovgraph_edges_nb = int(subprocess.check_output('wc -l {0}'.format(ovgraphbuild_edges_csv_filepath), shell=True).split()[0]) - 1
+    ovgraph_nodes_nb = int(subprocess.check_output('wc -l {0}'.format(ovgraphbuild_nodes_csv_filepath), shell=True, bufsize=0).split()[0]) - 1
+    ovgraph_edges_nb = int(subprocess.check_output('wc -l {0}'.format(ovgraphbuild_edges_csv_filepath), shell=True, bufsize=0).split()[0]) - 1
 
     logger.info('Overlap graph stats: {} nodes, {} edges'.format(ovgraph_nodes_nb, ovgraph_edges_nb))
     if args.verbose:
@@ -998,11 +998,11 @@ def main():
 
         logger.debug('CMD: {0}'.format(cmd_line))
         if args.verbose:
-            error_code += subprocess.call(cmd_line, shell=True)
+            error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
         else:
             # Needed because ComponentSearch doesnt have a verbose option
             # and output everything to stderr
-            error_code += subprocess.call(cmd_line, shell=True, stderr=FNULL)
+            error_code += subprocess.call(cmd_line, shell=True, bufsize=0, stderr=FNULL)
 
         # Output running time
         logger.info('Graph compaction & Components identification terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
@@ -1012,12 +1012,12 @@ def main():
         #to_rm_filepath_list.append(ovgraphbuild_edges_csv_filepath)
 
     # Get compressed graph stats
-    compressed_graph_nodes_nb = int(subprocess.check_output('wc -l {0}'.format(contracted_nodes_filepath), shell=True).split()[0]) - 1
-    compressed_graph_edges_nb = int(subprocess.check_output('wc -l {0}'.format(contracted_edges_filepath), shell=True).split()[0]) - 1
-    compressed_graph_reads_nb = int(subprocess.check_output('wc -l {0}'.format(contracted_components_filepath), shell=True).split()[0]) - 1
+    compressed_graph_nodes_nb = int(subprocess.check_output('wc -l {0}'.format(contracted_nodes_filepath), shell=True, bufsize=0).split()[0]) - 1
+    compressed_graph_edges_nb = int(subprocess.check_output('wc -l {0}'.format(contracted_edges_filepath), shell=True, bufsize=0).split()[0]) - 1
+    compressed_graph_reads_nb = int(subprocess.check_output('wc -l {0}'.format(contracted_components_filepath), shell=True, bufsize=0).split()[0]) - 1
     compressed_graph_excluded_reads_nb = ovgraph_nodes_nb - compressed_graph_reads_nb
     excluded_reads_percent = compressed_graph_excluded_reads_nb * 100.0 / ovgraph_nodes_nb
-    components_nb = int(subprocess.check_output('cut -d ";" -f1 {0} | {1} | uniq | wc -l'.format(contracted_components_filepath, sort_bin), shell=True).split()[0]) - 1
+    components_nb = int(subprocess.check_output('cut -d ";" -f1 {0} | {1} | uniq | wc -l'.format(contracted_components_filepath, sort_bin), shell=True, bufsize=0).split()[0]) - 1
 
     logger.info('Compressed graph: {} components'.format(components_nb))
     if args.verbose:
@@ -1043,7 +1043,7 @@ def main():
         cmd_line += componentsearch_basepath + '.components.tab'
 
         logger.debug('CMD: {0}'.format(cmd_line))
-        error_code += subprocess.call(cmd_line, shell=True)
+        error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
 
         # Convert CSV node file to TAB format and sort by read id
         cmd_line = 'tail -n +2 ' + ovgraphbuild_nodes_csv_filepath
@@ -1051,7 +1051,7 @@ def main():
         cmd_line += ovgraphbuild_basepath + '.nodes.tab'
 
         logger.debug('CMD: {0}'.format(cmd_line))
-        error_code += subprocess.call(cmd_line, shell=True)
+        error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
 
         # Join component and node files on read id, and sort by read name
         cmd_line = 'join -a1 -e"NULL" -o "1.2,0,2.3,2.1" -11 -22 '
@@ -1061,7 +1061,7 @@ def main():
         cmd_line += read_id_metanode_component_filepath
 
         logger.debug('CMD: {0}'.format(cmd_line))
-        error_code += subprocess.call(cmd_line, shell=True)
+        error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
 
         # Join sam file with ref taxo on ref name, and join it to the
         # component-node file on read name.
@@ -1074,7 +1074,7 @@ def main():
         cmd_line += complete_taxo_filepath
 
         logger.debug('CMD: {0}'.format(cmd_line))
-        error_code += subprocess.call(cmd_line, shell=True)
+        error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
 
         # Compute LCA at component level using quorum threshold
         cmd_line = 'cat ' + complete_taxo_filepath + ' | ' + sort_bin + ' -k3,3 -k1,1 | '
@@ -1082,7 +1082,7 @@ def main():
         cmd_line += ' -o ' + components_lca_filepath
 
         logger.debug('CMD: {0}'.format(cmd_line))
-        error_code += subprocess.call(cmd_line, shell=True)
+        error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
 
         # Output running time
         logger.info('LCA labelling terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
@@ -1114,7 +1114,7 @@ def main():
         t0_wall = time.time()
 
         logger.debug('CMD: {0}'.format(cmd_line))
-        error_code += subprocess.call(cmd_line, shell=True)
+        error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
 
         # Output running time
         logger.info('Computing compressed graph stats terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
@@ -1199,7 +1199,7 @@ def main():
             if os.path.exists('contigs.fa'):
                 os.remove('contigs.fa')
             if os.path.exists('tmp'):
-                subprocess.call('rm -rf tmp', shell=True)
+                subprocess.call('rm -rf tmp', shell=True, bufsize=0)
 
             # Writing fastq file with this component reads
             with open('reads_single_component.fq', 'w') as reads_single_component_fh:
@@ -1218,7 +1218,7 @@ def main():
             cmd_line += ' >> ' + contigs_assembly_log_filepath + ' 2>&1'
 
             #~ logger.debug('CMD: {0}'.format(cmd_line))
-            error_code += subprocess.call(cmd_line, shell=True)
+            error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
 
             # Concatenate the component contigs in the output contigs file
             component_lca = 'NULL'
@@ -1258,7 +1258,7 @@ def main():
         cmd_line += ' -o ' + contigs_NR_filepath
 
         logger.debug('CMD: {0}'.format(cmd_line))
-        error_code += subprocess.call(cmd_line, shell=True)
+        error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
 
         # Filter out small contigs
         cmd_line = fasta_length_filter_bin + ' -m ' + str(500)
@@ -1266,7 +1266,7 @@ def main():
         cmd_line += ' -o ' + large_NR_contigs_filepath
 
         logger.debug('CMD: {0}'.format(cmd_line))
-        error_code += subprocess.call(cmd_line, shell=True)
+        error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
 
         # Output running time
         logger.info('Contigs assembly terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
@@ -1282,31 +1282,31 @@ def main():
             cmd_line += ' -i ' + contigs_symlink_filepath
 
             logger.debug('CMD: {0}'.format(cmd_line))
-            error_code += subprocess.call(cmd_line, shell=True)
+            error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
 
             contigs_assembly_stats_filename = contigs_symlink_basename + '.exonerate_vs_'
             contigs_assembly_stats_filename += true_ref_basename + '.assembly.stats'
             contigs_assembly_stats_filepath = os.path.join(args.out_dir, contigs_assembly_stats_filename)
 
-            contigs_error_rate = float(subprocess.check_output('grep "error rate   =" {0}'.format(contigs_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
-            contigs_error_rate_2 = float(subprocess.check_output('grep "error rate 2 =" {0}'.format(contigs_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
-            contigs_ref_coverage = float(subprocess.check_output('grep "ref coverage" {0}'.format(contigs_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
+            contigs_error_rate = float(subprocess.check_output('grep "error rate   =" {0}'.format(contigs_assembly_stats_filepath), shell=True, bufsize=0).decode("utf-8").split('=')[1].strip()[:-1])
+            contigs_error_rate_2 = float(subprocess.check_output('grep "error rate 2 =" {0}'.format(contigs_assembly_stats_filepath), shell=True, bufsize=0).decode("utf-8").split('=')[1].strip()[:-1])
+            contigs_ref_coverage = float(subprocess.check_output('grep "ref coverage" {0}'.format(contigs_assembly_stats_filepath), shell=True, bufsize=0).decode("utf-8").split('=')[1].strip()[:-1])
 
             # Evaluate large NR contigs
             cmd_line = evaluate_assembly_bin + ' -r ' + args.true_references
             cmd_line += ' -i ' + large_NR_contigs_filepath
 
             logger.debug('CMD: {0}'.format(cmd_line))
-            error_code += subprocess.call(cmd_line, shell=True)
+            error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
 
             large_NR_contigs_assembly_stats_filename = large_NR_contigs_basename + '.exonerate_vs_'
             large_NR_contigs_assembly_stats_filename += true_ref_basename + '.assembly.stats'
             large_NR_contigs_assembly_stats_filepath = os.path.join(args.out_dir, large_NR_contigs_assembly_stats_filename)
 
             try:
-                large_NR_contigs_error_rate = float(subprocess.check_output('grep "error rate   =" {0}'.format(large_NR_contigs_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
-                large_NR_contigs_error_rate_2 = float(subprocess.check_output('grep "error rate 2 =" {0}'.format(large_NR_contigs_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
-                large_NR_contigs_ref_coverage = float(subprocess.check_output('grep "ref coverage" {0}'.format(large_NR_contigs_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
+                large_NR_contigs_error_rate = float(subprocess.check_output('grep "error rate   =" {0}'.format(large_NR_contigs_assembly_stats_filepath), shell=True, bufsize=0).decode("utf-8").split('=')[1].strip()[:-1])
+                large_NR_contigs_error_rate_2 = float(subprocess.check_output('grep "error rate 2 =" {0}'.format(large_NR_contigs_assembly_stats_filepath), shell=True, bufsize=0).decode("utf-8").split('=')[1].strip()[:-1])
+                large_NR_contigs_ref_coverage = float(subprocess.check_output('grep "ref coverage" {0}'.format(large_NR_contigs_assembly_stats_filepath), shell=True, bufsize=0).decode("utf-8").split('=')[1].strip()[:-1])
             except subprocess.CalledProcessError:
                 large_NR_contigs_error_rate = float()
                 large_NR_contigs_error_rate_2 = float()
@@ -1319,7 +1319,7 @@ def main():
 
         # Delete assembly directory
         if not args.keep_tmp:
-            subprocess.call('rm -rf {0}'.format(contigs_assembly_wkdir), shell=True)
+            subprocess.call('rm -rf {0}'.format(contigs_assembly_wkdir), shell=True, bufsize=0)
 
     # Compute contigs assembly stats
     contigs_stats = compute_fasta_stats(contigs_filepath)
@@ -1358,7 +1358,7 @@ def main():
             cmd_line += ' -v '
 
         logger.debug('CMD: {0}'.format(cmd_line))
-        error_code += subprocess.call(cmd_line, shell=True)
+        error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
         if args.verbose:
             sys.stderr.write('\n')
 
@@ -1375,14 +1375,14 @@ def main():
         cmd_line += ' | ' + get_best_matches_bin + ' -p 0.99 -o ' + best_only_blast_filepath
 
         logger.debug('CMD: {0}'.format(cmd_line))
-        error_code += subprocess.call(cmd_line, shell=True)
+        error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
 
         # Select blast matches for scaffolding using a specific-first conserved-later approach
         cmd_line = gener_scaff_blast_bin + ' -i ' + best_only_blast_filepath
         cmd_line += ' -o ' + selected_best_only_blast_filepath
 
         logger.debug('CMD: {0}'.format(cmd_line))
-        error_code += subprocess.call(cmd_line, shell=True)
+        error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
 
         # Filter sam file based on blast scaffolding file
         cmd_line = filter_sam_blast_bin + ' -i ' + scaff_sortme_output_sam_filepath
@@ -1390,7 +1390,7 @@ def main():
         cmd_line += ' | ' + sort_bin + ' -k3,3 -k4,4n > ' + selected_sam_filepath
 
         logger.debug('CMD: {0}'.format(cmd_line))
-        error_code += subprocess.call(cmd_line, shell=True)
+        error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
 
         # Bin compatible contigs matching on the same reference
         if args.contigs_binning:
@@ -1399,7 +1399,7 @@ def main():
             cmd_line += ' | ' + sort_bin + ' -k1,1n > ' + binned_sam_filepath
 
             logger.debug('CMD: {0}'.format(cmd_line))
-            error_code += subprocess.call(cmd_line, shell=True)
+            error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
 
         # Convert sam to bam
         cmd_line = 'samtools view -b -S ' + processed_sam_filepath
@@ -1408,27 +1408,27 @@ def main():
         cmd_line += ' -o ' + bam_filepath
 
         logger.debug('CMD: {0}'.format(cmd_line))
-        error_code += subprocess.call(cmd_line, shell=True)
+        error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
 
         # Sort bam
         cmd_line = 'samtools sort -o ' + sorted_bam_filepath + ' ' + bam_filepath
 
         logger.debug('CMD: {0}'.format(cmd_line))
-        error_code += subprocess.call(cmd_line, shell=True)
+        error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
 
         # Generate mpileup
         cmd_line = 'samtools mpileup -d 10000 -o ' + mpileup_filepath
         cmd_line += ' ' + sorted_bam_filepath
 
         logger.debug('CMD: {0}'.format(cmd_line))
-        error_code += subprocess.call(cmd_line, shell=True)
+        error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
 
         # Scaffold contigs based on mpileup
         cmd_line = scaffold_contigs_bin + ' -i ' + mpileup_filepath
         cmd_line += ' -o ' + scaffolds_filepath
 
         logger.debug('CMD: {0}'.format(cmd_line))
-        error_code += subprocess.call(cmd_line, shell=True)
+        error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
 
         # Create symbolic link
         if os.path.exists(scaffolds_symlink_filepath):
@@ -1440,7 +1440,7 @@ def main():
         cmd_line += ' -o ' + scaffolds_NR_filepath
 
         logger.debug('CMD: {0}'.format(cmd_line))
-        error_code += subprocess.call(cmd_line, shell=True)
+        error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
 
         # Filter out small scaffolds
         cmd_line = fasta_length_filter_bin + ' -m ' + str(500)
@@ -1448,7 +1448,7 @@ def main():
         cmd_line += ' -o ' + large_NR_scaffolds_filepath
 
         logger.debug('CMD: {0}'.format(cmd_line))
-        error_code += subprocess.call(cmd_line, shell=True)
+        error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
 
         # Create final assembly symbolic link
         if os.path.exists(final_assembly_symlink_filepath):
@@ -1469,31 +1469,31 @@ def main():
             cmd_line += ' -i ' + scaffolds_symlink_filepath
 
             logger.debug('CMD: {0}'.format(cmd_line))
-            error_code += subprocess.call(cmd_line, shell=True)
+            error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
 
             scaffolds_assembly_stats_filename = scaffolds_symlink_basename + '.exonerate_vs_'
             scaffolds_assembly_stats_filename += true_ref_basename + '.assembly.stats'
             scaffolds_assembly_stats_filepath = os.path.join(args.out_dir, scaffolds_assembly_stats_filename)
 
-            scaffolds_error_rate = float(subprocess.check_output('grep "error rate   =" {0}'.format(scaffolds_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
-            scaffolds_error_rate_2 = float(subprocess.check_output('grep "error rate 2 =" {0}'.format(scaffolds_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
-            scaffolds_ref_coverage = float(subprocess.check_output('grep "ref coverage" {0}'.format(scaffolds_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
+            scaffolds_error_rate = float(subprocess.check_output('grep "error rate   =" {0}'.format(scaffolds_assembly_stats_filepath), shell=True, bufsize=0).decode("utf-8").split('=')[1].strip()[:-1])
+            scaffolds_error_rate_2 = float(subprocess.check_output('grep "error rate 2 =" {0}'.format(scaffolds_assembly_stats_filepath), shell=True, bufsize=0).decode("utf-8").split('=')[1].strip()[:-1])
+            scaffolds_ref_coverage = float(subprocess.check_output('grep "ref coverage" {0}'.format(scaffolds_assembly_stats_filepath), shell=True, bufsize=0).decode("utf-8").split('=')[1].strip()[:-1])
 
             # Evaluate large NR scaffolds
             cmd_line = evaluate_assembly_bin + ' -r ' + args.true_references
             cmd_line += ' -i ' + large_NR_scaffolds_filepath
 
             logger.debug('CMD: {0}'.format(cmd_line))
-            error_code += subprocess.call(cmd_line, shell=True)
+            error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
 
             large_NR_scaffolds_assembly_stats_filename = large_NR_scaffolds_basename + '.exonerate_vs_'
             large_NR_scaffolds_assembly_stats_filename += true_ref_basename + '.assembly.stats'
             large_NR_scaffolds_assembly_stats_filepath = os.path.join(args.out_dir, large_NR_scaffolds_assembly_stats_filename)
 
             try:
-                large_NR_scaffolds_error_rate = float(subprocess.check_output('grep "error rate   =" {0}'.format(large_NR_scaffolds_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
-                large_NR_scaffolds_error_rate_2 = float(subprocess.check_output('grep "error rate 2 =" {0}'.format(large_NR_scaffolds_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
-                large_NR_scaffolds_ref_coverage = float(subprocess.check_output('grep "ref coverage" {0}'.format(large_NR_scaffolds_assembly_stats_filepath), shell=True).decode("utf-8").split('=')[1].strip()[:-1])
+                large_NR_scaffolds_error_rate = float(subprocess.check_output('grep "error rate   =" {0}'.format(large_NR_scaffolds_assembly_stats_filepath), shell=True, bufsize=0).decode("utf-8").split('=')[1].strip()[:-1])
+                large_NR_scaffolds_error_rate_2 = float(subprocess.check_output('grep "error rate 2 =" {0}'.format(large_NR_scaffolds_assembly_stats_filepath), shell=True, bufsize=0).decode("utf-8").split('=')[1].strip()[:-1])
+                large_NR_scaffolds_ref_coverage = float(subprocess.check_output('grep "ref coverage" {0}'.format(large_NR_scaffolds_assembly_stats_filepath), shell=True, bufsize=0).decode("utf-8").split('=')[1].strip()[:-1])
             except subprocess.CalledProcessError:
                 large_NR_scaffolds_error_rate = float()
                 large_NR_scaffolds_error_rate_2 = float()
