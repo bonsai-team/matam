@@ -1031,7 +1031,7 @@ def main():
     # Get compressed graph stats
     compressed_graph_nodes_nb = int(subprocess.check_output('wc -l {0}'.format(componentsearch_metanodes_csv_filepath), shell=True).split()[0]) - 1
     compressed_graph_edges_nb = int(subprocess.check_output('wc -l {0}'.format(componentsearch_metaedges_csv_filepath), shell=True).split()[0]) - 1
-    compressed_graph_reads_nb = int(subprocess.check_output('wc -l {0}'.format(componentsearch_components_csv_filepath), shell=True).split()[0]) - 1
+    compressed_graph_reads_nb = int(subprocess.check_output('cut -d ";" -f5 {0} | awk "\$1!=-1" | wc -l'.format(componentsearch_components_csv_filepath), shell=True).split()[0]) - 1
     compressed_graph_excluded_reads_nb = ovgraph_nodes_nb - compressed_graph_reads_nb
     excluded_reads_percent = compressed_graph_excluded_reads_nb * 100.0 / ovgraph_nodes_nb
     components_nb = int(subprocess.check_output('cut -d ";" -f5 {0} | {1} | uniq | wc -l'.format(componentsearch_components_csv_filepath, sort_bin), shell=True).split()[0]) - 1
