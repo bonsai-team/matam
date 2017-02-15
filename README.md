@@ -49,6 +49,8 @@ Since the samtools package in current Ubuntu-like distributions is usualy a depr
 
 ## MATAM in Docker
 
+https://hub.docker.com/r/bonsaiteam/matam/
+
 To run MATAM using docker, just run:
 
 `docker run bonsaiteam/matam matam_assembly.py`
