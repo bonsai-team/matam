@@ -1388,7 +1388,7 @@ def main():
         error_code += subprocess.call(cmd_line, shell=True)
 
         # Sort bam
-        cmd_line = 'samtools sort -o ' + sorted_bam_filepath + ' ' + bam_filepath 
+        cmd_line = 'samtools sort -o ' + sorted_bam_filepath + ' ' + bam_filepath
 
         logger.debug('CMD: {0}'.format(cmd_line))
         error_code += subprocess.call(cmd_line, shell=True)
@@ -1481,6 +1481,7 @@ def main():
         to_rm_filepath_list.append(bam_filepath)
         to_rm_filepath_list.append(sorted_bam_filepath)
         to_rm_filepath_list.append(mpileup_filepath)
+        to_rm_filepath_list.append(scaffolds_NR_filepath)
 
     # Compute scaffolds assemblies stats
     scaffolds_stats = compute_fasta_stats(scaffolds_filepath)
