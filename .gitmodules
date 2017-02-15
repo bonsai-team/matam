@@ -13,9 +13,6 @@
 [submodule "sumaclust"]
 	path = sumaclust
 	url = https://git.metabarcoding.org/obitools/sumaclust.git
-[submodule "componentsearch"]
-	path = componentsearch
-	url = https://github.com/ppericard/ComponentSearch.git
 [submodule "vsearch"]
 	path = vsearch
 	url = https://github.com/torognes/vsearch.git
