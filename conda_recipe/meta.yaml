@@ -1,0 +1,32 @@
+package:
+  name: matam
+  version: "v0.9.9"
+
+source:
+  git_url: https://github.com/bonsai-team/matam.git
+  git_tag: v0.9.9
+
+requirements:
+  build:
+    - zlib
+    - google-sparsehash
+    - bzip2
+    - samtools >0.1.19
+    - openjdk
+    - python >=3.5
+  run:
+    - wget
+    - libgcc-5 # [not osx]
+    - zlib
+    - openjdk
+    - python >=3.5
+    - samtools >=1.0
+
+test:
+    commands:
+        - matam_assembly.py -h
+
+about:
+  home: https://github.com/bonsai-team/matam
+  license: AGPL-3.0
+  license_file: LICENSE
