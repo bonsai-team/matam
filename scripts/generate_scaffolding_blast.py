@@ -66,8 +66,6 @@ if __name__ == '__main__':
     #
     kept_references_ids_set = set()
     fillers_tab_list_list = list()
-    dealt_contigs_num = 0
-    dealt_contigs_id = set()
 
     # Count refs
     ref_count_dict = defaultdict(int)
@@ -84,34 +82,18 @@ if __name__ == '__main__':
         # Deal with specific contigs
         tab_list_buffer = list()
 
-        # Purely specific contigs
-        current_conservation_count = len(tab_list_list[0])
-        if current_conservation_count == 1:
-            for tab_list in tab_list_list:
-                if len(tab_list) == 1: # Purely specific contig
-                    tab = tab_list[0]
-                    kept_references_ids_set.add(tab[1]) # Add the matching ref id to the set
-                    # Write the alignment
-                    output_tab_buffer.append('\t'.join(tab))
-                    dealt_contigs_id.add(tab[0])
-                    dealt_contigs_num += 1
-                else:
-                    tab_list_buffer.append(tab_list)
-        # Multiple-choices specific contigs
-        else:
-            # Get most specific contig so far
-            selected_tab_list = tab_list_list[0]
-            #~ print(selected_tab_list)
-            tab_list_buffer = tab_list_list[1:]
+		# Get most specific contig so far
+		selected_tab_list = tab_list_list[0]
+		#~ print(selected_tab_list)
+		tab_list_buffer = tab_list_list[1:]
 
-            selected_tab_list.sort(key=lambda t: (-ref_count_dict[t[1]], t[1]))
-            selected_tab = selected_tab_list[0]
+		# Get the alignment against the reference with the most alignments
+		selected_tab_list.sort(key=lambda t: (-ref_count_dict[t[1]], t[1]))
+		selected_tab = selected_tab_list[0]
 
-            kept_references_ids_set.add(selected_tab[1]) # Add the matching ref id to the set
-            # Write the alignment
-            output_tab_buffer.append('\t'.join(selected_tab))
-            dealt_contigs_id.add(selected_tab[0])
-            dealt_contigs_num += 1
+		kept_references_ids_set.add(selected_tab[1]) # Add the matching ref id to the set
+		# Write the alignment
+		output_tab_buffer.append('\t'.join(selected_tab))
 
         tab_list_list = tab_list_buffer
         tab_list_buffer = list()
@@ -128,14 +110,11 @@ if __name__ == '__main__':
                 reference_id = tab[1]
                 if reference_id in references_intersection:
                     output_tab_buffer.append('\t'.join(tab))
-                    dealt_contigs_id.add(tab[0])
                 else:
                     # Store the alignments not already used
                     tab_buffer.append(tab)
             if tab_buffer:
                 fillers_tab_list_buffer.append(tab_buffer)
-            else:
-                dealt_contigs_num += 1
         fillers_tab_list_list = fillers_tab_list_buffer
         fillers_tab_list_buffer = list()
 
@@ -151,14 +130,11 @@ if __name__ == '__main__':
                     reference_id = tab[1]
                     if reference_id in references_intersection:
                         output_tab_buffer.append('\t'.join(tab))
-                        dealt_contigs_id.add(tab[0])
                     else:
                         # Store the alignments not already used
                         tab_buffer.append(tab)
                 if tab_buffer:
                     fillers_tab_list_list.append(tab_buffer)
-                else:
-                    dealt_contigs_num += 1
             else: # Still specific
                 tab_list_buffer.append(tab_list)
         tab_list_list = tab_list_buffer
