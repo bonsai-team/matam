@@ -1,6 +1,6 @@
 # MATAM
 
-*Mapping-Assisted Targeted-Assembly for Metagenomics* 
+*Mapping-Assisted Targeted-Assembly for Metagenomics*
 
 ## Getting Started
 
@@ -33,7 +33,7 @@ Some steps of MATAM are highly paralelized. You can get a significant speed incr
 To install all of the needed depencies except samtools, you can run the following command-line in Debian-like distributions :
 
   `sudo apt-get update && sudo apt-get install curl git gcc g++ python3 default-jdk automake make cmake libsparsehash-dev zlib1g-dev bzip2`
-  
+
 Since the samtools package in current Ubuntu-like distributions is usualy a deprecated version (v0.1.19), you probably have to get a more recent version. We recommand getting samtools through bioconda (https://bioconda.github.io/)
 
 ### Full dependencies list
@@ -55,6 +55,22 @@ To run MATAM using docker, just run:
 
 `docker run bonsaiteam/matam matam_assembly.py`
 
+## MATAM with conda
+
+A conda package is available here: https://anaconda.org/bonsai-team/matam
+
+Before you begin, you should have installed Miniconda or Anaconda. See https://conda.io/docs/installation.html for more details.  
+Then you will need to add the followings channels:
+```
+conda config --add channels conda-forge
+conda config --add channels defaults
+conda config --add channels r
+conda config --add channels bioconda
+conda config --add channels bonsai-team
+```
+Finally, matam can be installed with:
+`conda install matam`
+
 ## Running example datasets
 
 The following example datasets are provided:
@@ -64,7 +80,7 @@ The following example datasets are provided:
 * Running de-novo assembly
 
   `$MATAMDIR/bin/matam_assembly.py -i $MATAMDIR/examples/16sp_simulated_dataset/16sp.art_HS25_pe_100bp_50x.fq --cpu 4 --max_memory 10000 -v`
-  
+
 * Running assembly in validation mode (For developpers. Exonerate must be available in $PATH)
 
   `$MATAMDIR/bin/matam_assembly.py -i $MATAMDIR/examples/16sp_simulated_dataset/16sp.art_HS25_pe_100bp_50x.fq  --true_references $MATAMDIR/examples/16sp_simulated_dataset/16sp.fasta --true_ref_taxo $MATAMDIR/examples/16sp_simulated_dataset/16sp.taxo.tab --cpu 4 --max_memory 10000 -v`
