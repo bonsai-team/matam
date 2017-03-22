@@ -82,18 +82,18 @@ if __name__ == '__main__':
         # Deal with specific contigs
         tab_list_buffer = list()
 
-		# Get most specific contig so far
-		selected_tab_list = tab_list_list[0]
-		#~ print(selected_tab_list)
-		tab_list_buffer = tab_list_list[1:]
+        # Get most specific contig so far
+        selected_tab_list = tab_list_list[0]
+        #~ print(selected_tab_list)
+        tab_list_buffer = tab_list_list[1:]
 
-		# Get the alignment against the reference with the most alignments
-		selected_tab_list.sort(key=lambda t: (-ref_count_dict[t[1]], t[1]))
-		selected_tab = selected_tab_list[0]
+        # Get the alignment against the reference with the most alignments
+        selected_tab_list.sort(key=lambda t: (-ref_count_dict[t[1]], t[1]))
+        selected_tab = selected_tab_list[0]
 
-		kept_references_ids_set.add(selected_tab[1]) # Add the matching ref id to the set
-		# Write the alignment
-		output_tab_buffer.append('\t'.join(selected_tab))
+        kept_references_ids_set.add(selected_tab[1]) # Add the matching ref id to the set
+        # Write the alignment
+        output_tab_buffer.append('\t'.join(selected_tab))
 
         tab_list_list = tab_list_buffer
         tab_list_buffer = list()
