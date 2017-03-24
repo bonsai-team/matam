@@ -13,3 +13,6 @@
 [submodule "componentsearch"]
 	path = componentsearch
 	url = https://github.com/bonsai-team/ComponentSearch2.git
+[submodule "vsearch"]
+	path = vsearch
+	url = https://github.com/torognes/vsearch.git
