@@ -4,9 +4,21 @@
 
 ## Getting Started
 
+The recommended way of getting MATAM is through conda (see below). Then run:
+
+1. (Optional) Getting and indexing default SSU rRNA reference database
+
+ `index_default_ssu_rrna_db.py -d $DBDIR --max_memory 10000`
+
+2. Assembly
+
+ `matam_assembly.py -d $DBDIR/SILVA_128_SSURef_NR95 -i reads.fastq --cpu 4 --max_memory 10000 -v`
+
+## Compiling MATAM from source code
+
 1. Cloning MATAM repository
 
-  `git clone https://github.com/bonsai-team/matam.git`
+  `git clone https://github.com/bonsai-team/matam.git && cd matam`
 
 2. Compiling MATAM and dependencies
 
@@ -71,6 +83,12 @@ conda config --add channels bonsai-team
 Finally, matam can be installed with:
 `conda install matam`
 
+## Indexing a custom reference database
+
+To run MATAM on a custom reference database, run:
+
+`matam_db_preprocessing.py -i ref_db.fasta -o my_ref_db --cpu 4 --max_memory 10000 -v`
+
 ## Running example datasets
 
 The following example datasets are provided:
@@ -83,7 +101,7 @@ The following example datasets are provided:
 
 * Running assembly in validation mode (For developpers. Exonerate must be available in $PATH)
 
-  `$MATAMDIR/bin/matam_assembly.py -i $MATAMDIR/examples/16sp_simulated_dataset/16sp.art_HS25_pe_100bp_50x.fq  --true_references $MATAMDIR/examples/16sp_simulated_dataset/16sp.fasta --true_ref_taxo $MATAMDIR/examples/16sp_simulated_dataset/16sp.taxo.tab --cpu 4 --max_memory 10000 -v`
+  `$MATAMDIR/bin/matam_assembly.py -i $MATAMDIR/examples/16sp_simulated_dataset/16sp.art_HS25_pe_100bp_50x.fq  --true_references $MATAMDIR/examples/16sp_simulated_dataset/16sp.fasta --true_ref_taxo $MATAMDIR/examples/16sp_simulated_dataset/16sp.taxo.tab --cpu 4 --max_memory 10000 --debug`
 
 ## Release versioning
 
