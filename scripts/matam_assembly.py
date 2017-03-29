@@ -233,7 +233,7 @@ def parse_arguments():
                             metavar = 'DBPATH',
                             type = str,
                             help = 'MATAM ref db. '
-                                   'Default is $MATAM_DIR/db/SILVA_123_SSURef_rdNs_NR95')
+                                   'Default is $MATAM_DIR/db/SILVA_128_SSURef_NR95')
     # -o / --out_dir
     group_main.add_argument('-o', '--out_dir',
                             action = 'store',
