@@ -430,6 +430,11 @@ def parse_arguments():
                            help = 'Try to resume from given step. '
                                   'Steps are: %(choices)s')
 
+    # --filter_only
+    group_adv.add_argument('--filter_only',
+                            action = 'store_true',
+                            help = 'Perform only the first step of MATAM (i.e Reads mapping against ref db with sortmerna to filter the reads). '\
+                                   'Relevant options for this step correspond to the "Read mapping" section.')
     #
     args = parser.parse_args()
 
@@ -577,7 +582,8 @@ def main():
     args = parse_arguments()
 
     # Print intro infos
-    print_intro(args)
+    if not args.filter_only:
+        print_intro(args)
 
     # Init error code
     error_code = 0
@@ -891,7 +897,9 @@ def main():
     to_rm_filepath_list.append(sortme_output_basepath + '.log')
     to_rm_filepath_list.append(sortme_output_basepath + '.blast')
 
-    #############################
+    if args.filter_only:
+        return error_code
+        #############################
     # Alignment filtering
 
     if args.resume_from == 'alignments_filtering':
