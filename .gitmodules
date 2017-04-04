@@ -15,4 +15,4 @@
 	url = https://git.metabarcoding.org/obitools/sumaclust.git
 [submodule "componentsearch"]
 	path = componentsearch
-	url = https://github.com/ppericard/ComponentSearch.git
+	url = https://github.com/bonsai-team/ComponentSearch2.git

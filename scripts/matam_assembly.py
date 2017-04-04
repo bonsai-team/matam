@@ -55,7 +55,7 @@ ovgraphbuild_bin_dir = os.path.join(matam_root_dir, 'ovgraphbuild', 'bin')
 ovgraphbuild_bin = os.path.join(ovgraphbuild_bin_dir, 'ovgraphbuild')
 
 componentsearch_bin_dir = os.path.join(matam_root_dir, 'componentsearch')
-componentsearch_jar = os.path.join(componentsearch_bin_dir, 'ComponentSearch.jar')
+componentsearch_bin = os.path.join(componentsearch_bin_dir, 'componentsearch')
 
 assembler_bin_dir = os.path.join(matam_root_dir, 'sga', 'src', 'SGA')
 assembler_name = 'sga'
@@ -352,6 +352,13 @@ def parse_arguments():
                              default = 1,
                              help = 'Minimum number of overlap to keep an edge. '
                                     'Default is %(default)s')
+    # --seed
+    group_gcomp.add_argument('--seed',
+                             action = 'store',
+                             metavar = 'INT',
+                             type = int,
+                             help = 'Seed to initialize random generator. '
+                                    'Default is picking seed from system time')
     # --optimize_components
     group_gcomp.add_argument('--optimize_components',
                              action = 'store_true',
@@ -423,6 +430,11 @@ def parse_arguments():
                            help = 'Try to resume from given step. '
                                   'Steps are: %(choices)s')
 
+    # --filter_only
+    group_adv.add_argument('--filter_only',
+                            action = 'store_true',
+                            help = 'Perform only the first step of MATAM (i.e Reads mapping against ref db with sortmerna to filter the reads). '\
+                                   'Relevant options for this step correspond to the "Read mapping" section.')
     #
     args = parser.parse_args()
 
@@ -570,7 +582,8 @@ def main():
     args = parse_arguments()
 
     # Print intro infos
-    print_intro(args)
+    if not args.filter_only:
+        print_intro(args)
 
     # Init error code
     error_code = 0
@@ -677,23 +690,32 @@ def main():
     ovgraphbuild_edges_csv_filepath = ovgraphbuild_basepath + '.edges.csv'
 
     # Graph compaction & Components identification
-    componentsearch_basename = ovgraphbuild_basename + '.ctgs'
+    componentsearch_basename = ovgraphbuild_basename + '.cpts'
     componentsearch_basename += '_N' + str(args.min_read_node)
     componentsearch_basename += '_E' + str(args.min_overlap_edge)
+    if args.optimize_components:
+        componentsearch_basename += '_oc'
     componentsearch_basepath = os.path.join(args.out_dir, componentsearch_basename)
 
-    contracted_nodes_basepath = componentsearch_basepath + '.nodes_contracted'
-    contracted_nodes_filepath = contracted_nodes_basepath + '.csv'
-    contracted_edges_filepath = componentsearch_basepath + '.edges_contracted.csv'
-    contracted_components_filepath = componentsearch_basepath + '.components.csv'
+    componentsearch_metanodes_csv_basename = componentsearch_basename + '.metaNodes'
+    componentsearch_metanodes_csv_filename = componentsearch_metanodes_csv_basename + '.csv'
+    componentsearch_metanodes_csv_filepath = os.path.join(args.out_dir, componentsearch_metanodes_csv_filename)
+
+    componentsearch_metaedges_csv_basename = componentsearch_basename + '.metaEdges'
+    componentsearch_metaedges_csv_filename = componentsearch_metaedges_csv_basename + '.csv'
+    componentsearch_metaedges_csv_filepath = os.path.join(args.out_dir, componentsearch_metaedges_csv_filename)
+
+    componentsearch_components_csv_basename = componentsearch_basename + '.components'
+    componentsearch_components_csv_filename = componentsearch_components_csv_basename + '.csv'
+    componentsearch_components_csv_filepath = os.path.join(args.out_dir, componentsearch_components_csv_filename)
 
     # LCA labelling
-    read_id_metanode_component_filepath = componentsearch_basepath + '.read_id_metanode_component.tab'
+    read_metanode_component_filepath = componentsearch_basepath + '.read_metanode_component.tab'
     complete_taxo_filepath = componentsearch_basepath + '.read_metanode_component_taxo.tab'
 
     quorum_int = int(args.quorum * 100)
 
-    labelled_nodes_basename = componentsearch_basename + '.nodes_contracted'
+    labelled_nodes_basename = componentsearch_metanodes_csv_basename
     labelled_nodes_basename += '.component_lca' + str(quorum_int) + 'pct'
 
     components_lca_filename = componentsearch_basename + '.component_lca' + str(quorum_int) + 'pct.tab'
@@ -875,7 +897,9 @@ def main():
     to_rm_filepath_list.append(sortme_output_basepath + '.log')
     to_rm_filepath_list.append(sortme_output_basepath + '.blast')
 
-    #############################
+    if args.filter_only:
+        return error_code
+        #############################
     # Alignment filtering
 
     if args.resume_from == 'alignments_filtering':
@@ -983,10 +1007,11 @@ def main():
     if run_step:
         logger.info('=== Graph compaction & Components identification ===')
 
-        cmd_line = 'java -Xmx' + str(args.max_memory) + 'M -cp "'
-        cmd_line += componentsearch_jar + '" main.Main'
+        cmd_line = componentsearch_bin
         if args.optimize_components:
-            cmd_line += ' -oc'
+            cmd_line += ' -o'
+        if args.seed:
+            cmd_line += ' -r ' + str(args.seed)
         cmd_line += ' -N ' + str(args.min_read_node)
         cmd_line += ' -E ' + str(args.min_overlap_edge)
         cmd_line += ' -b ' + componentsearch_basepath
@@ -1012,12 +1037,12 @@ def main():
         #to_rm_filepath_list.append(ovgraphbuild_edges_csv_filepath)
 
     # Get compressed graph stats
-    compressed_graph_nodes_nb = int(subprocess.check_output('wc -l {0}'.format(contracted_nodes_filepath), shell=True, bufsize=0).split()[0]) - 1
-    compressed_graph_edges_nb = int(subprocess.check_output('wc -l {0}'.format(contracted_edges_filepath), shell=True, bufsize=0).split()[0]) - 1
-    compressed_graph_reads_nb = int(subprocess.check_output('wc -l {0}'.format(contracted_components_filepath), shell=True, bufsize=0).split()[0]) - 1
+    compressed_graph_nodes_nb = int(subprocess.check_output('wc -l {0}'.format(componentsearch_metanodes_csv_filepath), shell=True, bufsize=0).split()[0]) - 1
+    compressed_graph_edges_nb = int(subprocess.check_output('wc -l {0}'.format(componentsearch_metaedges_csv_filepath), shell=True, bufsize=0).split()[0]) - 1
+    compressed_graph_reads_nb = int(subprocess.check_output('cut -d ";" -f5 {0} | awk "\$1!=-1" | wc -l'.format(componentsearch_components_csv_filepath), shell=True, bufsize=0).split()[0]) - 1
     compressed_graph_excluded_reads_nb = ovgraph_nodes_nb - compressed_graph_reads_nb
     excluded_reads_percent = compressed_graph_excluded_reads_nb * 100.0 / ovgraph_nodes_nb
-    components_nb = int(subprocess.check_output('cut -d ";" -f1 {0} | {1} | uniq | wc -l'.format(contracted_components_filepath, sort_bin), shell=True, bufsize=0).split()[0]) - 1
+    components_nb = int(subprocess.check_output('cut -d ";" -f5 {0} | {1} | uniq | wc -l'.format(componentsearch_components_csv_filepath, sort_bin), shell=True).split()[0]) - 1
 
     logger.info('Compressed graph: {} components'.format(components_nb))
     if args.verbose:
@@ -1032,33 +1057,11 @@ def main():
         # Set t0
         t0_wall = time.time()
 
-        # Note: some of the manipulations here are needed because ComponentSearch
-        # works with read ids rather than read names. The goal of this part is to
-        # regroup all the infos in one file (component, metanode, read, ref taxo)
-        # in order to compute LCA at metanode or component level
-
-        # Convert CSV component file to TAB format and sort by read id
-        cmd_line = 'tail -n +2 ' + contracted_components_filepath
-        cmd_line += ' | sed "s/;/\\t/g" | ' + sort_bin + ' -k2,2 > '
-        cmd_line += componentsearch_basepath + '.components.tab'
-
-        logger.debug('CMD: {0}'.format(cmd_line))
-        error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
-
-        # Convert CSV node file to TAB format and sort by read id
-        cmd_line = 'tail -n +2 ' + ovgraphbuild_nodes_csv_filepath
-        cmd_line += ' | sed "s/;/\\t/g" | ' + sort_bin + ' -k1,1 > '
-        cmd_line += ovgraphbuild_basepath + '.nodes.tab'
-
-        logger.debug('CMD: {0}'.format(cmd_line))
-        error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
-
-        # Join component and node files on read id, and sort by read name
-        cmd_line = 'join -a1 -e"NULL" -o "1.2,0,2.3,2.1" -11 -22 '
-        cmd_line += ovgraphbuild_basepath + '.nodes.tab '
-        cmd_line += componentsearch_basepath + '.components.tab '
-        cmd_line += '| sed "s/ /\\t/g" | ' + sort_bin + ' -k1,1  > '
-        cmd_line += read_id_metanode_component_filepath
+        # Get read, metanode and component from the components file
+        cmd_line = 'tail -n +2 ' + componentsearch_components_csv_filepath
+        cmd_line += ' | sed "s/;/\\t/g" | cut -f2,4,5 | awk "\$3>=0" '
+        cmd_line += ' | ' + sort_bin + ' -k1,1 > '
+        cmd_line += read_metanode_component_filepath
 
         logger.debug('CMD: {0}'.format(cmd_line))
         error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
@@ -1069,8 +1072,8 @@ def main():
         cmd_line = 'cat ' + sam_filt_filepath + ' | cut -f1,3 | ' + sort_bin + ' -k2,2'
         cmd_line += ' | join -12 -21 - ' + complete_ref_db_taxo_filepath
         cmd_line += ' | ' + sort_bin + ' -k2,2 | awk "{print \$2,\$3}" | sed "s/ /\\t/g" '
-        cmd_line += ' | join -11 -21 ' + read_id_metanode_component_filepath
-        cmd_line += ' - | sed "s/ /\\t/g" | cut -f2-5 > '
+        cmd_line += ' | join -11 -21 ' + read_metanode_component_filepath
+        cmd_line += ' - | sed "s/ /\\t/g" > '
         cmd_line += complete_taxo_filepath
 
         logger.debug('CMD: {0}'.format(cmd_line))
@@ -1089,37 +1092,36 @@ def main():
 
         # Tag tmp files for removal
         to_rm_filepath_list.append(componentsearch_basepath + '.components.tab')
-        to_rm_filepath_list.append(ovgraphbuild_basepath + '.nodes.tab')
         to_rm_filepath_list.append(complete_taxo_filepath)
 
         if args.verbose:
             sys.stderr.write('\n')
 
-    ###################################
-    # Computing compressed graph stats
+    # ###################################
+    # # Computing compressed graph stats
 
-    if run_step:
-        logger.info('=== Computing compressed graph stats ===')
+    # if run_step:
+    #     logger.info('=== Computing compressed graph stats ===')
 
-        cmd_line = compute_compressed_graph_stats_bin + ' --nodes_contracted '
-        cmd_line += contracted_nodes_filepath + ' --edges_contracted '
-        cmd_line += contracted_edges_filepath + ' --components_lca '
-        cmd_line += components_lca_filepath
-        if args.true_ref_taxo:
-            cmd_line += ' --species_taxo ' + args.true_ref_taxo
-            cmd_line += ' --read_node_component ' + read_id_metanode_component_filepath
-        cmd_line += ' -o ' + stats_filepath
+    #     cmd_line = compute_compressed_graph_stats_bin + ' --nodes_contracted '
+    #     cmd_line += contracted_nodes_filepath + ' --edges_contracted '
+    #     cmd_line += contracted_edges_filepath + ' --components_lca '
+    #     cmd_line += components_lca_filepath
+    #     if args.true_ref_taxo:
+    #         cmd_line += ' --species_taxo ' + args.true_ref_taxo
+    #         cmd_line += ' --read_node_component ' + read_id_metanode_component_filepath
+    #     cmd_line += ' -o ' + stats_filepath
 
-        # Set t0
-        t0_wall = time.time()
+    #     # Set t0
+    #     t0_wall = time.time()
 
-        logger.debug('CMD: {0}'.format(cmd_line))
-        error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
+    #     logger.debug('CMD: {0}'.format(cmd_line))
+    #     error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
 
-        # Output running time
-        logger.info('Computing compressed graph stats terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
-        if args.verbose:
-            sys.stderr.write('\n')
+    #     # Output running time
+    #     logger.info('Computing compressed graph stats terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
+    #     if args.verbose:
+    #         sys.stderr.write('\n')
 
     ###################
     # Contigs assembly
@@ -1156,10 +1158,10 @@ def main():
             component_lca_dict = {t[0]:t[1] for t in (l.split() for l in component_lca_fh) if len(t) == 2}
 
         # Reading read --> component file
-        logger.debug('Reading read-->component from {}'.format(read_id_metanode_component_filepath))
+        logger.debug('Reading read-->component from {}'.format(read_metanode_component_filepath))
         read_component_dict = dict()
-        with open(read_id_metanode_component_filepath, 'r') as read_id_metanode_component_fh:
-            read_component_dict = {t[0]:t[3] for t in (l.split() for l in read_id_metanode_component_fh) if t[3] != 'NULL'}
+        with open(read_metanode_component_filepath, 'r') as read_metanode_component_fh:
+            read_component_dict = {t[0]:t[2] for t in (l.split() for l in read_metanode_component_fh) if t[2] != 'NULL'}
 
         # Storing reads for each component
         logger.debug('Storing reads by component from {}'.format(sortme_output_fastx_filepath))
@@ -1313,7 +1315,7 @@ def main():
                 large_NR_contigs_ref_coverage = float()
 
         # Tag tmp files for removal
-        to_rm_filepath_list.append(read_id_metanode_component_filepath)
+        to_rm_filepath_list.append(read_metanode_component_filepath)
         to_rm_filepath_list.append(contigs_basepath + '.log')
         to_rm_filepath_list.append(contigs_NR_filepath)
 

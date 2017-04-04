@@ -34,7 +34,7 @@ The recommended way of getting MATAM is through conda (see below). Then run:
 
 ## Hardware requirements
 
-Most MATAM steps will run with less than 10 Go of RAM and can run with less RAM if --max\_memory is set to a lower value (eg. --max\_memory 4000 for 4Go). However if the analysed sample is complex, the resulting graph can be huge and need to be stored in RAM by the graph_compaction step. In those cases you may need from 10s Go to 100s Go RAM.
+We recommand running MATAM with at least 10Go of free RAM. You can try running MATAM with less RAM if --max\_memory is set to a lower value (eg. --max\_memory 4000 for 4Go).
 
 Some steps of MATAM are highly paralelized. You can get a significant speed increase during these steps by setting the --cpu option to a higher value
 
@@ -44,8 +44,8 @@ Some steps of MATAM are highly paralelized. You can get a significant speed incr
 
 To install all of the needed depencies except samtools, you can run the following command-line in Debian-like distributions :
 
-  `sudo apt-get update && sudo apt-get install curl git gcc g++ python3 default-jdk automake make cmake libsparsehash-dev zlib1g-dev bzip2`
-
+  `sudo apt-get update && sudo apt-get install curl git gcc g++ python3 automake make cmake libsparsehash-dev zlib1g-dev bzip2`
+  
 Since the samtools package in current Ubuntu-like distributions is usualy a deprecated version (v0.1.19), you probably have to get a more recent version. We recommand getting samtools through bioconda (https://bioconda.github.io/)
 
 ### Full dependencies list
@@ -54,7 +54,6 @@ Since the samtools package in current Ubuntu-like distributions is usualy a depr
 * C++ libraries: rt, pthread, zlib
 * Samtools v1.x or superior
 * Python 3
-* Java SE 7 JDK. OpenJDK is ok (openjdk-7-jdk paquet on debian)
 * automake, make, cmake
 * bzip2
 * google sparse hash library (libsparsehash-dev paquet on debian)
@@ -79,6 +78,7 @@ conda config --add channels defaults
 conda config --add channels r
 conda config --add channels bioconda
 conda config --add channels bonsai-team
+conda config --add channels salford_systems
 ```
 Finally, matam can be installed with:
 `conda install matam`
