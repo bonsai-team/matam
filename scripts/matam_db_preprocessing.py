@@ -32,8 +32,8 @@ clean_name_bin = os.path.join(matam_script_dir, 'fasta_clean_name.py')
 sortmerna_bin_dir = os.path.join(matam_root_dir, 'sortmerna')
 indexdb_bin = os.path.join(sortmerna_bin_dir, 'indexdb_rna')
 
-sumaclust_bin_dir = os.path.join(matam_root_dir, 'sumaclust')
-sumaclust_bin = os.path.join(sumaclust_bin_dir, 'sumaclust')
+vsearch_bin_dir = os.path.join(matam_root_dir, 'vsearch/bin')
+vsearch_bin = os.path.join(vsearch_bin_dir, 'vsearch')
 
 # Define a null file handle
 FNULL = open(os.devnull, 'w')
@@ -313,17 +313,17 @@ if __name__ == '__main__':
 
     clustering_id_threshold_int = int(args.clustering_id_threshold * 100)
 
-    sumaclust_output_basename = complete_ref_db_basename + '.sumaclust_'
-    sumaclust_output_basename += '{0}'.format(clustering_id_threshold_int)
+    vsearch_output_basename = complete_ref_db_basename + '.vsearch_'
+    vsearch_output_basename += '{0}'.format(clustering_id_threshold_int)
     if args.by_kingdom:
-        sumaclust_output_basename += '_by_kingdom'
-    sumaclust_output_filename = sumaclust_output_basename + '.fasta'
-    sumaclust_output_filepath = os.path.join(args.db_dir, sumaclust_output_filename)
+        vsearch_output_basename += '_by_kingdom'
+    vsearch_output_filename = vsearch_output_basename + '.fasta'
+    vsearch_output_filepath = os.path.join(args.db_dir, vsearch_output_filename)
 
-    sumaclust_centroids_basename = sumaclust_output_basename + '.centroids'
-    sumaclust_centroids_basepath = os.path.join(args.db_dir, sumaclust_output_basename)
-    sumaclust_centroids_filename = sumaclust_centroids_basename + '.fasta'
-    sumaclust_centroids_filepath = os.path.join(args.db_dir, sumaclust_centroids_filename)
+    vsearch_centroids_basename = vsearch_output_basename + '.centroids'
+    vsearch_centroids_basepath = os.path.join(args.db_dir, vsearch_output_basename)
+    vsearch_centroids_filename = vsearch_centroids_basename + '.fasta'
+    vsearch_centroids_filepath = os.path.join(args.db_dir, vsearch_centroids_filename)
 
     clustered_ref_db_basename = cleaned_complete_ref_db_basename + '_NR{0}'.format(clustering_id_threshold_int)
     if args.by_kingdom:
@@ -369,10 +369,6 @@ if __name__ == '__main__':
     # TO DO, maybe, one day:
     # Trim Ns from both sides
 
-    # NB: There is no need to remove sequences with Ns if we dont
-    # replace them with random nucl, because sumaclust filters out
-    # sequences with Ns
-
     # Convert Us in Ts
     # Option: Either filter out seq with Ns or replace Ns with random nucl
     # Option: Filter too small or too long sequences
@@ -410,10 +406,10 @@ if __name__ == '__main__':
             cleaned_complete_ref_db_kingdom_filename = cleaned_complete_ref_db_kingdom_basename + '.fasta'
             cleaned_complete_ref_db_kingdom_filepath = os.path.join(args.db_dir, cleaned_complete_ref_db_kingdom_filename)
 
-            sumaclust_output_kingdom_basename = cleaned_complete_ref_db_kingdom_basename + '.sumaclust_'
-            sumaclust_output_kingdom_basename += '{0}'.format(clustering_id_threshold_int)
-            sumaclust_output_kingdom_filename = sumaclust_output_kingdom_basename + '.fasta'
-            sumaclust_output_kingdom_filepath = os.path.join(args.db_dir, sumaclust_output_kingdom_filename)
+            vsearch_output_kingdom_basename = cleaned_complete_ref_db_kingdom_basename + '.vsearch_'
+            vsearch_output_kingdom_basename += '{0}'.format(clustering_id_threshold_int)
+            vsearch_output_kingdom_filename = vsearch_output_kingdom_basename + '.fasta'
+            vsearch_output_kingdom_filepath = os.path.join(args.db_dir, vsearch_output_kingdom_filename)
 
             # Extracting kingdoms fasta files
             logger.info('Extracting sequences from {0} kingdom'.format(kingdom))
@@ -425,73 +421,66 @@ if __name__ == '__main__':
             logger.debug('CMD: {0}'.format(cmd_line))
             error_code += subprocess.call(cmd_line, shell=True)
 
-            # Clutering with sumaclust
-            # sumaclust -l is used to simulate semi-global alignment, since SumaClust is a global aligner
+            # Clutering with vsearch
+            # Aplly a null-penalty value to left and right gaps (--gaopoen "20I/0E") to use vsearch as a semi-global aligner
             logger.info('Clustering {0} sequences @ {1} pct id'.format(kingdom, clustering_id_threshold_int))
 
-            cmd_line = sumaclust_bin + ' -l -t ' + '{0:.2f}'.format(args.clustering_id_threshold)
-            cmd_line += ' -s None -p ' + str(args.cpu)
+            cmd_line = vsearch_bin + ' --cluster_fast'
             cmd_line += ' ' + cleaned_complete_ref_db_kingdom_filepath
-            cmd_line += ' -F ' + sumaclust_output_kingdom_filepath
+            cmd_line += ' --centroids ' + vsearch_output_kingdom_filepath
+            cmd_line += ' --id {0:.2f}'.format(args.clustering_id_threshold)
+            cmd_line += ' --gapopen "20I/0E"'
+            cmd_line += ' --threads ' + str(args.cpu)
 
             logger.debug('CMD: {0}'.format(cmd_line))
             if args.verbose:
                 error_code += subprocess.call(cmd_line, shell=True)
             else:
-                # Needed because Sumaclust doesnt have a verbose option
+                # Needed because VSearch doesnt have a verbose option
                 # and output everything to stderr
                 error_code += subprocess.call(cmd_line, shell=True, stdout=FNULL, stderr=FNULL)
 
-            # Concatenate sumaclust outputs
-            cmd_line = 'cat ' + sumaclust_output_kingdom_filepath + ' >> '
-            cmd_line += sumaclust_output_filepath
+            # Concatenate vsearch outputs
+            cmd_line = 'cat ' + vsearch_output_kingdom_filepath + ' >> '
+            cmd_line += vsearch_output_filepath
 
             logger.debug('CMD: {0}'.format(cmd_line))
             error_code += subprocess.call(cmd_line, shell=True)
 
             # Tag tmp files for removal
             to_rm_filepath_list.append(cleaned_complete_ref_db_kingdom_filepath)
-            to_rm_filepath_list.append(sumaclust_output_kingdom_filepath)
+            to_rm_filepath_list.append(vsearch_output_kingdom_filepath)
 
     else:
-
-        # Perform clustering at once on the ref db
-        # sumaclust -l is used to simulate semi-global alignment, since SumaClust is a global aligner
+        # Clutering with vsearch
+        # Aplly a null-penalty value to left and right gaps (--gaopoen "20I/0E") to use vsearch as a semi-global aligner
         logger.info('Clustering sequences @ {0} pct id'.format(clustering_id_threshold_int))
-
-        cmd_line = sumaclust_bin + ' -l -t ' + '{0:.2f}'.format(args.clustering_id_threshold)
-        cmd_line += ' -s None -p ' + str(args.cpu)
+        cmd_line = vsearch_bin + ' --cluster_fast'
         cmd_line += ' ' + cleaned_complete_ref_db_filepath
-        cmd_line += ' -F ' + sumaclust_output_filepath
+        cmd_line += ' --centroids ' + vsearch_output_filepath
+        cmd_line += ' --id {0:.2f}'.format(args.clustering_id_threshold)
+        cmd_line += ' --gapopen "20I/0E"'
+        cmd_line += ' --threads ' + str(args.cpu)
 
         logger.debug('CMD: {0}'.format(cmd_line))
         if args.verbose:
             error_code += subprocess.call(cmd_line, shell=True)
         else:
-            # Needed because Sumaclust doesnt have a verbose option
+            # Needed because VSearch doesnt have a verbose option
             # and output everything to stderr
             error_code += subprocess.call(cmd_line, shell=True, stdout=FNULL, stderr=FNULL)
-
-    # Extracting centroids
-    logger.info('Extracting centroids from clustering output')
-
-    cmd_line = fasta_name_filter_bin + ' -s "cluster_center=True" -i '
-    cmd_line += sumaclust_output_filepath + ' -o '
-    cmd_line += sumaclust_centroids_filepath
-
-    logger.debug('CMD: {0}'.format(cmd_line))
-    error_code += subprocess.call(cmd_line, shell=True)
+    vsearch_centroids_filepath = vsearch_output_filepath
 
     # Clean fasta headers
-    cmd_line = clean_name_bin + ' -i ' + sumaclust_centroids_filepath
+    cmd_line = clean_name_bin + ' -i ' + vsearch_centroids_filepath
     cmd_line += ' -o ' + clustered_ref_db_filepath
 
     logger.debug('CMD: {0}'.format(cmd_line))
     error_code += subprocess.call(cmd_line, shell=True)
 
     # Tag tmp files for removal
-    to_rm_filepath_list.append(sumaclust_output_filepath)
-    to_rm_filepath_list.append(sumaclust_centroids_filepath)
+    to_rm_filepath_list.append(vsearch_output_filepath)
+    to_rm_filepath_list.append(vsearch_centroids_filepath)
 
     ##########################################
     # Renaming output files as MATAM db files

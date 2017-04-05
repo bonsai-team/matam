@@ -22,7 +22,7 @@ matam_scripts_dirpath = os.path.join(matam_root_dirpath, 'scripts')
 componentsearch_dirpath = os.path.join(matam_root_dirpath, 'componentsearch')
 ovgraphbuild_dirpath = os.path.join(matam_root_dirpath, 'ovgraphbuild')
 sortmerna_dirpath = os.path.join(matam_root_dirpath, 'sortmerna')
-sumaclust_dirpath = os.path.join(matam_root_dirpath, 'sumaclust')
+vsearch_dirpath = os.path.join(matam_root_dirpath, 'vsearch')
 bamtools_lib_dirpath = os.path.join(matam_root_dirpath, 'lib', 'bamtools')
 sga_dirpath = os.path.join(matam_root_dirpath, 'sga')
 
@@ -163,29 +163,22 @@ normally created by building the program. Default is %(default)s",
                                          sortmerna_dirpath, info, warning)
 
     ######################
-    # Compiling Sumaclust
+    # Compiling VSearch
 
     if args.target == 'clean':
-        info = '-- Cleaning Sumaclust --'
+        info = '-- Cleaning VSearch --'
         cmd_line = 'make clean'
-        warning = 'A problem might have happened while cleaning Sumaclust. Check log above'
+        warning = 'A problem might have happened while cleaning VSearch. Check log above'
         global_error_code += execute_cmd(cmd_line,
-                                         sumaclust_dirpath, info, warning)
+                                         vsearch_dirpath, info, warning)
 
     elif args.target == 'build':
-        info = '-- Compiling Sumaclust --'
-        # Update Sumalibs to the last version
-        # !! Tmp fix to get the last patches
-        sumalibs_dirpath = os.path.join(sumaclust_dirpath, 'sumalibs')
-        cmd_line = 'git checkout master'
-        warning = 'A problem might have happened while updating Sumalibs. Check log above'
-        global_error_code += execute_cmd(cmd_line,
-                                         sumalibs_dirpath, info, warning)
+        info = '-- Compiling VSearch --'
 
-        cmd_line = 'make'
-        warning = 'A problem might have happened while compiling Sumaclust. Check log above'
+        cmd_line = './autogen.sh && ./configure && make'
+        warning = 'A problem might have happened while compiling VSearch. Check log above'
         global_error_code += execute_cmd(cmd_line,
-                                         sumaclust_dirpath, info, warning)
+                                         vsearch_dirpath, info, warning)
 
     #########################
     # Compiling Bamtools lib
