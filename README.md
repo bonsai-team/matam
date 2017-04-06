@@ -87,7 +87,7 @@ Finally, matam can be installed with:
 
 To run MATAM on a custom reference database, run:
 
-`matam_db_preprocessing.py -i ref_db.fasta -o my_ref_db --cpu 4 --max_memory 10000 -v`
+`matam_db_preprocessing.py -i ref_db.fasta -d my_ref_db --cpu 4 --max_memory 10000 -v`
 
 ## Running example datasets
 
