@@ -25,7 +25,7 @@ sortmerna_dirpath = os.path.join(matam_root_dirpath, 'sortmerna')
 vsearch_dirpath = os.path.join(matam_root_dirpath, 'vsearch')
 bamtools_lib_dirpath = os.path.join(matam_root_dirpath, 'lib', 'bamtools')
 sga_dirpath = os.path.join(matam_root_dirpath, 'sga')
-
+rdptools_dirpath = os.path.join(matam_root_dirpath, 'RDPTools')
 
 def makedir(dirpath):
     """
@@ -221,6 +221,26 @@ normally created by building the program. Default is %(default)s",
         warning = 'A problem might have happened while compiling SGA. Check log above'
         global_error_code += execute_cmd(cmd_line,
                                          sga_src_dirpath, info, warning)
+
+    ####################
+    # Compiling RDPTools
+
+    if args.target == 'clean':
+        info = '-- Cleaning RDPTools --'
+        cmd_line = 'make clean'
+        warning = 'A problem might have happened while cleaning RDPTools. Check log above'
+        global_error_code += execute_cmd(cmd_line,
+                                         rdptools_dirpath, info, warning)
+
+    elif args.target == 'build':
+        info = '-- Compiling RDPTools --'
+        cmd_line = 'make && chmod +x classifier.jar'
+        warning = 'A problem might have happened while compiling RDPTools. Check log above'
+        global_error_code += execute_cmd(cmd_line,
+                                         rdptools_dirpath,
+                                         info,
+                                         warning,
+                                         createdir=True)
 
     ##############################
     # Creating links into bin dir

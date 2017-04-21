@@ -16,3 +16,9 @@
 [submodule "vsearch"]
 	path = vsearch
 	url = https://github.com/torognes/vsearch.git
+[submodule "RDPTools"]
+	path = RDPTools
+	url = git@github.com:rdpstaff/RDPTools.git
+[submodule "Krona"]
+	path = Krona
+	url = git@github.com:marbl/Krona.git
