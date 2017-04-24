@@ -1,0 +1,22 @@
+226	Bacteria	"Proteobacteria"	Gammaproteobacteria	Pseudomonadales	Pseudomonadaceae	Pseudomonas
+230	Bacteria	"Proteobacteria"	Gammaproteobacteria	Pseudomonadales	Pseudomonadaceae	Pseudomonas
+192	Bacteria	Firmicutes	Bacilli	Lactobacillales	Streptococcaceae	Streptococcus
+294	Bacteria	"Proteobacteria"	Gammaproteobacteria	Pseudomonadales	Pseudomonadaceae	Pseudomonas
+147	Bacteria	Firmicutes	Bacilli	Bacillales	Listeriaceae	Listeria
+411	Bacteria	"Proteobacteria"	Gammaproteobacteria	"Enterobacteriales"	Enterobacteriaceae	Escherichia/Shigella
+383	Bacteria	"Proteobacteria"	Gammaproteobacteria	"Enterobacteriales"	Enterobacteriaceae	Escherichia/Shigella
+512	Bacteria	Firmicutes	Bacilli	Lactobacillales	Streptococcaceae	Streptococcus
+700	Bacteria	"Proteobacteria"	Gammaproteobacteria	Pseudomonadales	Moraxellaceae	Acinetobacter
+475	Bacteria	"Proteobacteria"	Gammaproteobacteria	"Enterobacteriales"	Enterobacteriaceae	Escherichia/Shigella
+567	Bacteria	Firmicutes	Bacilli	Bacillales	Listeriaceae	Listeria
+700	Bacteria	"Proteobacteria"	Gammaproteobacteria	Legionellales	Legionellaceae	Legionella
+695	Bacteria	Firmicutes	Bacilli	Lactobacillales	Streptococcaceae	Streptococcus
+477	Bacteria	"Proteobacteria"	Gammaproteobacteria	"Enterobacteriales"	Enterobacteriaceae	Escherichia/Shigella
+505	Bacteria	"Proteobacteria"	Gammaproteobacteria	"Enterobacteriales"	Enterobacteriaceae	Escherichia/Shigella
+722	Bacteria	"Proteobacteria"	Gammaproteobacteria	"Enterobacteriales"	Enterobacteriaceae	Klebsiella
+750	Bacteria	"Actinobacteria"	Actinobacteria	Actinobacteridae	Actinomycetales	Corynebacterineae	Mycobacteriaceae	Mycobacterium
+737	Bacteria	Firmicutes	Bacilli	Lactobacillales	Streptococcaceae	Streptococcus
+746	Bacteria	"Proteobacteria"	Gammaproteobacteria	"Vibrionales"	Vibrionaceae	Vibrio
+682	Bacteria	"Proteobacteria"	Gammaproteobacteria	"Enterobacteriales"	Enterobacteriaceae	Salmonella
+750	Bacteria	Firmicutes	Bacilli	Bacillales	Staphylococcaceae	Staphylococcus
+749	Bacteria	Firmicutes	Bacilli	Lactobacillales	Enterococcaceae	Enterococcus
