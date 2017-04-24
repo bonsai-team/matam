@@ -11,11 +11,39 @@ import logging
 import cProfile
 from collections import defaultdict
 
+#update the path
+CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
+SCRIPTS_DIR = os.path.join(CURRENT_DIR, 'scripts')
+sys.path.append(SCRIPTS_DIR)
+
+from compute_abundance import get_abundance_by_scaffold, complete_fasta_with_abundance, get_abundance_from_fasta
+from rdp import run_rdp_classifier
+from krona import rdp_file_to_krona_text_file, make_krona_plot
+from binary_utils import Binary
+
 # Set LC_LANG to C for standard sort behaviour
 os.environ["LC_ALL"] = "C"
 
 # Create logger
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
+
+logging_config = dict(
+    version = 1,
+    disable_existing_loggers = False,
+    formatters = {
+        'f': {'format':
+              '%(levelname)s - %(message)s'}
+    },
+    handlers = {
+        'h': {'class': 'logging.StreamHandler',
+              'formatter': 'f',
+              'level': logging.DEBUG}
+    },
+    root = {
+        'handlers': ['h'],
+        'level': logging.DEBUG,
+    },
+)
 
 # Get program filename
 program_filename = os.path.basename(sys.argv[0])
@@ -435,6 +463,21 @@ def parse_arguments():
                             action = 'store_true',
                             help = 'Perform only the first step of MATAM (i.e Reads mapping against ref db with sortmerna to filter the reads). '\
                                    'Relevant options for this step correspond to the "Read mapping" section.')
+
+    # --perform_taxonomic_assignment
+    group_adv.add_argument('--perform_taxonomic_assignment',
+                           action = 'store_true',
+                           help = 'Do the taxonomic assignment')
+
+    # --training_model
+    group_adv.add_argument('--training_model',
+                           action = 'store',
+                           type = str,
+                           choices = ['16srrna', 'fungallsu', 'fungalits_warcup', 'fungalits_unite'],
+                           default = '16srrna',
+                           help = 'The training model used for taxonomic assignment. '
+                                     'Default is %(default)s')
+
     #
     args = parser.parse_args()
 
@@ -547,6 +590,11 @@ def print_intro(args):
     if args.contigs_binning:
         cmd_line += '--contigs_binning '
 
+    # Taxonomic assignment
+    if args.perform_taxonomic_assignment:
+        cmd_line += '--perform_taxonomic_assignment '
+        cmd_line += '--training_model {} '.format(args.training_model)
+
     # Visualization
 
     # Main parameters
@@ -588,25 +636,16 @@ def main():
     # Init error code
     error_code = 0
 
-    # Set logging
-    # create console handler
-    ch = logging.StreamHandler()
-    #
     if args.debug:
         logger.setLevel(logging.DEBUG)
-        # create formatter for debug level
-        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        # update formatter for debug level
+        for h in logger.handlers:
+            h.formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     else:
         if args.verbose:
             logger.setLevel(logging.INFO)
         else:
             logger.setLevel(logging.WARNING)
-        # create default formatter
-        formatter = logging.Formatter('%(levelname)s - %(message)s')
-    # add the formatter to the console handler
-    ch.setFormatter(formatter)
-    # add the handler to logger
-    logger.addHandler(ch)
 
     # Init list of tmp files to delete at the end
     to_rm_filepath_list = list()
@@ -1452,11 +1491,6 @@ def main():
         logger.debug('CMD: {0}'.format(cmd_line))
         error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
 
-        # Create final assembly symbolic link
-        if os.path.exists(final_assembly_symlink_filepath):
-            os.remove(final_assembly_symlink_filepath)
-        os.symlink(os.path.basename(large_NR_scaffolds_filepath), final_assembly_symlink_filepath)
-
         # Output running time
         logger.info('[scaff] Scaffolding terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
 
@@ -1519,6 +1553,61 @@ def main():
 
     if args.verbose:
         sys.stderr.write('\n')
+
+    ########################
+    # Abundance calculation
+
+    logger.info('=== Abundance calculation ===')
+    idx_bin = Binary.assert_which('indexdb_rna')
+    map_bin = Binary.assert_which('sortmerna')
+    best_bin = Binary.assert_which('get_best_matches_from_blast.py')
+    scaffolds_fasta = large_NR_scaffolds_filepath
+    reads = args.input_fastx
+    abundance = get_abundance_by_scaffold(idx_bin, map_bin, best_bin,
+                                          scaffolds_fasta, reads,
+                                          args.best, args.min_lis, args.evalue,
+                                          args.max_memory, args.cpu,
+                                          output_dir_basepath=args.out_dir
+    )
+
+    fasta_with_abundance_filepath =  scaffolds_fasta + '.abd'
+    complete_fasta_with_abundance(scaffolds_fasta, fasta_with_abundance_filepath, abundance)
+
+    logger.info('Write abundance informations to: %s' % fasta_with_abundance_filepath)
+
+    # Create final assembly symbolic link
+    if os.path.exists(final_assembly_symlink_filepath):
+        os.remove(final_assembly_symlink_filepath)
+    os.symlink(os.path.basename(fasta_with_abundance_filepath), final_assembly_symlink_filepath)
+
+    if args.perform_taxonomic_assignment:
+        #################################
+        # taxonomic assignment with rdp
+
+        logger.info('=== Taxonomic assignment ===')
+        rdp_bin = Binary.assert_which('java')
+        rdp_jar = Binary.assert_which('classifier.jar')
+        rdp_classification_filepath = fasta_with_abundance_filepath + '.rdp.txt'
+        run_rdp_classifier(rdp_bin, rdp_jar, fasta_with_abundance_filepath,
+                           rdp_classification_filepath, gene=args.training_model)
+
+        logger.info('Write taxonomic assignment to: %s' % rdp_classification_filepath)
+
+        #############################
+        # build krona representation
+
+        logger.info('=== Build krona representation ===')
+        krona_text_filepath = rdp_classification_filepath + '.krona'
+        rdp_file_to_krona_text_file(rdp_classification_filepath, krona_text_filepath, abundance=abundance)
+
+        krona_bin = Binary.assert_which('ktImportText')
+        krona_html_filepath = krona_text_filepath + '.html'
+        make_krona_plot(krona_bin, krona_text_filepath, krona_html_filepath)
+
+        logger.info('Write krona to: %s' % krona_html_filepath)
+
+        # Tag tmp files for removal
+        to_rm_filepath_list.append(krona_text_filepath)
 
     ###########################
     # Print Assembly Statistics
@@ -1652,6 +1741,11 @@ def main():
 
 
 if __name__ == '__main__':
+
+    # Set logging
+
+    import logging.config
+    logging.config.dictConfig(logging_config)
 
     exit_code = 0
 
