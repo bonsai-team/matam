@@ -18,7 +18,7 @@
 	url = https://github.com/torognes/vsearch.git
 [submodule "RDPTools"]
 	path = RDPTools
-	url = git@github.com:rdpstaff/RDPTools.git
+	url = https://github.com/rdpstaff/RDPTools.git
 [submodule "Krona"]
 	path = Krona
-	url = git@github.com:marbl/Krona.git
+	url = https://github.com/marbl/Krona.git
