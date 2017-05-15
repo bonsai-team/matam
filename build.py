@@ -26,6 +26,8 @@ vsearch_dirpath = os.path.join(matam_root_dirpath, 'vsearch')
 bamtools_lib_dirpath = os.path.join(matam_root_dirpath, 'lib', 'bamtools')
 sga_dirpath = os.path.join(matam_root_dirpath, 'sga')
 rdptools_dirpath = os.path.join(matam_root_dirpath, 'RDPTools')
+kronatools_dirpath = os.path.join(matam_root_dirpath, 'Krona', 'KronaTools')
+
 
 def makedir(dirpath):
     """
@@ -222,7 +224,7 @@ normally created by building the program. Default is %(default)s",
         global_error_code += execute_cmd(cmd_line,
                                          sga_src_dirpath, info, warning)
 
-    ####################
+    #####################
     # Compiling RDPTools
 
     if args.target == 'clean':
@@ -241,6 +243,26 @@ normally created by building the program. Default is %(default)s",
                                          info,
                                          warning,
                                          createdir=True)
+
+    ########################
+    # Installing KronaTools
+    krona_install_dirpath = os.path.join(
+        kronatools_dirpath, 'bin')
+
+    if args.target == 'clean':
+        info = '-- Cleaning Krona --'
+        warning = 'A problem might have happened while cleaning Krona. Check log above'
+        cmd_line = 'rm -rf %s' % krona_install_dirpath
+        global_error_code += execute_cmd(cmd_line,
+                                         krona_install_dirpath, info, warning)
+    elif args.target == 'build':
+        info = '-- Installing Krona --'
+        cmd_line = './install.pl --prefix %s' % kronatools_dirpath
+        warning = 'A problem might have happened while installing Krona. Check log above'
+        global_error_code += execute_cmd(cmd_line,
+                                         kronatools_dirpath,
+                                         info,
+                                         warning)
 
     ##############################
     # Creating links into bin dir

@@ -23,7 +23,7 @@ class Binary:
         /sortmerna/
         /vsearch/bin/
         /RDPTools/
-        /Krona/KronaTools/scripts/
+        /Krona/KronaTools/bin/
     """
 
     _matam_root, _ = os.path.split(os.path.dirname(os.path.realpath(__file__)))
@@ -35,7 +35,7 @@ class Binary:
                         'sortmerna/',
                         'vsearch/bin/',
                         'RDPTools/',
-                        'Krona/KronaTools/scripts/'
+                        'Krona/KronaTools/bin/'
     ]
 
 
