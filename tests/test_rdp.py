@@ -15,8 +15,9 @@ def test_run_rdp_classifier_ok():
     fasta = os.path.join(SAMPLE_DIR, 'scaffolds.fa')
     bin = Binary.which('java')
     jar = Binary.which('classifier.jar')
+    rdp_exe = '{java} -Xmx1g -jar {jar}'.format(java=bin, jar=jar)
     result_file = tempfile.NamedTemporaryFile()
-    assert run_rdp_classifier(bin, jar, fasta, result_file.name) == 0
+    assert run_rdp_classifier(rdp_exe, fasta, result_file.name) == 0
     with open(result_file.name, 'r') as h:
         lines = h.readlines()
         lines = [ l for l in lines if not l.startswith('#') ] #ignore comment lines

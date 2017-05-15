@@ -1587,10 +1587,17 @@ def main():
         # taxonomic assignment with rdp
 
         logger.info('=== Taxonomic assignment ===')
-        rdp_bin = Binary.assert_which('java')
-        rdp_jar = Binary.assert_which('classifier.jar')
+        rdp_jar = Binary.which('classifier.jar')
         rdp_classification_filepath = fasta_with_abundance_filepath + '.rdp.txt'
-        run_rdp_classifier(rdp_bin, rdp_jar, fasta_with_abundance_filepath,
+
+        # the rdp exe name is different between submodule installation and conda installation
+        if rdp_jar is not None:
+            java = Binary.assert_which('java')
+            rdp_exe = '{java} -Xmx1g -jar {jar}'.format(java=java, rdp_jar=rdp_jar)
+        else:
+            rdp_exe = Binary.assert_which('classifier')
+
+        run_rdp_classifier(rdp_exe, fasta_with_abundance_filepath,
                            rdp_classification_filepath, gene=args.training_model)
 
         logger.info('Write taxonomic assignment to: %s' % rdp_classification_filepath)
