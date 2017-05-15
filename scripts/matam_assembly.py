@@ -423,7 +423,23 @@ def parse_arguments():
                              action = 'store_true',
                              help = 'Experimental. Perform contigs binning during scaffolding.')
 
-    # Visualization
+    # taxonomic assignment
+    group_taxonomic_assign = parser.add_argument_group('Taxonomic assignment')
+
+    # --perform_taxonomic_assignment
+    group_taxonomic_assign.add_argument('--perform_taxonomic_assignment',
+                           action = 'store_true',
+                           help = 'Do the taxonomic assignment')
+
+    # --training_model
+    group_taxonomic_assign.add_argument('--training_model',
+                           action = 'store',
+                           type = str,
+                           choices = ['16srrna', 'fungallsu', 'fungalits_warcup', 'fungalits_unite'],
+                           default = '16srrna',
+                           help = 'The training model used for taxonomic assignment. '
+                                     'Default is %(default)s')
+
 
     # Advanced parameters
     group_adv = parser.add_argument_group('Advanced parameters')
@@ -463,20 +479,6 @@ def parse_arguments():
                             action = 'store_true',
                             help = 'Perform only the first step of MATAM (i.e Reads mapping against ref db with sortmerna to filter the reads). '\
                                    'Relevant options for this step correspond to the "Read mapping" section.')
-
-    # --perform_taxonomic_assignment
-    group_adv.add_argument('--perform_taxonomic_assignment',
-                           action = 'store_true',
-                           help = 'Do the taxonomic assignment')
-
-    # --training_model
-    group_adv.add_argument('--training_model',
-                           action = 'store',
-                           type = str,
-                           choices = ['16srrna', 'fungallsu', 'fungalits_warcup', 'fungalits_unite'],
-                           default = '16srrna',
-                           help = 'The training model used for taxonomic assignment. '
-                                     'Default is %(default)s')
 
     #
     args = parser.parse_args()
