@@ -1559,7 +1559,8 @@ def main():
     map_bin = Binary.assert_which('sortmerna')
     best_bin = Binary.assert_which('get_best_matches_from_blast.py')
     scaffolds_fasta = large_NR_scaffolds_filepath
-    reads = args.input_fastx
+    sam_without_ext, ext = os.path.splitext(sortme_output_sam_filepath)
+    reads = '%s.fq' % sam_without_ext
     abundance = get_abundance_by_scaffold(idx_bin, map_bin, best_bin,
                                           scaffolds_fasta, reads,
                                           args.best, args.min_lis, args.evalue,
