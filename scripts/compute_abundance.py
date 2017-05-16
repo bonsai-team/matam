@@ -64,6 +64,7 @@ def abundance_calculation(blast_path):
 
     with open(blast_path, 'r') as f:
         for line in f:
+            if line.strip() == '': continue
             read, scaffold = [ s.strip() for s in line.split('\t')[:2] ]
             scaffolds_by_read[read].append(scaffold)
             reads_by_scaffold[scaffold].append(read)
@@ -71,20 +72,25 @@ def abundance_calculation(blast_path):
     #asign a weight for each read
     read_weight = {}
     for read, scaffolds in scaffolds_by_read.items():
-        assert len(scaffolds) == len(set(scaffolds))
-        if len(scaffolds) == 0:
+        uniq_scaffolds = set(scaffolds)
+        if len(uniq_scaffolds) == 0:
             weight = 0
-        elif len(scaffolds) == 1:
+        elif len(uniq_scaffolds) == 1:
             weight = 1
         else:
-            weight = 1/len(scaffolds)
+            weight = 1/len(uniq_scaffolds)
         read_weight[read] = weight
+
+        if len(scaffolds) != len(uniq_scaffolds):
+            # keep scaffolds names where this read map more than once
+            more_than_once = {k:v for k,v in collections.Counter(scaffolds).items() if v > 1}
+            logger.warning('%s is mapped more than once on the same scaffold (%s) but it will contribute \
+to the abundance of this scaffold only as 1 weight where weight=1/uniq_scaffolds_nb=%s' % (read, more_than_once, weight))
 
     # compute abundance for each scaffold depending on read weight
     abundance_by_scaffold = collections.defaultdict(lambda: 0)
     for scaffold, reads in reads_by_scaffold.items():
-        assert len(reads) == len(set(reads))
-        for read in reads:
+        for read in set(reads):
             abundance_by_scaffold[scaffold]+= read_weight[read]
 
     return abundance_by_scaffold
