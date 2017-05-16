@@ -105,7 +105,7 @@ def get_abundance_by_scaffold(idx_bin, map_bin, best_bin,
                               keep_tmp=False):
 
     output_dir_basepath = os.path.join(output_dir_basepath , '') # add a trailing slash
-    outdir = tempfile.mkdtemp(prefix=output_dir_basepath)
+    outdir = tempfile.mkdtemp(dir=output_dir_basepath, prefix='abundance_')
 
     #index ref
     idx_ref_basepath = os.path.join(outdir, 'idx_prefix')
