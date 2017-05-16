@@ -1564,7 +1564,9 @@ def main():
                                           scaffolds_fasta, reads,
                                           args.best, args.min_lis, args.evalue,
                                           args.max_memory, args.cpu,
-                                          output_dir_basepath=args.out_dir
+                                          output_dir_basepath=args.out_dir,
+                                          verbose=args.verbose,
+                                          keep_tmp=args.keep_tmp
     )
 
     fasta_with_abundance_filepath =  scaffolds_fasta + '.abd'

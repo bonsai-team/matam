@@ -97,10 +97,12 @@ to the abundance of this scaffold only as 1 weight where weight=1/uniq_scaffolds
 
 
 def get_abundance_by_scaffold(idx_bin, map_bin, best_bin,
-                      input_fasta_ref, input_fasta_reads,
-                      best=10, min_lis=10, evalue=1e-05,
-                      max_mem=10000, cpu=4,
-                      output_dir_basepath="/tmp/"):
+                              input_fasta_ref, input_fasta_reads,
+                              best=10, min_lis=10, evalue=1e-05,
+                              max_mem=10000, cpu=4,
+                              output_dir_basepath="/tmp/",
+                              verbose=False,
+                              keep_tmp=False):
 
     output_dir_basepath = os.path.join(output_dir_basepath , '') # add a trailing slash
     outdir = tempfile.mkdtemp(prefix=output_dir_basepath)
@@ -108,11 +110,11 @@ def get_abundance_by_scaffold(idx_bin, map_bin, best_bin,
     #index ref
     idx_ref_basepath = os.path.join(outdir, 'idx_prefix')
 
-    index_ref(idx_bin, input_fasta_ref, idx_ref_basepath, max_mem, verbose=True)
+    index_ref(idx_bin, input_fasta_ref, idx_ref_basepath, max_mem, verbose=verbose)
 
     #reads mapping
     filtered_basepath = os.path.join(outdir, 'filt_prefix')
-    reads_mapping(map_bin, input_fasta_ref, idx_ref_basepath, input_fasta_reads, filtered_basepath, best, min_lis, evalue, cpu)
+    reads_mapping(map_bin, input_fasta_ref, idx_ref_basepath, input_fasta_reads, filtered_basepath, best, min_lis, evalue, cpu, verbose=verbose)
 
     #best matches
     blast_path = '%s.blast' % filtered_basepath
@@ -123,7 +125,8 @@ def get_abundance_by_scaffold(idx_bin, map_bin, best_bin,
     abundance = abundance_calculation(best_path)
 
     #delete tempfiles
-    shutil.rmtree(outdir)
+    if not keep_tmp:
+        shutil.rmtree(outdir)
 
     return abundance
 
