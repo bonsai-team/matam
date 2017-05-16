@@ -1593,7 +1593,7 @@ def main():
         # the rdp exe name is different between submodule installation and conda installation
         if rdp_jar is not None:
             java = Binary.assert_which('java')
-            rdp_exe = '{java} -Xmx1g -jar {jar}'.format(java=java, rdp_jar=rdp_jar)
+            rdp_exe = '{java} -Xmx1g -jar {jar}'.format(java=java, jar=rdp_jar)
         else:
             rdp_exe = Binary.assert_which('classifier')
 
