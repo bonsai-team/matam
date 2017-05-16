@@ -11,11 +11,6 @@ import logging
 import cProfile
 from collections import defaultdict
 
-#update the path
-CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
-SCRIPTS_DIR = os.path.join(CURRENT_DIR, 'scripts')
-sys.path.append(SCRIPTS_DIR)
-
 from compute_abundance import get_abundance_by_scaffold, complete_fasta_with_abundance, get_abundance_from_fasta
 from rdp import run_rdp_classifier
 from krona import rdp_file_to_krona_text_file, make_krona_plot
@@ -940,7 +935,7 @@ def main():
 
     if args.filter_only:
         return error_code
-        #############################
+    #############################
     # Alignment filtering
 
     if args.resume_from == 'alignments_filtering':
