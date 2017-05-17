@@ -465,7 +465,8 @@ def parse_arguments():
                            metavar = 'STEP',
                            type = str,
                            choices = ['reads_mapping', 'alignments_filtering', 'overlap_graph_building',
-                                      'graph_compaction', 'contigs_assembly', 'scaffolding'],
+                                      'graph_compaction', 'contigs_assembly', 'scaffolding',
+                                      'abundance_calculation'],
                            help = 'Try to resume from given step. '
                                   'Steps are: %(choices)s')
 
@@ -1554,31 +1555,37 @@ def main():
     ########################
     # Abundance calculation
 
-    logger.info('=== Abundance calculation ===')
-    idx_bin = Binary.assert_which('indexdb_rna')
-    map_bin = Binary.assert_which('sortmerna')
-    best_bin = Binary.assert_which('get_best_matches_from_blast.py')
-    scaffolds_fasta = large_NR_scaffolds_filepath
-    sam_without_ext, ext = os.path.splitext(sortme_output_sam_filepath)
-    reads = '%s.fq' % sam_without_ext
-    abundance = get_abundance_by_scaffold(idx_bin, map_bin, best_bin,
-                                          scaffolds_fasta, reads,
-                                          args.best, args.min_lis, args.evalue,
-                                          args.max_memory, args.cpu,
-                                          output_dir_basepath=args.out_dir,
-                                          verbose=args.verbose,
-                                          keep_tmp=args.keep_tmp
-    )
+    if args.resume_from == 'abundance_calculation':
+        logger.info('Resuming from abundance calculation')
+        run_step = True
 
-    fasta_with_abundance_filepath =  scaffolds_fasta + '.abd'
-    complete_fasta_with_abundance(scaffolds_fasta, fasta_with_abundance_filepath, abundance)
+    if run_step:
 
-    logger.info('Write abundance informations to: %s' % fasta_with_abundance_filepath)
+        logger.info('=== Abundance calculation ===')
+        idx_bin = Binary.assert_which('indexdb_rna')
+        map_bin = Binary.assert_which('sortmerna')
+        best_bin = Binary.assert_which('get_best_matches_from_blast.py')
+        scaffolds_fasta = large_NR_scaffolds_filepath
+        sam_without_ext, ext = os.path.splitext(sortme_output_sam_filepath)
+        reads = '%s.fq' % sam_without_ext
+        abundance = get_abundance_by_scaffold(idx_bin, map_bin, best_bin,
+                                              scaffolds_fasta, reads,
+                                              args.best, args.min_lis, args.evalue,
+                                              args.max_memory, args.cpu,
+                                              output_dir_basepath=args.out_dir,
+                                              verbose=args.verbose,
+                                              keep_tmp=args.keep_tmp
+        )
 
-    # Create final assembly symbolic link
-    if os.path.exists(final_assembly_symlink_filepath):
-        os.remove(final_assembly_symlink_filepath)
-    os.symlink(os.path.basename(fasta_with_abundance_filepath), final_assembly_symlink_filepath)
+        fasta_with_abundance_filepath =  scaffolds_fasta + '.abd'
+        complete_fasta_with_abundance(scaffolds_fasta, fasta_with_abundance_filepath, abundance)
+
+        logger.info('Write abundance informations to: %s' % fasta_with_abundance_filepath)
+
+        # Create final assembly symbolic link
+        if os.path.exists(final_assembly_symlink_filepath):
+            os.remove(final_assembly_symlink_filepath)
+        os.symlink(os.path.basename(fasta_with_abundance_filepath), final_assembly_symlink_filepath)
 
     if args.perform_taxonomic_assignment:
         #################################
