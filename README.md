@@ -20,7 +20,7 @@ The recommended way of getting MATAM is through conda (see below). For __SSU rRN
 
       `matam_assembly.py -d $DBDIR/SILVA_128_SSURef_NR95 -i reads.fastq --cpu 4 --max_memory 10000 -v --perform_taxonomic_assignment`
 
-  The assignation is done with [RDP classifier](https://rdp.cme.msu.edu/) and the training model used by default is "16srrna"
+       The taxonomic assignment is done with [RDP classifier](https://rdp.cme.msu.edu/) and the training model used by default is "16srrna"
 
 
 
