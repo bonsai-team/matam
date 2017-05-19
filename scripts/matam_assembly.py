@@ -696,7 +696,7 @@ def main():
     sortme_output_fastx_filepath = sortme_output_basepath + input_fastx_extension
     sortme_output_sam_filepath = sortme_output_basepath + '.sam'
 
-    # Bad alignments filtering
+    # Alignments filtering
     score_threshold_int = int(args.score_threshold * 100)
 
     sam_filt_basename = sortme_output_basename + '.scr_filt_'
@@ -1566,8 +1566,7 @@ def main():
         map_bin = Binary.assert_which('sortmerna')
         best_bin = Binary.assert_which('get_best_matches_from_blast.py')
         scaffolds_fasta = large_NR_scaffolds_filepath
-        sam_without_ext, ext = os.path.splitext(sortme_output_sam_filepath)
-        reads = '%s.fq' % sam_without_ext
+        reads = sortme_output_fastx_filepath
         abundance = get_abundance_by_scaffold(idx_bin, map_bin, best_bin,
                                               scaffolds_fasta, reads,
                                               args.best, args.min_lis, args.evalue,
