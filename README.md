@@ -4,15 +4,25 @@
 
 ## Getting Started
 
-The recommended way of getting MATAM is through conda (see below). Then run:
+The recommended way of getting MATAM is through conda (see below). For __SSU rRNA__ assembly, run:
 
-1. (Optional) Getting and indexing default SSU rRNA reference database
+1. Getting and indexing default SSU rRNA reference database
 
  `index_default_ssu_rrna_db.py -d $DBDIR --max_memory 10000`
 
-2. Assembly
+2. Running MATAM
 
- `matam_assembly.py -d $DBDIR/SILVA_128_SSURef_NR95 -i reads.fastq --cpu 4 --max_memory 10000 -v`
+    * SSU rRNA recovery only
+
+      `matam_assembly.py -d $DBDIR/SILVA_128_SSURef_NR95 -i reads.fastq --cpu 4 --max_memory 10000 -v`
+
+    * SSU rRNA recovery and taxonomic assignment
+
+      `matam_assembly.py -d $DBDIR/SILVA_128_SSURef_NR95 -i reads.fastq --cpu 4 --max_memory 10000 -v --perform_taxonomic_assignment`
+
+  The assignation is done with [RDP classifier](https://rdp.cme.msu.edu/) and the training model used by default is "16srrna":
+
+
 
 ## Compiling MATAM from source code
 
@@ -45,7 +55,7 @@ Some steps of MATAM are highly paralelized. You can get a significant speed incr
 To install all of the needed depencies except samtools, you can run the following command-line in Debian-like distributions :
 
   `sudo apt-get update && sudo apt-get install curl git gcc g++ python3 default-jdk automake make cmake ant libsparsehash-dev zlib1g-dev bzip2`
-  
+
 Since the samtools package in current Ubuntu-like distributions is usualy a deprecated version (v0.1.19), you probably have to get a more recent version. We recommand getting samtools through bioconda (https://bioconda.github.io/)
 
 ### Full dependencies list
