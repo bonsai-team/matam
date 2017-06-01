@@ -1492,6 +1492,17 @@ def main():
         # Output running time
         logger.info('[scaff] Scaffolding terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
 
+        # check that the the resulting file is not empty
+        is_empty = True
+        try:
+            is_empty = os.path.getsize(large_NR_scaffolds_filepath) == 0
+        except OSError:
+            is_empty = True
+
+        if is_empty:
+            logger.fatal("Can't proceed all steps (abundance calculation ...) when no scaffolds are available: %s" % large_NR_scaffolds_filepath)
+            sys.exit("Can't proceed further")
+
         # Evaluate assembly if true ref are provided
         if args.true_references:
 
@@ -1586,6 +1597,9 @@ def main():
             os.remove(final_assembly_symlink_filepath)
         os.symlink(os.path.basename(fasta_with_abundance_filepath), final_assembly_symlink_filepath)
 
+    if args.verbose:
+        sys.stderr.write('\n')
+
     if args.perform_taxonomic_assignment:
         #################################
         # taxonomic assignment with rdp
@@ -1606,6 +1620,9 @@ def main():
 
         logger.info('Write taxonomic assignment to: %s' % rdp_classification_filepath)
 
+        if args.verbose:
+            sys.stderr.write('\n')
+
         #############################
         # build krona representation
 
@@ -1621,6 +1638,10 @@ def main():
 
         # Tag tmp files for removal
         to_rm_filepath_list.append(krona_text_filepath)
+
+        if args.verbose:
+            sys.stderr.write('\n')
+
 
     ###########################
     # Print Assembly Statistics
