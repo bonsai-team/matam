@@ -1587,7 +1587,7 @@ def main():
                                               keep_tmp=args.keep_tmp
         )
 
-        fasta_with_abundance_filepath =  scaffolds_fasta + '.abd'
+        fasta_with_abundance_filepath =  '%s.abd%s' % os.path.splitext(scaffolds_fasta)
         complete_fasta_with_abundance(scaffolds_fasta, fasta_with_abundance_filepath, abundance)
 
         logger.info('Write abundance informations to: %s' % fasta_with_abundance_filepath)
@@ -1606,7 +1606,8 @@ def main():
 
         logger.info('=== Taxonomic assignment ===')
         rdp_jar = Binary.which('classifier.jar')
-        rdp_classification_filepath = fasta_with_abundance_filepath + '.rdp.txt'
+
+        rdp_classification_filepath =  '%s.rdp.tab' % os.path.splitext(fasta_with_abundance_filepath)[0]
 
         # the rdp exe name is different between submodule installation and conda installation
         if rdp_jar is not None:
@@ -1627,11 +1628,11 @@ def main():
         # build krona representation
 
         logger.info('=== Build krona representation ===')
-        krona_text_filepath = rdp_classification_filepath + '.krona'
+        krona_text_filepath = '%s.krona.tab' % os.path.splitext(rdp_classification_filepath)[0]
         rdp_file_to_krona_text_file(rdp_classification_filepath, krona_text_filepath, abundance=abundance)
 
         krona_bin = Binary.assert_which('ktImportText')
-        krona_html_filepath = krona_text_filepath + '.html'
+        krona_html_filepath =  '%s.html' % os.path.splitext(krona_text_filepath)[0]
         make_krona_plot(krona_bin, krona_text_filepath, krona_html_filepath)
 
         logger.info('Write krona to: %s' % krona_html_filepath)
