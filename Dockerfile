@@ -26,7 +26,8 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     cmake \
     libsparsehash-dev \
     zlib1g-dev \
-    bzip2
+    bzip2 \
+    ant
     # Python 3 now comes from conda
 
 # Install Conda
