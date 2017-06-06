@@ -301,6 +301,7 @@ normally created by building the program. Default is %(default)s",
         if global_error_code > 0:
             logger.warning(
                 'Problems might have happened during MATAM building. Please check log above')
+            sys.exit(global_error_code)
         else:
             logger.debug(
                 'Building completed in {0:.2f} seconds'.format(
