@@ -3,7 +3,7 @@
 import sys
 import subprocess
 import logging
-
+import re
 
 from fasta_clean_name import read_fasta_file_handle
 from compute_abundance import get_abundance_from_fasta
@@ -19,7 +19,10 @@ def rdp_file_to_krona_text_file(rdp_file, krona_text_file, abundance=None):
     for l in in_rdp_handler:
         l = l.strip()
         if l == '' or l.startswith('#'): continue
-        rdp_line = l.split()
+        rdp_line = re.split('"?\t+"?', l)
+        if rdp_line[1] != 'Root' or (len(rdp_line) - 1) % 3 != 0:
+            logger.fatal('The RDP file is no well formatted, line: %s' % l)
+            sys.exit('Failed to parse RDP file:%s' % rdp_file)
         id = rdp_line.pop(0)
         count = 1
         if abundance is not None:

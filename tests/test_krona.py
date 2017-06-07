@@ -37,7 +37,8 @@ def abundance():
             '14': 746,
             '16': 682,
             '8': 750,
-            '4': 749
+            '4': 749,
+            '87': 860
     }
 
 def test_rdp_file_to_krona_text_file_without_abundance():
@@ -49,7 +50,7 @@ def test_rdp_file_to_krona_text_file_without_abundance():
     with open(krona_text_file.name,'r') as h:
         lines = h.readlines()
         assert set([int(l.split('\t')[0]) for l in lines]) == set([1])
-        assert len(lines) == 22
+        assert len(lines) == 23
 
 def test_rdp_file_to_krona_text_file_with_abundance(abundance):
     rdp_file = os.path.join(SAMPLE_DIR, 'rdp.txt')
@@ -60,7 +61,7 @@ def test_rdp_file_to_krona_text_file_with_abundance(abundance):
     with open(krona_text_file.name,'r') as h:
         lines = h.readlines()
         assert set([int(l.split('\t')[0]) for l in lines]) == set(abundance.values())
-        assert len(lines) == 22
+        assert len(lines) == 23
 
 def test_make_krona_plot():
     krona_bin = Binary.which('ktImportText')
