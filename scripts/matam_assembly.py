@@ -10,11 +10,13 @@ import time
 import logging
 import cProfile
 from collections import defaultdict
+import shutil
 
 from compute_abundance import get_abundance_by_scaffold, complete_fasta_with_abundance, get_abundance_from_fasta
 from rdp import run_rdp_classifier
 from krona import rdp_file_to_krona_text_file, make_krona_plot
 from binary_utils import Binary
+import component_assembly
 
 # Set LC_LANG to C for standard sort behaviour
 os.environ["LC_ALL"] = "C"
@@ -59,7 +61,7 @@ filter_sam_cov_bin = os.path.join(matam_script_dir, 'filter_sam_by_coverage.py')
 filter_score_bin = os.path.join(matam_script_dir, 'filter_score_multialign.py')
 compute_lca_bin = os.path.join(matam_script_dir, 'compute_lca_from_tab.py')
 compute_compressed_graph_stats_bin = os.path.join(matam_script_dir, 'compute_compressed_graph_stats.py')
-sga_assemble_bin = os.path.join(matam_script_dir, 'sga_assemble.py')
+sga_wrapper_bin = os.path.join(matam_script_dir, 'sga_assemble.py')
 remove_redundant_bin = os.path.join(matam_script_dir, 'remove_redundant_sequences.py')
 fastq_name_filter_bin = os.path.join(matam_script_dir, 'fastq_name_filter.py')
 evaluate_assembly_bin = os.path.join(matam_script_dir, 'evaluate_assembly.py')
@@ -765,7 +767,7 @@ def main():
     # Contigs assembly
     component_read_filepath = componentsearch_basepath + '.component_read.tab'
 
-    contigs_assembly_wkdir = componentsearch_basepath + '.' + assembler_name
+    contigs_assembly_wkdir = os.path.join(args.out_dir, "components_assembly")
 
     contigs_basename = componentsearch_basename + '.'
     contigs_basename += assembler_name + '_by_component'
@@ -1170,15 +1172,6 @@ def main():
     if run_step:
         logger.info('=== Contigs assembly ===')
 
-        # Make contigs assembly directory
-        try:
-            if not os.path.exists(contigs_assembly_wkdir):
-                logger.debug('mkdir {0}'.format(contigs_assembly_wkdir))
-                os.makedirs(contigs_assembly_wkdir)
-        except OSError:
-            logger.exception('Assembly directory {0} cannot be created'.format(contigs_assembly_wkdir))
-            raise
-
         # Set t0
         t0_wall = time.time()
 
@@ -1209,80 +1202,13 @@ def main():
                     component_reads_dict[read_component_dict[header]].append(tuple((header, seq, qual)))
                 except KeyError:
                     pass
-        components_num = len(component_reads_dict)
-        logger.info('{} components to be assembled'.format(components_num))
 
-        # Open output contigs file
-        contigs_fh = open(contigs_filepath, 'w')
-
-        # We will be working in the assembly directory because assembly tools
-        # generate lots of files we dont want in our matam assembly directory
-        os.chdir(contigs_assembly_wkdir)
-
-        # Begin reading read-->component file (sorted by component)
-        contig_count = 0
-        component_count = 0
-        logger.info('Assembling component #')
-
-        #
-        for component_id, reads_list in component_reads_dict.items():
-
-            component_count += 1
-
-            # Printing progress
-            if args.verbose:
-                sys.stderr.write('\r{0} / {1}'.format(component_count, components_num))
-                sys.stderr.flush()
-
-            # Cleaning previous assembly
-            if os.path.exists('contigs.fa'):
-                os.remove('contigs.fa')
-            if os.path.exists('tmp'):
-                subprocess.call('rm -rf tmp', shell=True, bufsize=0)
-
-            # Writing fastq file with this component reads
-            with open('reads_single_component.fq', 'w') as reads_single_component_fh:
-                for (header, seq, qual) in reads_list:
-                    reads_single_component_fh.write('@{}\n{}\n+\n{}\n'.format(header, seq, qual))
-
-            # Assemble those reads with SGA
-            cmd_line = 'echo "component #' + component_id + '" >> '
-            cmd_line += contigs_assembly_log_filepath + ' && '
-            cmd_line += sga_assemble_bin + ' -i reads_single_component.fq'
-            cmd_line += ' -o contigs.fa --sga_bin ' + assembler_bin
-            if args.read_correction in ('no', 'auto'):
-                cmd_line += ' --no_correction' # !!! desactivate all SGA error corrections and filters
-            cmd_line += ' --cpu ' + str(args.cpu)
-            cmd_line += ' --tmp_dir tmp'
-            cmd_line += ' >> ' + contigs_assembly_log_filepath + ' 2>&1'
-
-            #~ logger.debug('CMD: {0}'.format(cmd_line))
-            error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
-
-            # Concatenate the component contigs in the output contigs file
-            component_lca = 'NULL'
-            component_contigs_num = 0
-            if component_id in component_lca_dict:
-                component_lca = component_lca_dict[component_id]
-            with open('contigs.fa', 'r') as sga_contigs_fh:
-                for header, seq in read_fasta_file_handle(sga_contigs_fh):
-                    if len(seq):
-                        contig_count += 1
-                        component_contigs_num += 1
-                        contigs_fh.write('>{0} component={1} '.format(contig_count, component_id))
-                        contigs_fh.write('lca={0}\n{1}\n'.format(component_lca, format_seq(seq)))
-
-            #~ logger.debug('{0} contigs were written to assembly fasta file'.format(component_contigs_num))
-
-        #
-        if args.verbose:
-            sys.stderr.write('\n')
-
-        # Return to matam assembly directory
-        os.chdir(args.out_dir)
-
-        # Close assembly contigs file
-        contigs_fh.close()
+        component_assembly.assemble_all_components(sga_wrapper_bin, assembler_bin,
+                                component_reads_dict, component_lca_dict,
+                                contigs_filepath, contigs_assembly_wkdir,
+                                args.cpu, args.read_correction)
+        if not args.keep_tmp:
+            shutil.rmtree(contigs_assembly_wkdir)
 
         # Create symbolic link
         if os.path.exists(contigs_symlink_filepath):
@@ -1353,12 +1279,7 @@ def main():
 
         # Tag tmp files for removal
         to_rm_filepath_list.append(read_metanode_component_filepath)
-        to_rm_filepath_list.append(contigs_basepath + '.log')
         to_rm_filepath_list.append(contigs_NR_filepath)
-
-        # Delete assembly directory
-        if not args.keep_tmp:
-            subprocess.call('rm -rf {0}'.format(contigs_assembly_wkdir), shell=True, bufsize=0)
 
     # Compute contigs assembly stats
     contigs_stats = compute_fasta_stats(contigs_filepath)
