@@ -16,7 +16,7 @@ from compute_abundance import get_abundance_by_scaffold, complete_fasta_with_abu
 from rdp import run_rdp_classifier
 from krona import rdp_file_to_krona_text_file, make_krona_plot
 from binary_utils import Binary
-import component_assembly
+import components_assembly
 
 # Set LC_LANG to C for standard sort behaviour
 os.environ["LC_ALL"] = "C"
@@ -1203,7 +1203,7 @@ def main():
                 except KeyError:
                     pass
 
-        component_assembly.assemble_all_components(sga_wrapper_bin, assembler_bin,
+        components_assembly.assemble_all_components(assembler_wrapper_bin, assembler_bin,
                                 component_reads_dict, component_lca_dict,
                                 contigs_filepath, contigs_assembly_wkdir,
                                 args.cpu, args.read_correction)

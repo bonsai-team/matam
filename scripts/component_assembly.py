@@ -115,16 +115,10 @@ def assemble_all_components(sga_wrapper, sga_bin, components_dict, lca_dict, con
     params = []
     component_id_list = []
     for component_id, fq in components_reads_fq:
-        params.append((sga_wrapper, sga_bin, fq, _get_workdir(fq), read_correction, cpu))
+        params.append((sga_wrapper, sga_bin, fq, _get_workdir(fq), read_correction, 1))
         component_id_list.append(component_id)
 
-    # each process do not requires a huge amount of proc.
-    # Thus, use more process than the number of cpu.
-    # The maximum is multiprocessing.cpu_count() * 16
-    # In all cases, do not use more process than the amount of components / 2
-    process_nb = min(multiprocessing.cpu_count() * 16, len(component_id_list) // 2)
-
-    with multiprocessing.Pool(processes=process_nb) as pool:
+    with multiprocessing.Pool(processes=cpu) as pool:
         fasta_list = pool.starmap(assemble_component, params)
 
     # Make the correspondance between the component_id and the fasta file
