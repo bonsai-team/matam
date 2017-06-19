@@ -4,11 +4,42 @@ import sys
 import subprocess
 import logging
 import shutil
-from fasta_utils import read_fasta_file_handle, format_seq
-
+from collections import defaultdict
 import multiprocessing
 
+from fasta_utils import read_fasta_file_handle, format_seq
+from fastq_utils import read_fastq_file_handle
+
+
+
 logger = logging.getLogger(__name__)
+
+def extract_reads_by_component(fastq, read_metanode_component_filepath):
+    # Reading read --> component file
+    logger.debug('Reading read-->component from {}'.format(read_metanode_component_filepath))
+    read_component_dict = dict()
+    with open(read_metanode_component_filepath, 'r') as read_metanode_component_fh:
+        read_component_dict = {t[0]:t[2] for t in (l.split() for l in read_metanode_component_fh) if t[2] != 'NULL'}
+
+    # Storing reads for each component
+    logger.debug('Storing reads by component from {}'.format(fastq))
+    component_reads_dict = defaultdict(list)
+    with open(fastq, 'r') as fastq_fh:
+        for header, seq, qual in read_fastq_file_handle(fastq_fh):
+            try:
+                component_reads_dict[read_component_dict[header]].append(tuple((header, seq, qual)))
+            except KeyError:
+                pass
+    return component_reads_dict
+
+
+def extract_lca_by_component(components_lca_filepath):
+    # Reading components LCA and storing them in a dict
+    logger.debug('Reading components LCA assignment from {0}'.format(components_lca_filepath))
+    component_lca_dict = dict()
+    with open(components_lca_filepath, 'r') as component_lca_fh:
+        component_lca_dict = {t[0]:t[1] for t in (l.split() for l in component_lca_fh) if len(t) == 2}
+    return component_lca_dict
 
 def save_components(component_reads_dict, directory):
     """
@@ -36,6 +67,7 @@ def save_components(component_reads_dict, directory):
             for (header, seq, qual) in reads_list:
                 component_fh.write('@{}\n{}\n+\n{}\n'.format(header, seq, qual))
     return components_fq
+
 
 def assemble_component(sga_wrapper, sga_bin,
                        in_fastq, workdir,
@@ -102,9 +134,15 @@ def _get_workdir(fq):
     sga_wkdir_basename, _ = os.path.splitext(fq)
     return '%s_assembly_wkdir' % sga_wkdir_basename
 
-def assemble_all_components(sga_wrapper, sga_bin, components_dict, lca_dict, contigs_fasta, workdir, cpu, read_correction):
+
+def assemble_all_components(sga_wrapper, sga_bin,
+                            fastq, read_metanode_component_filepath, components_lca_filepath,
+                            out_contigs_fasta, workdir,
+                            cpu, read_correction):
+
 
     logger.info("Save components to fastq files")
+    components_dict = extract_reads_by_component(fastq, read_metanode_component_filepath)
     components_reads_fq = save_components(components_dict, workdir).items()
     assembled_components_fasta = {}
 
@@ -124,27 +162,7 @@ def assemble_all_components(sga_wrapper, sga_bin, components_dict, lca_dict, con
     # Make the correspondance between the component_id and the fasta file
     assembled_components_fasta = dict(zip(component_id_list, fasta_list))
 
-    logger.info("Pool components contigs into: %s" % contigs_fasta)
+    logger.info("Pool components contigs into: %s" % out_contigs_fasta)
+    lca_dict = extract_lca_by_component(components_lca_filepath)
     concat_components_fasta_with_lca(assembled_components_fasta,
-                                     contigs_fasta, lca_dict)
-
-if __name__ == '__main__':
-    import json
-    logging.basicConfig(level=logging.DEBUG)
-    components_json = "/home/lcouderc/workspace/MATAM/matam/tests/sample/components_dict.json"
-    lca_json = "/home/lcouderc/workspace/MATAM/matam/tests/sample/components_lca_dict.json"
-    sga_wrapper = "/home/lcouderc/workspace/MATAM/matam/scripts/sga_assemble.py"
-    sga_bin = "/home/lcouderc/miniconda3/bin/sga"
-    workdir = "/tmp/components_assembly/"
-    contigs_filepath = "/tmp/contigs.fasta"
-    cpu = 8
-    read_correction = 'no'
-    with open(components_json, 'r') as components_handler, \
-         open(lca_json, 'r') as lca_handler:
-        components_dict = json.load(components_handler)
-        lca_dict = json.load(lca_handler)
-        assemble_all_components(sga_wrapper, sga_bin,
-                                components_dict, lca_dict,
-                                contigs_filepath, workdir,
-                                cpu, read_correction)
-
+                                     out_contigs_fasta, lca_dict)

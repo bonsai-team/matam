@@ -61,7 +61,7 @@ filter_sam_cov_bin = os.path.join(matam_script_dir, 'filter_sam_by_coverage.py')
 filter_score_bin = os.path.join(matam_script_dir, 'filter_score_multialign.py')
 compute_lca_bin = os.path.join(matam_script_dir, 'compute_lca_from_tab.py')
 compute_compressed_graph_stats_bin = os.path.join(matam_script_dir, 'compute_compressed_graph_stats.py')
-sga_wrapper_bin = os.path.join(matam_script_dir, 'sga_assemble.py')
+assembler_wrapper_bin = os.path.join(matam_script_dir, 'sga_assemble.py')
 remove_redundant_bin = os.path.join(matam_script_dir, 'remove_redundant_sequences.py')
 fastq_name_filter_bin = os.path.join(matam_script_dir, 'fastq_name_filter.py')
 evaluate_assembly_bin = os.path.join(matam_script_dir, 'evaluate_assembly.py')
@@ -1175,38 +1175,11 @@ def main():
         # Set t0
         t0_wall = time.time()
 
-        # TO DO, one day, maybe:
-        # Convert input fastq to tab, join it to the component-read file
-        # on the read name. Then generate a fastq file for each component.
-        # This would take more space but be faster and less error prone
-        # than using name filtering on the complete fastq each time
-
-        # Reading components LCA and storing them in a dict
-        logger.debug('Reading components LCA assignment from {0}'.format(components_lca_filepath))
-        component_lca_dict = dict()
-        with open(components_lca_filepath, 'r') as component_lca_fh:
-            component_lca_dict = {t[0]:t[1] for t in (l.split() for l in component_lca_fh) if len(t) == 2}
-
-        # Reading read --> component file
-        logger.debug('Reading read-->component from {}'.format(read_metanode_component_filepath))
-        read_component_dict = dict()
-        with open(read_metanode_component_filepath, 'r') as read_metanode_component_fh:
-            read_component_dict = {t[0]:t[2] for t in (l.split() for l in read_metanode_component_fh) if t[2] != 'NULL'}
-
-        # Storing reads for each component
-        logger.debug('Storing reads by component from {}'.format(sortme_output_fastx_filepath))
-        component_reads_dict = defaultdict(list)
-        with open(sortme_output_fastx_filepath, 'r') as sortme_output_fastx_fh:
-            for header, seq, qual in read_fastq_file_handle(sortme_output_fastx_fh):
-                try:
-                    component_reads_dict[read_component_dict[header]].append(tuple((header, seq, qual)))
-                except KeyError:
-                    pass
-
         components_assembly.assemble_all_components(assembler_wrapper_bin, assembler_bin,
-                                component_reads_dict, component_lca_dict,
-                                contigs_filepath, contigs_assembly_wkdir,
-                                args.cpu, args.read_correction)
+                                                    sortme_output_fastx_filepath, read_metanode_component_filepath, components_lca_filepath,
+                                                    contigs_filepath, contigs_assembly_wkdir,
+                                                    args.cpu, args.read_correction)
+
         if not args.keep_tmp:
             shutil.rmtree(contigs_assembly_wkdir)
 
