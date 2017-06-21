@@ -97,11 +97,7 @@ def assemble_component(sga_wrapper, sga_bin,
     cmd_line += ' >> ' + logfile + ' 2>&1'
 
     #logger.debug('CMD: {0}'.format(cmd_line))
-    rc = subprocess.call(cmd_line, shell=True, bufsize=0)
-    if rc != 0:
-        logger.fatal('Failed to assemble the component: %s' % (in_fastq))
-        logger.fatal('See %s for more info' % logfile)
-        sys.exit('Assembly failed')
+    subprocess.check_call(cmd_line, shell=True, bufsize=0)
 
     return fasta_file
 
@@ -157,7 +153,11 @@ def assemble_all_components(sga_wrapper, sga_bin,
         component_id_list.append(component_id)
 
     with multiprocessing.Pool(processes=cpu) as pool:
-        fasta_list = pool.starmap(assemble_component, params)
+        try:
+            fasta_list = pool.starmap(assemble_component, params)
+        except subprocess.CalledProcessError as cpe:
+            logger.fatal('Command %s returned non-zero exit status %s' % (cpe.cmd, cpe.returncode))
+            sys.exit('Components assembly step failed')
 
     # Make the correspondance between the component_id and the fasta file
     assembled_components_fasta = dict(zip(component_id_list, fasta_list))
