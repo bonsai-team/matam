@@ -83,7 +83,7 @@ componentsearch_bin_dir = os.path.join(matam_root_dir, 'componentsearch')
 componentsearch_bin = os.path.join(componentsearch_bin_dir, 'componentsearch')
 
 assembler_bin_dir = os.path.join(matam_root_dir, 'sga', 'src', 'SGA')
-assembler_name = 'sga'
+assembler_name = 'SGA'
 assembler_bin = os.path.join(assembler_bin_dir, assembler_name)
 
 # Define a null file handle
@@ -1175,7 +1175,7 @@ def main():
         # Set t0
         t0_wall = time.time()
 
-        components_assembly.assemble_all_components(assembler_wrapper_bin, assembler_bin,
+        components_assembly.assemble_all_components(assembler_name,
                                                     sortme_output_fastx_filepath, read_metanode_component_filepath, components_lca_filepath,
                                                     contigs_filepath, contigs_assembly_wkdir,
                                                     args.cpu, args.read_correction)

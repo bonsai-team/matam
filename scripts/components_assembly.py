@@ -3,14 +3,13 @@ import os
 import sys
 import subprocess
 import logging
-import shutil
 from collections import defaultdict
 import multiprocessing
 
 from fasta_utils import read_fasta_file_handle, format_seq
 from fastq_utils import read_fastq_file_handle
 
-
+from assembler_factory import AssemblerFactory
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +40,7 @@ def extract_lca_by_component(components_lca_filepath):
         component_lca_dict = {t[0]:t[1] for t in (l.split() for l in component_lca_fh) if len(t) == 2}
     return component_lca_dict
 
+
 def save_components(component_reads_dict, directory):
     """
     Take a dict (key=component_id, value=[header,seq,qual])
@@ -69,36 +69,15 @@ def save_components(component_reads_dict, directory):
     return components_fq
 
 
-def assemble_component(sga_wrapper, sga_bin,
+def assemble_component(assembler_name,
                        in_fastq, workdir,
                        read_correction, cpu):
     #logger.debug('Assembling: %s' % in_fastq)
-    if not os.path.isfile(in_fastq):
-        logger.fatal('The input reads file does not exists:%s' % in_fastq)
-        sys.exit("Can't assemble %s" % in_fastq)
+    assembler_factory = AssemblerFactory()
+    assembler = assembler_factory.get(assembler_name)
+    assembler.build_command_line(in_fastq, workdir, read_correction, cpu)
 
-    if os.path.isdir(workdir):
-        #logger.debug("Remove previous SGA working dir before assembling:%s" % workdir)
-        shutil.rmtree(workdir)
-    os.mkdir(workdir)
-
-    logfile = os.path.join(workdir, 'assembly.log')
-    tmp_dir = os.path.join(workdir, 'tmp')
-    fasta_file = os.path.join(workdir, 'assembly.fasta')
-
-    cmd_line = 'echo "component #' + in_fastq + '" >> '
-    cmd_line += logfile + ' && '
-    cmd_line += sga_wrapper + ' -i ' + in_fastq
-    cmd_line += ' -o ' + fasta_file + ' --sga_bin ' + sga_bin
-    if read_correction in ('no', 'auto'):
-        cmd_line += ' --no_correction' # !!! desactivate all SGA error corrections and filters
-    cmd_line += ' --cpu ' + str(cpu)
-    cmd_line += ' --tmp_dir %s' % tmp_dir
-    cmd_line += ' >> ' + logfile + ' 2>&1'
-
-    #logger.debug('CMD: {0}'.format(cmd_line))
-    subprocess.check_call(cmd_line, shell=True, bufsize=0)
-
+    fasta_file = assembler.run()
     return fasta_file
 
 
@@ -131,7 +110,7 @@ def _get_workdir(fq):
     return '%s_assembly_wkdir' % sga_wkdir_basename
 
 
-def assemble_all_components(sga_wrapper, sga_bin,
+def assemble_all_components(assembler_name,
                             fastq, read_metanode_component_filepath, components_lca_filepath,
                             out_contigs_fasta, workdir,
                             cpu, read_correction):
@@ -149,7 +128,7 @@ def assemble_all_components(sga_wrapper, sga_bin,
     params = []
     component_id_list = []
     for component_id, fq in components_reads_fq:
-        params.append((sga_wrapper, sga_bin, fq, _get_workdir(fq), read_correction, 1))
+        params.append((assembler_name, fq, _get_workdir(fq), read_correction, 1))
         component_id_list.append(component_id)
 
     with multiprocessing.Pool(processes=cpu) as pool:
@@ -166,3 +145,6 @@ def assemble_all_components(sga_wrapper, sga_bin,
     lca_dict = extract_lca_by_component(components_lca_filepath)
     concat_components_fasta_with_lca(assembled_components_fasta,
                                      out_contigs_fasta, lca_dict)
+
+if __name__ == '__main__':
+    pass
