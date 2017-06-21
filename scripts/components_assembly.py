@@ -5,6 +5,7 @@ import subprocess
 import logging
 from collections import defaultdict
 import multiprocessing
+import argparse
 
 from fasta_utils import read_fasta_file_handle, format_seq
 from fastq_utils import read_fastq_file_handle
@@ -14,6 +15,14 @@ from assembler_factory import AssemblerFactory
 logger = logging.getLogger(__name__)
 
 def extract_reads_by_component(fastq, read_metanode_component_filepath):
+    if not os.path.isfile(fastq):
+        logger.fatal('The input reads file does not exists:%s' % fastq)
+        sys.exit("An error occured. Can't extract component's reads")
+
+    if not os.path.isfile(read_metanode_component_filepath):
+        logger.fatal('The file storing the correspondance between reads and components does not exists:%s' % read_metanode_component_filepath)
+        sys.exit("An error occured. Can't extract component's reads")
+
     # Reading read --> component file
     logger.debug('Reading read-->component from {}'.format(read_metanode_component_filepath))
     read_component_dict = dict()
@@ -33,6 +42,10 @@ def extract_reads_by_component(fastq, read_metanode_component_filepath):
 
 
 def extract_lca_by_component(components_lca_filepath):
+    if not os.path.isfile(components_lca_filepath):
+        logger.fatal('The file storing the correspondance between lca info and components does not exists:%s' % components_lca_filepath)
+        sys.exit("An error occured. Can't extract component's lca")
+
     # Reading components LCA and storing them in a dict
     logger.debug('Reading components LCA assignment from {0}'.format(components_lca_filepath))
     component_lca_dict = dict()
@@ -141,10 +154,57 @@ def assemble_all_components(assembler_name,
     # Make the correspondance between the component_id and the fasta file
     assembled_components_fasta = dict(zip(component_id_list, fasta_list))
 
-    logger.info("Pool components contigs into: %s" % out_contigs_fasta)
     lca_dict = extract_lca_by_component(components_lca_filepath)
+    logger.info("Pool components contigs into: %s" % out_contigs_fasta)
     concat_components_fasta_with_lca(assembled_components_fasta,
                                      out_contigs_fasta, lca_dict)
 
+
 if __name__ == '__main__':
-    pass
+
+    logging.basicConfig(level=logging.INFO)
+
+    parser = argparse.ArgumentParser(description='Assemble components')
+    parser.add_argument('-a', '--assembler',
+                        choices=[a.name() for a in AssemblerFactory.ASSEMBLER_ENGINES],
+                        help="Select the assembler to be used. Default is %(default)s",
+                        default="SGA")
+    parser.add_argument('-i', '--input_fastq',
+                        type=argparse.FileType('r'),
+                        help='input fastq file',
+                        required=True)
+    parser.add_argument('-m', '--reads_metanode',
+                        type=argparse.FileType('r'),
+                        help='This file makes the correspondance between reads and the components',
+                        required=True)
+    parser.add_argument('-l', '--components_lca',
+                        type=argparse.FileType('r'),
+                        help='This file make the correspondance between lca and the components',
+                        required=True)
+    parser.add_argument('-w', '--workdir',
+                        action = 'store',
+                        type = str,
+                        help = 'Working  directory')
+    parser.add_argument('-o', '--output_fasta',
+                        help='output fasta file',
+                        required=True)
+    parser.add_argument('--cpu',
+                        action = 'store',
+                        metavar = 'CPU',
+                        type = int,
+                        default = 1,
+                        help = 'Max number of CPU to use. '
+                        'Default is %(default)s cpu')
+    parser.add_argument('--read_correction',
+                        action = 'store',
+                        type = str,
+                        choices = ['no', 'yes', 'auto'],
+                        default = 'no',
+                        help = 'Set the assembler read correction step. '
+                        'Default is %(default)s')
+
+    args = parser.parse_args()
+    assemble_all_components(args.assembler,
+                            args.input_fastq.name, args.reads_metanode.name, args.components_lca.name,
+                            args.output_fasta, args.workdir,
+                            args.cpu, args.read_correction)
