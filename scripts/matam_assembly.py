@@ -17,6 +17,7 @@ from rdp import run_rdp_classifier
 from krona import rdp_file_to_krona_text_file, make_krona_plot
 from binary_utils import Binary
 import components_assembly
+from assembler_factory import AssemblerFactory
 
 # Set LC_LANG to C for standard sort behaviour
 os.environ["LC_ALL"] = "C"
@@ -61,7 +62,6 @@ filter_sam_cov_bin = os.path.join(matam_script_dir, 'filter_sam_by_coverage.py')
 filter_score_bin = os.path.join(matam_script_dir, 'filter_score_multialign.py')
 compute_lca_bin = os.path.join(matam_script_dir, 'compute_lca_from_tab.py')
 compute_compressed_graph_stats_bin = os.path.join(matam_script_dir, 'compute_compressed_graph_stats.py')
-assembler_wrapper_bin = os.path.join(matam_script_dir, 'sga_assemble.py')
 remove_redundant_bin = os.path.join(matam_script_dir, 'remove_redundant_sequences.py')
 fastq_name_filter_bin = os.path.join(matam_script_dir, 'fastq_name_filter.py')
 evaluate_assembly_bin = os.path.join(matam_script_dir, 'evaluate_assembly.py')
@@ -81,10 +81,6 @@ ovgraphbuild_bin = os.path.join(ovgraphbuild_bin_dir, 'ovgraphbuild')
 
 componentsearch_bin_dir = os.path.join(matam_root_dir, 'componentsearch')
 componentsearch_bin = os.path.join(componentsearch_bin_dir, 'componentsearch')
-
-assembler_bin_dir = os.path.join(matam_root_dir, 'sga', 'src', 'SGA')
-assembler_name = 'SGA'
-assembler_bin = os.path.join(assembler_bin_dir, assembler_name)
 
 # Define a null file handle
 FNULL = open(os.devnull, 'w')
@@ -404,6 +400,13 @@ def parse_arguments():
 
     # Contigs assembly
     group_contig = parser.add_argument_group('Contigs assembly')
+
+    # -a/--assembler
+    group_contig.add_argument('-a', '--assembler',
+                        choices=[a.name() for a in AssemblerFactory.ASSEMBLER_ENGINES],
+                        help="Select the assembler to be used. Default is %(default)s",
+                        default="SGA")
+
     # --read_correction
     group_contig.add_argument('--read_correction',
                               action = 'store',
@@ -770,7 +773,7 @@ def main():
     contigs_assembly_wkdir = os.path.join(args.out_dir, "components_assembly")
 
     contigs_basename = componentsearch_basename + '.'
-    contigs_basename += assembler_name + '_by_component'
+    contigs_basename += args.assembler + '_by_component'
     contigs_basepath = os.path.join(args.out_dir, contigs_basename)
     contigs_filename = contigs_basename + '.fasta'
     contigs_filepath = os.path.join(args.out_dir, contigs_filename)
@@ -1175,7 +1178,7 @@ def main():
         # Set t0
         t0_wall = time.time()
 
-        components_assembly.assemble_all_components(assembler_name,
+        components_assembly.assemble_all_components(args.assembler,
                                                     sortme_output_fastx_filepath, read_metanode_component_filepath, components_lca_filepath,
                                                     contigs_filepath, contigs_assembly_wkdir,
                                                     args.cpu, args.read_correction)
