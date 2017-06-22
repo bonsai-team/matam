@@ -105,8 +105,8 @@ def concat_components_fasta_with_lca(assembled_components_fasta, contigs_fasta, 
     for component_id, component_fasta in assembled_components_fasta.items():
         if component_id in component_lca_dict:
             component_lca = component_lca_dict[component_id]
-        with open(component_fasta, 'r') as sga_contigs_fh:
-            for header, seq in read_fasta_file_handle(sga_contigs_fh):
+        with open(component_fasta, 'r') as assembler_contigs_fh:
+            for header, seq in read_fasta_file_handle(assembler_contigs_fh):
                 if len(seq):
                     contig_count += 1
                     contigs_fh.write('>{0} component={1} '.format(contig_count, component_id))
@@ -119,8 +119,8 @@ def _get_workdir(fq):
     """
     Convenient function to build a workdir from the name of the fastqfile
     """
-    sga_wkdir_basename, _ = os.path.splitext(fq)
-    return '%s_assembly_wkdir' % sga_wkdir_basename
+    assembler_wkdir_basename, _ = os.path.splitext(fq)
+    return '%s_assembly_wkdir' % assembler_wkdir_basename
 
 
 def assemble_all_components(assembler_name,
