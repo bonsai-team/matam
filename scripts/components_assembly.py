@@ -100,7 +100,7 @@ def isfasta(filepath):
     return any( [filepath.endswith(s) for s in suffix] )
 
 
-def nucleotic_number(fastx):
+def nucleotidic_number(fastx):
     """
     Compute the total number of nucleotides in the fastx file
     """
@@ -128,8 +128,8 @@ def estimate_coverage(reads_fq, contigs_fa):
     estimated_cov = reads_nt/contigs_nt
     """
 
-    reads_nt = nucleotic_number(reads_fq)
-    contigs_nt = nucleotic_number(contigs_fa)
+    reads_nt = nucleotidic_number(reads_fq)
+    contigs_nt = nucleotidic_number(contigs_fa)
     estimated_cov = None
 
     try:
