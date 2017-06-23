@@ -82,15 +82,86 @@ def save_components(component_reads_dict, directory):
     return components_fq
 
 
+def isfastq(filepath):
+    """
+    Determine if filepath is a fastq file based on the extension
+    """
+
+    suffix = ('.fq', '.fastq')
+    return any( [ filepath.endswith(s) for s in suffix] )
+
+
+def isfasta(filepath):
+    """
+    Determine if filepath is a fasta file based on the extension
+    """
+
+    suffix = ('.fa', '.fasta', '.fna')
+    return any( [filepath.endswith(s) for s in suffix] )
+
+
+def nucleotic_number(fastx):
+    """
+    Compute the total number of nucleotides in the fastx file
+    """
+
+    parser = None
+    if isfasta(fastx):
+        parser = read_fasta_file_handle
+    elif isfastq(fastx):
+        parser = read_fastq_file_handle
+
+    if parser is None:
+        logger.fatal("Can't dertermine whether this file is a fasta or fastq")
+        sys.exit('Aborting assembly step')
+
+
+    count = 0
+    with open(fastx, 'r') as fastx_handle:
+        for rec in parser(fastx_handle):
+            seq = rec[1]
+            count += len(seq)
+    return count
+
+def estimate_coverage(reads_fq, contigs_fa):
+    """
+    estimated_cov = reads_nt/contigs_nt
+    """
+
+    reads_nt = nucleotic_number(reads_fq)
+    contigs_nt = nucleotic_number(contigs_fa)
+    estimated_cov = None
+
+    try:
+        estimated_cov = reads_nt/contigs_nt
+        #logger.debug("Estimated coverage:%s" % estimated_cov)
+
+    except ZeroDivisionError:
+        #logger.warning("Can't estimate the coverage for 0 length contigs:%s" % contigs_fa)
+        pass
+
+    return estimated_cov
+
+
 def assemble_component(assembler_name,
                        in_fastq, workdir,
-                       read_correction, cpu):
-    #logger.debug('Assembling: %s' % in_fastq)
+                       read_correction, cpu, coverage_threshold):
+    logger.debug('Assembling: %s' % in_fastq)
     assembler_factory = AssemblerFactory()
     assembler = assembler_factory.get(assembler_name)
     assembler.build_command_line(in_fastq, workdir, read_correction, cpu)
 
     fasta_file = assembler.run()
+    estimated_cov = estimate_coverage(in_fastq, fasta_file)
+    logger.debug("Estimated coverage:%s, %s" % (estimated_cov, in_fastq))
+
+    # Re-run the assembly with error correction activated
+    if estimated_cov is not None and estimated_cov > coverage_threshold:
+        assembler.build_command_line(in_fastq, workdir, 'yes', cpu)
+        fasta_file = assembler.run()
+        estimated_cov2 = estimate_coverage(in_fastq, fasta_file)
+        logger.debug("Estimated coverage, before:%s, after:%s, %s" % (estimated_cov, estimated_cov2, in_fastq))
+
     return fasta_file
 
 
@@ -126,7 +197,7 @@ def _get_workdir(fq):
 def assemble_all_components(assembler_name,
                             fastq, read_metanode_component_filepath, components_lca_filepath,
                             out_contigs_fasta, workdir,
-                            cpu, read_correction):
+                            cpu, read_correction, coverage_threshold=20):
 
 
     logger.info("Save components to fastq files")
@@ -141,7 +212,7 @@ def assemble_all_components(assembler_name,
     params = []
     component_id_list = []
     for component_id, fq in components_reads_fq:
-        params.append((assembler_name, fq, _get_workdir(fq), read_correction, 1))
+        params.append((assembler_name, fq, _get_workdir(fq), read_correction, 1, coverage_threshold))
         component_id_list.append(component_id)
 
     with multiprocessing.Pool(processes=cpu) as pool:
