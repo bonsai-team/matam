@@ -162,6 +162,10 @@ def assemble_component(assembler_name,
         estimated_cov2 = estimate_coverage(in_fastq, fasta_file)
         logger.debug("Estimated coverage, before:%s, after:%s, %s" % (estimated_cov, estimated_cov2, in_fastq))
 
+        # suspicious when estimate_cov is not None and estimated_cov2 is None
+        if estimated_cov2 is None:
+            logger.warning("0 length contigs from reads component: %s" % in_fastq)
+
     return fasta_file
 
 
@@ -233,7 +237,8 @@ def assemble_all_components(assembler_name,
 
 if __name__ == '__main__':
 
-    logging.basicConfig(level=logging.INFO)
+    FORMAT = '%(asctime)s - %(processName)s - %(levelname)s - %(message)s'
+    logging.basicConfig(level=logging.DEBUG, format=FORMAT)
 
     parser = argparse.ArgumentParser(description='Assemble components')
     parser.add_argument('-a', '--assembler',
