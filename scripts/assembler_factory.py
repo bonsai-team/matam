@@ -70,6 +70,7 @@ class Assembler:
             shutil.rmtree(self.workdir)
         os.mkdir(self.workdir)
 
+        logger.debug("CMD: %s" % self.cmd_line)
         subprocess.check_call(self.cmd_line, shell=True, bufsize=0)
 
         return self.fasta_file
