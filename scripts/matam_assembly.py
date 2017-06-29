@@ -412,9 +412,18 @@ def parse_arguments():
                               action = 'store',
                               type = str,
                               choices = ['no', 'yes', 'auto'],
-                              default = 'no',
+                              default = 'auto',
                               help = 'Set the assembler read correction step. '
+                                     "'auto' means assemble the components with read correction enabled when the components coverage are sufficient (20X) and assemble the other components without read correction. "
                                      'Default is %(default)s')
+    # --contig_coverage_threshold
+    # this option is not shown to the user
+    group_contig.add_argument( '--contig_coverage_threshold',
+                              action = 'store',
+                              type = int,
+                              choices = [20, 50],
+                              default = 20,
+                              help = argparse.SUPPRESS)
 
     # Scaffolding
     group_scaff = parser.add_argument_group('Scaffolding')
@@ -496,6 +505,10 @@ def parse_arguments():
     if args.quorum < 0 or args.quorum > 1:
         parser.print_help()
         raise Exception("quorum not in range [0.51,1]")
+
+    # contig_coverage_threshold default value makes no sense when args.read_correction is not auto
+    if args.read_correction != 'auto':
+        args.contig_coverage_threshold = None
 
     # Set debug parameters
     if args.debug:
@@ -588,6 +601,8 @@ def print_intro(args):
 
     # Contigs assembly
     cmd_line += '--read_correction {0} '.format(args.read_correction)
+    if args.read_correction == 'auto':
+        cmd_line += '--contig_coverage_threshold {0} '.format(args.contig_coverage_threshold)
 
     # Scaffolding
     if args.contigs_binning:
@@ -1181,7 +1196,7 @@ def main():
         components_assembly.assemble_all_components(args.assembler,
                                                     sortme_output_fastx_filepath, read_metanode_component_filepath, components_lca_filepath,
                                                     contigs_filepath, contigs_assembly_wkdir,
-                                                    args.cpu, args.read_correction)
+                                                    args.cpu, args.read_correction, args.contig_coverage_threshold)
 
         if not args.keep_tmp:
             shutil.rmtree(contigs_assembly_wkdir)

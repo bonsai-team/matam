@@ -146,6 +146,10 @@ def estimate_coverage(reads_fq, contigs_fa):
 def assemble_component(assembler_name,
                        in_fastq, workdir,
                        read_correction, cpu, coverage_threshold):
+
+    if read_correction != 'auto' and coverage_threshold is not None:
+        logger.warning("Coverage_threshold %s makes no sense when read_correction is not auto. This argument will be ignored" % coverage_threshold)
+
     logger.debug('Assembling: %s' % in_fastq)
     assembler_factory = AssemblerFactory()
     assembler = assembler_factory.get(assembler_name)
@@ -155,12 +159,12 @@ def assemble_component(assembler_name,
     estimated_cov = estimate_coverage(in_fastq, fasta_file)
     logger.debug("Estimated coverage:%s, %s" % (estimated_cov, in_fastq))
 
-    # Re-run the assembly with error correction activated
-    if estimated_cov is not None and estimated_cov > coverage_threshold:
+    # Re-run the assembly with error correction activated when read_correction == auto
+    if read_correction == 'auto' and estimated_cov is not None and estimated_cov > coverage_threshold:
         assembler.build_command_line(in_fastq, workdir, 'yes', cpu)
         fasta_file = assembler.run()
         estimated_cov2 = estimate_coverage(in_fastq, fasta_file)
-        logger.debug("Estimated coverage, before:%s, after:%s, %s" % (estimated_cov, estimated_cov2, in_fastq))
+        logger.debug("Estimated coverage, before:%s, after:%s, component:%s, cov_threshold:%s" % (estimated_cov, estimated_cov2, in_fastq, coverage_threshold))
 
         # suspicious when estimate_cov is not None and estimated_cov2 is None
         if estimated_cov2 is None:
@@ -201,7 +205,7 @@ def _get_workdir(fq):
 def assemble_all_components(assembler_name,
                             fastq, read_metanode_component_filepath, components_lca_filepath,
                             out_contigs_fasta, workdir,
-                            cpu, read_correction, coverage_threshold=20):
+                            cpu, read_correction, coverage_threshold):
 
 
     logger.info("Save components to fastq files")
@@ -278,9 +282,16 @@ if __name__ == '__main__':
                         default = 'no',
                         help = 'Set the assembler read correction step. '
                         'Default is %(default)s')
+    parser.add_argument( '--contig_coverage_threshold',
+                              action = 'store',
+                              type = int,
+                              choices = [20, 50],
+                              default = 20,
+                              help = "When the contig's coverage is sufficient (default %(default)s, then run the assembler with read_correction enabled for this contig.")
 
     args = parser.parse_args()
+
     assemble_all_components(args.assembler,
                             args.input_fastq.name, args.reads_metanode.name, args.components_lca.name,
                             args.output_fasta, args.workdir,
-                            args.cpu, args.read_correction)
+                            args.cpu, args.read_correction, args.contig_coverage_threshold)
