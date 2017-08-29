@@ -58,7 +58,7 @@ default_ref_db = os.path.join(matam_db_dir, 'SILVA_128_SSURef_NR95')
 # Get all dependencies bin
 matam_script_dir = os.path.join(matam_root_dir, 'scripts')
 clean_name_bin = os.path.join(matam_script_dir, 'fasta_clean_name.py')
-filter_sam_cov_bin = os.path.join(matam_script_dir, 'filter_sam_by_coverage.py')
+sample_sam_cov_bin = Binary.assert_which('sample_sam_by_coverage.py')
 filter_score_bin = os.path.join(matam_script_dir, 'filter_score_multialign.py')
 compute_lca_bin = os.path.join(matam_script_dir, 'compute_lca_from_tab.py')
 compute_compressed_graph_stats_bin = os.path.join(matam_script_dir, 'compute_compressed_graph_stats.py')
@@ -986,7 +986,7 @@ def main():
         if args.coverage_threshold:
             cmd_line = 'cat ' + sam_filt_filepath
             cmd_line += ' | ' + sort_bin + ' -k 3,3 -k 4,4n'
-            cmd_line += ' | ' + filter_sam_cov_bin + ' -c ' + str(args.coverage_threshold)
+            cmd_line += ' | ' + sample_sam_cov_bin + ' -c ' + str(args.coverage_threshold)
             cmd_line += ' -r ' + clustered_ref_db_filepath
             cmd_line += ' | ' + sort_bin + ' -k 1,1V -k 12,12nr'
             cmd_line += ' > ' + sam_cov_filt_filepath
