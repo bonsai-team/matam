@@ -432,6 +432,13 @@ def parse_arguments():
                              action = 'store_true',
                              help = 'Experimental. Perform contigs binning during scaffolding.')
 
+    group_scaff.add_argument('--min_scaffold_length',
+                             action = 'store',
+                             type = int,
+                             default = 500,
+                             help = 'Filter out small scaffolds'
+                             )
+
     # taxonomic assignment
     group_taxonomic_assign = parser.add_argument_group('Taxonomic assignment')
 
@@ -607,6 +614,8 @@ def print_intro(args):
     # Scaffolding
     if args.contigs_binning:
         cmd_line += '--contigs_binning '
+
+    cmd_line += '--min_scaffold_length {0} '.format(args.min_scaffold_length)
 
     # Taxonomic assignment
     if args.perform_taxonomic_assignment:
@@ -808,7 +817,7 @@ def main():
     contigs_NR_filename = contigs_NR_basename + '.fasta'
     contigs_NR_filepath = os.path.join(args.out_dir, contigs_NR_filename)
 
-    large_NR_contigs_basename = contigs_NR_basename + '.min_' + str(500) + 'bp'
+    large_NR_contigs_basename = contigs_NR_basename + '.min_' + str(args.min_scaffold_length) + 'bp'
     large_NR_contigs_filename = large_NR_contigs_basename + '.fasta'
     large_NR_contigs_filepath = os.path.join(args.out_dir, large_NR_contigs_filename)
 
@@ -873,7 +882,7 @@ def main():
     scaffolds_NR_filename = scaffolds_NR_basename + '.fa'
     scaffolds_NR_filepath = os.path.join(args.out_dir, scaffolds_NR_filename)
 
-    large_NR_scaffolds_basename = scaffolds_NR_basename + '.min_' + str(500) + 'bp'
+    large_NR_scaffolds_basename = scaffolds_NR_basename + '.min_' + str(args.min_scaffold_length) + 'bp'
     large_NR_scaffolds_filename = large_NR_scaffolds_basename + '.fa'
     large_NR_scaffolds_filepath = os.path.join(args.out_dir, large_NR_scaffolds_filename)
 
@@ -1217,7 +1226,7 @@ def main():
         error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
 
         # Filter out small contigs
-        cmd_line = fasta_length_filter_bin + ' -m ' + str(500)
+        cmd_line = fasta_length_filter_bin + ' -m ' + str(args.min_scaffold_length)
         cmd_line += ' -i ' + contigs_NR_filepath
         cmd_line += ' -o ' + large_NR_contigs_filepath
 
@@ -1394,7 +1403,7 @@ def main():
         error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
 
         # Filter out small scaffolds
-        cmd_line = fasta_length_filter_bin + ' -m ' + str(500)
+        cmd_line = fasta_length_filter_bin + ' -m ' + str(args.min_scaffold_length)
         cmd_line += ' -i ' + scaffolds_NR_filepath
         cmd_line += ' -o ' + large_NR_scaffolds_filepath
 
