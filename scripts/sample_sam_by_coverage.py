@@ -91,7 +91,9 @@ def split_cigar(cigar_string):
     return cigar_elems
 
 
-def compute_depth(reads_by_pos, discarded_reads=[]):
+def compute_depth(reads_by_pos, discarded_reads=None):
+    if discarded_reads is None:
+        discarded_reads=[]
     return [len([r for r in reads if r not in discarded_reads]) for reads in reads_by_pos]
 
 
