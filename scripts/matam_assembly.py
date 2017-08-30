@@ -1558,9 +1558,6 @@ def main():
 
         logger.info('Write krona to: %s' % krona_html_filepath)
 
-        # Tag tmp files for removal
-        to_rm_filepath_list.append(krona_text_filepath)
-
         if args.verbose:
             sys.stderr.write('\n')
 
