@@ -85,6 +85,11 @@ componentsearch_bin = os.path.join(componentsearch_bin_dir, 'componentsearch')
 # Define a null file handle
 FNULL = open(os.devnull, 'w')
 
+def force_symlink(target, link_name):
+    if os.path.exists(link_name):
+        os.remove(link_name)
+    os.symlink(target, link_name)
+
 
 def read_tab_file_handle_sorted(tab_file_handle, factor_index):
     """
@@ -685,7 +690,8 @@ def main():
     ##############################################
     # Set all files and directories names + paths
 
-    sort_bin = 'sort -T ' + args.out_dir + ' -S ' + str(args.max_memory)
+    workdir = os.path.join(args.out_dir, 'workdir')
+    sort_bin = 'sort -T ' + workdir + ' -S ' + str(args.max_memory)
     sort_bin += 'M --parallel ' + str(args.cpu)
 
     input_fastx_filepath = args.input_fastx
@@ -696,11 +702,11 @@ def main():
     ref_db_dir, ref_db_basename = os.path.split(ref_db_basepath)
 
     try:
-        if not os.path.exists(args.out_dir):
-            logger.debug('mkdir {0}'.format(args.out_dir))
-            os.makedirs(args.out_dir)
+        if not os.path.exists(workdir):
+            logger.debug('mkdir {0}'.format(workdir))
+            os.makedirs(workdir)
     except OSError:
-        logger.exception('Could not create output directory {0}'.format(args.out_dir))
+        logger.exception('Could not create output directory {0}'.format(workdir))
         raise
 
     complete_ref_db_basename = ref_db_basename + '.complete'
@@ -720,7 +726,7 @@ def main():
     sortme_output_basename = input_fastx_basename
     sortme_output_basename += '.sortmerna_vs_' + ref_db_basename
     sortme_output_basename += '_b' + str(args.best) + '_m' + str(args.min_lis)
-    sortme_output_basepath = os.path.join(args.out_dir, sortme_output_basename)
+    sortme_output_basepath = os.path.join(workdir, sortme_output_basename)
 
     sortme_output_fastx_filepath = sortme_output_basepath + input_fastx_extension
     sortme_output_sam_filepath = sortme_output_basepath + '.sam'
@@ -735,21 +741,21 @@ def main():
         sam_filt_basename += 'geo_'
     sam_filt_basename += str(score_threshold_int) + 'pct'
     sam_filt_filename = sam_filt_basename + '.sam'
-    sam_filt_filepath = os.path.join(args.out_dir, sam_filt_filename)
+    sam_filt_filepath = os.path.join(workdir, sam_filt_filename)
 
     # Poorly covered references filtering
     sam_cov_filt_basename = sam_filt_basename
     if args.coverage_threshold:
         sam_cov_filt_basename += '.cov_filt_{0}'.format(args.coverage_threshold)
     sam_cov_filt_filename = sam_cov_filt_basename + '.sam'
-    sam_cov_filt_filepath = os.path.join(args.out_dir, sam_cov_filt_filename)
+    sam_cov_filt_filepath = os.path.join(workdir, sam_cov_filt_filename)
 
     # Overlap-graph building
     min_identity_int = int(args.min_identity * 100)
 
     ovgraphbuild_basename = sam_cov_filt_basename + '.ovgb_i' + str(min_identity_int)
     ovgraphbuild_basename += '_o' + str(args.min_overlap_length)
-    ovgraphbuild_basepath = os.path.join(args.out_dir, ovgraphbuild_basename)
+    ovgraphbuild_basepath = os.path.join(workdir, ovgraphbuild_basename)
 
     ovgraphbuild_asqg_filepath = ovgraphbuild_basepath + '.asqg'
     ovgraphbuild_nodes_csv_filepath = ovgraphbuild_basepath + '.nodes.csv'
@@ -761,19 +767,19 @@ def main():
     componentsearch_basename += '_E' + str(args.min_overlap_edge)
     if args.optimize_components:
         componentsearch_basename += '_oc'
-    componentsearch_basepath = os.path.join(args.out_dir, componentsearch_basename)
+    componentsearch_basepath = os.path.join(workdir, componentsearch_basename)
 
     componentsearch_metanodes_csv_basename = componentsearch_basename + '.metaNodes'
     componentsearch_metanodes_csv_filename = componentsearch_metanodes_csv_basename + '.csv'
-    componentsearch_metanodes_csv_filepath = os.path.join(args.out_dir, componentsearch_metanodes_csv_filename)
+    componentsearch_metanodes_csv_filepath = os.path.join(workdir, componentsearch_metanodes_csv_filename)
 
     componentsearch_metaedges_csv_basename = componentsearch_basename + '.metaEdges'
     componentsearch_metaedges_csv_filename = componentsearch_metaedges_csv_basename + '.csv'
-    componentsearch_metaedges_csv_filepath = os.path.join(args.out_dir, componentsearch_metaedges_csv_filename)
+    componentsearch_metaedges_csv_filepath = os.path.join(workdir, componentsearch_metaedges_csv_filename)
 
     componentsearch_components_csv_basename = componentsearch_basename + '.components'
     componentsearch_components_csv_filename = componentsearch_components_csv_basename + '.csv'
-    componentsearch_components_csv_filepath = os.path.join(args.out_dir, componentsearch_components_csv_filename)
+    componentsearch_components_csv_filepath = os.path.join(workdir, componentsearch_components_csv_filename)
 
     # LCA labelling
     read_metanode_component_filepath = componentsearch_basepath + '.read_metanode_component.tab'
@@ -785,25 +791,25 @@ def main():
     labelled_nodes_basename += '.component_lca' + str(quorum_int) + 'pct'
 
     components_lca_filename = componentsearch_basename + '.component_lca' + str(quorum_int) + 'pct.tab'
-    components_lca_filepath = os.path.join(args.out_dir, components_lca_filename)
+    components_lca_filepath = os.path.join(workdir, components_lca_filename)
 
     # Computing compressed graph stats
     stats_filename = componentsearch_basename + '.graph.stats'
-    stats_filepath = os.path.join(args.out_dir, stats_filename)
+    stats_filepath = os.path.join(workdir, stats_filename)
 
     # Contigs assembly
     component_read_filepath = componentsearch_basepath + '.component_read.tab'
 
-    contigs_assembly_wkdir = os.path.join(args.out_dir, "components_assembly")
+    contigs_assembly_wkdir = os.path.join(workdir, "components_assembly")
 
     contigs_basename = componentsearch_basename + '.'
     contigs_basename += args.assembler + '_by_component'
-    contigs_basepath = os.path.join(args.out_dir, contigs_basename)
+    contigs_basepath = os.path.join(workdir, contigs_basename)
     contigs_filename = contigs_basename + '.fasta'
-    contigs_filepath = os.path.join(args.out_dir, contigs_filename)
+    contigs_filepath = os.path.join(workdir, contigs_filename)
 
     contigs_assembly_log_filename = contigs_basename + '.log'
-    contigs_assembly_log_filepath = os.path.join(args.out_dir, contigs_assembly_log_filename)
+    contigs_assembly_log_filepath = os.path.join(workdir, contigs_assembly_log_filename)
     # Remove log file from previous assemblies
     # because we will only append to this file
     if os.path.exists(contigs_assembly_log_filepath):
@@ -811,43 +817,43 @@ def main():
 
     contigs_symlink_basename = 'contigs'
     contigs_symlink_filename = contigs_symlink_basename + '.fasta'
-    contigs_symlink_filepath = os.path.join(args.out_dir, contigs_symlink_filename)
+    contigs_symlink_filepath = os.path.join(workdir, contigs_symlink_filename)
 
     contigs_NR_basename = contigs_symlink_basename + '.NR'
     contigs_NR_filename = contigs_NR_basename + '.fasta'
-    contigs_NR_filepath = os.path.join(args.out_dir, contigs_NR_filename)
+    contigs_NR_filepath = os.path.join(workdir, contigs_NR_filename)
 
     large_NR_contigs_basename = contigs_NR_basename + '.min_' + str(args.min_scaffold_length) + 'bp'
     large_NR_contigs_filename = large_NR_contigs_basename + '.fasta'
-    large_NR_contigs_filepath = os.path.join(args.out_dir, large_NR_contigs_filename)
+    large_NR_contigs_filepath = os.path.join(workdir, large_NR_contigs_filename)
 
     # Scaffolding
     scaff_sortme_output_basename = contigs_symlink_basename
     scaff_sortme_output_basename += '.sortmerna_vs_complete_' + ref_db_basename
     scaff_sortme_output_basename += '_num_align_0'
-    scaff_sortme_output_basepath = os.path.join(args.out_dir, scaff_sortme_output_basename)
+    scaff_sortme_output_basepath = os.path.join(workdir, scaff_sortme_output_basename)
 
     scaff_sortme_output_blast_filename = scaff_sortme_output_basename + '.blast'
-    scaff_sortme_output_blast_filepath = os.path.join(args.out_dir, scaff_sortme_output_blast_filename)
+    scaff_sortme_output_blast_filepath = os.path.join(workdir, scaff_sortme_output_blast_filename)
 
     scaff_sortme_output_sam_filename = scaff_sortme_output_basename + '.sam'
-    scaff_sortme_output_sam_filepath = os.path.join(args.out_dir, scaff_sortme_output_sam_filename)
+    scaff_sortme_output_sam_filepath = os.path.join(workdir, scaff_sortme_output_sam_filename)
 
     best_only_blast_basename = scaff_sortme_output_blast_filename + '.best_only'
     best_only_blast_filename = best_only_blast_basename + '.tab'
-    best_only_blast_filepath = os.path.join(args.out_dir, best_only_blast_filename)
+    best_only_blast_filepath = os.path.join(workdir, best_only_blast_filename)
 
     selected_best_only_blast_basename = best_only_blast_basename + '.selected'
     selected_best_only_blast_filename = selected_best_only_blast_basename + '.tab'
-    selected_best_only_blast_filepath = os.path.join(args.out_dir, selected_best_only_blast_filename)
+    selected_best_only_blast_filepath = os.path.join(workdir, selected_best_only_blast_filename)
 
     selected_sam_basename = selected_best_only_blast_basename
     selected_sam_filename = selected_sam_basename + '.sam'
-    selected_sam_filepath = os.path.join(args.out_dir, selected_sam_filename)
+    selected_sam_filepath = os.path.join(workdir, selected_sam_filename)
 
     binned_sam_basename = selected_best_only_blast_basename + '.binned'
     binned_sam_filename = binned_sam_basename + '.sam'
-    binned_sam_filepath = os.path.join(args.out_dir, binned_sam_filename)
+    binned_sam_filepath = os.path.join(workdir, binned_sam_filename)
 
     processed_sam_basename = selected_sam_basename
     processed_sam_filepath = selected_sam_filepath
@@ -858,37 +864,40 @@ def main():
 
     bam_basename = processed_sam_basename
     bam_filename = bam_basename + '.bam'
-    bam_filepath = os.path.join(args.out_dir, bam_filename)
+    bam_filepath = os.path.join(workdir, bam_filename)
 
     sorted_bam_basename = processed_sam_basename + '.sorted'
-    sorted_bam_basepath = os.path.join(args.out_dir, sorted_bam_basename)
+    sorted_bam_basepath = os.path.join(workdir, sorted_bam_basename)
     sorted_bam_filename = sorted_bam_basename + '.bam'
-    sorted_bam_filepath = os.path.join(args.out_dir, sorted_bam_filename)
+    sorted_bam_filepath = os.path.join(workdir, sorted_bam_filename)
 
     mpileup_filename = sorted_bam_basename + '.mpileup'
-    mpileup_filepath = os.path.join(args.out_dir, mpileup_filename)
+    mpileup_filepath = os.path.join(workdir, mpileup_filename)
 
     scaffolds_basename = sorted_bam_basename + '.scaffolds'
     scaffolds_filename = scaffolds_basename + '.fa'
-    scaffolds_filepath = os.path.join(args.out_dir, scaffolds_filename)
+    scaffolds_filepath = os.path.join(workdir, scaffolds_filename)
 
     scaffolds_symlink_basename = 'scaffolds'
     if args.contigs_binning:
         scaffolds_symlink_basename += '.contigs_binning'
     scaffolds_symlink_filename = scaffolds_symlink_basename + '.fa'
-    scaffolds_symlink_filepath = os.path.join(args.out_dir, scaffolds_symlink_filename)
+    scaffolds_symlink_filepath = os.path.join(workdir, scaffolds_symlink_filename)
 
     scaffolds_NR_basename = scaffolds_symlink_basename + '.NR'
     scaffolds_NR_filename = scaffolds_NR_basename + '.fa'
-    scaffolds_NR_filepath = os.path.join(args.out_dir, scaffolds_NR_filename)
+    scaffolds_NR_filepath = os.path.join(workdir, scaffolds_NR_filename)
 
     large_NR_scaffolds_basename = scaffolds_NR_basename + '.min_' + str(args.min_scaffold_length) + 'bp'
     large_NR_scaffolds_filename = large_NR_scaffolds_basename + '.fa'
-    large_NR_scaffolds_filepath = os.path.join(args.out_dir, large_NR_scaffolds_filename)
+    large_NR_scaffolds_filepath = os.path.join(workdir, large_NR_scaffolds_filename)
 
     final_assembly_symlink_basename = 'final_assembly'
     final_assembly_symlink_filename = final_assembly_symlink_basename + '.fa'
     final_assembly_symlink_filepath = os.path.join(args.out_dir, final_assembly_symlink_filename)
+
+    final_krona_tab_symlink_filepath = os.path.join(args.out_dir, 'krona.tab')
+    final_krona_html_symlink_filepath = os.path.join(args.out_dir, 'krona.html')
 
     #################################
     # Compute input reads statistics
@@ -1251,7 +1260,7 @@ def main():
 
             contigs_assembly_stats_filename = contigs_symlink_basename + '.exonerate_vs_'
             contigs_assembly_stats_filename += true_ref_basename + '.assembly.stats'
-            contigs_assembly_stats_filepath = os.path.join(args.out_dir, contigs_assembly_stats_filename)
+            contigs_assembly_stats_filepath = os.path.join(workdir, contigs_assembly_stats_filename)
 
             contigs_error_rate = float(subprocess.check_output('grep "error rate   =" {0}'.format(contigs_assembly_stats_filepath), shell=True, bufsize=0).decode("utf-8").split('=')[1].strip()[:-1])
             contigs_error_rate_2 = float(subprocess.check_output('grep "error rate 2 =" {0}'.format(contigs_assembly_stats_filepath), shell=True, bufsize=0).decode("utf-8").split('=')[1].strip()[:-1])
@@ -1266,7 +1275,7 @@ def main():
 
             large_NR_contigs_assembly_stats_filename = large_NR_contigs_basename + '.exonerate_vs_'
             large_NR_contigs_assembly_stats_filename += true_ref_basename + '.assembly.stats'
-            large_NR_contigs_assembly_stats_filepath = os.path.join(args.out_dir, large_NR_contigs_assembly_stats_filename)
+            large_NR_contigs_assembly_stats_filepath = os.path.join(workdir, large_NR_contigs_assembly_stats_filename)
 
             try:
                 large_NR_contigs_error_rate = float(subprocess.check_output('grep "error rate   =" {0}'.format(large_NR_contigs_assembly_stats_filepath), shell=True, bufsize=0).decode("utf-8").split('=')[1].strip()[:-1])
@@ -1439,7 +1448,7 @@ def main():
 
             scaffolds_assembly_stats_filename = scaffolds_symlink_basename + '.exonerate_vs_'
             scaffolds_assembly_stats_filename += true_ref_basename + '.assembly.stats'
-            scaffolds_assembly_stats_filepath = os.path.join(args.out_dir, scaffolds_assembly_stats_filename)
+            scaffolds_assembly_stats_filepath = os.path.join(workdir, scaffolds_assembly_stats_filename)
 
             scaffolds_error_rate = float(subprocess.check_output('grep "error rate   =" {0}'.format(scaffolds_assembly_stats_filepath), shell=True, bufsize=0).decode("utf-8").split('=')[1].strip()[:-1])
             scaffolds_error_rate_2 = float(subprocess.check_output('grep "error rate 2 =" {0}'.format(scaffolds_assembly_stats_filepath), shell=True, bufsize=0).decode("utf-8").split('=')[1].strip()[:-1])
@@ -1454,7 +1463,7 @@ def main():
 
             large_NR_scaffolds_assembly_stats_filename = large_NR_scaffolds_basename + '.exonerate_vs_'
             large_NR_scaffolds_assembly_stats_filename += true_ref_basename + '.assembly.stats'
-            large_NR_scaffolds_assembly_stats_filepath = os.path.join(args.out_dir, large_NR_scaffolds_assembly_stats_filename)
+            large_NR_scaffolds_assembly_stats_filepath = os.path.join(workdir, large_NR_scaffolds_assembly_stats_filename)
 
             try:
                 large_NR_scaffolds_error_rate = float(subprocess.check_output('grep "error rate   =" {0}'.format(large_NR_scaffolds_assembly_stats_filepath), shell=True, bufsize=0).decode("utf-8").split('=')[1].strip()[:-1])
@@ -1503,7 +1512,7 @@ def main():
                                               scaffolds_fasta, reads,
                                               args.best, args.min_lis, args.evalue,
                                               args.max_memory, args.cpu,
-                                              output_dir_basepath=args.out_dir,
+                                              output_dir_basepath=workdir,
                                               verbose=args.verbose,
                                               keep_tmp=args.keep_tmp
         )
@@ -1512,11 +1521,6 @@ def main():
         complete_fasta_with_abundance(scaffolds_fasta, fasta_with_abundance_filepath, abundance)
 
         logger.info('Write abundance informations to: %s' % fasta_with_abundance_filepath)
-
-        # Create final assembly symbolic link
-        if os.path.exists(final_assembly_symlink_filepath):
-            os.remove(final_assembly_symlink_filepath)
-        os.symlink(os.path.basename(fasta_with_abundance_filepath), final_assembly_symlink_filepath)
 
     if args.verbose:
         sys.stderr.write('\n')
@@ -1561,6 +1565,10 @@ def main():
         if args.verbose:
             sys.stderr.write('\n')
 
+        # Expose final files
+        force_symlink(fasta_with_abundance_filepath, final_assembly_symlink_filepath)
+        force_symlink(krona_text_filepath, final_krona_tab_symlink_filepath)
+        force_symlink(krona_html_filepath, final_krona_html_symlink_filepath)
 
     ###########################
     # Print Assembly Statistics
