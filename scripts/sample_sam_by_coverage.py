@@ -103,14 +103,10 @@ def restrict_depth(reads_by_pos, threshold):
     """
     discarded_reads = set()
     for pos, reads in enumerate(reads_by_pos):
-        depth = len([r for r in reads if r not in discarded_reads])
-        while depth > threshold:
-            #randomly pick a read
-            read_id = random.choice(reads)
-            #pick a reads not previously picked
-            if read_id in discarded_reads: continue
-            discarded_reads.add(read_id)
-            depth = len([r for r in reads if r not in discarded_reads])
+        remaining_reads = [r for r in reads if r not in discarded_reads]
+        depth = len(remaining_reads)
+        if depth > threshold:
+            discarded_reads |= set(random.sample(remaining_reads, depth - threshold))
     return discarded_reads
 
 
