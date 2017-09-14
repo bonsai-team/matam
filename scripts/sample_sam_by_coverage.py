@@ -62,7 +62,7 @@ def read_fasta_file_handle(fasta_file_handle):
     fasta_file_handle.close()
 
 
-def decode_cigar(cigar_values, current_pos):
+def decode_cigar(cigar_values, current_pos=0):
     """
     Return a list of positions (on the ref) covered by this CIGAR (read)
     """
@@ -85,7 +85,6 @@ def split_cigar(cigar_string):
     Return all cigar's components
     One cigar component is a number of any digit, followed by a letter or =
     """
-
     cigar_pattern = re.compile("[\\d]+[a-zA-Z|=]")
     cigar_elems = re.findall(cigar_pattern, cigar_string)
     return cigar_elems
@@ -126,6 +125,7 @@ def get_reads_by_pos(alignment_tabs_list, ref_len):
     #do not use a set because the same exact read can be mapped at the same pos more than once
     #see https://github.com/biocore/sortmerna/issues/137
     #Init an empty list foreach pos of the reference
+    cigar_cache = {}
     reads_by_pos = [ list() for p in range(ref_len) ]
     for alignment_tab in alignment_tabs_list:
         read_id = alignment_tab[0]
@@ -134,10 +134,14 @@ def get_reads_by_pos(alignment_tabs_list, ref_len):
         leftmost_mapping_pos = int(alignment_tab[3]) - 1
         #only mapped reads are considered
         if leftmost_mapping_pos < 0: continue
-        mapping_positions = decode_cigar(split_cigar(cigar), leftmost_mapping_pos)
+        if cigar in cigar_cache:
+            mapping_positions = cigar_cache[cigar]
+        else:
+            mapping_positions = decode_cigar(split_cigar(cigar))
+            cigar_cache[cigar] = mapping_positions
 
         for pos in mapping_positions:
-            reads_by_pos[pos].append(read_id)
+            reads_by_pos[leftmost_mapping_pos + pos].append(read_id)
     return reads_by_pos
 
 
