@@ -190,8 +190,8 @@ if __name__ == '__main__':
     # -c / --cov_threshold
     parser.add_argument('-c', '--cov_threshold',
                         metavar='COV',
-                        type=float,
-                        default=50,
+                        type=int,
+                        default=500,
                         help='Identity threshold. '
                              'Default is %(default)s')
 
