@@ -4,7 +4,7 @@ import sys
 import re
 import random
 import argparse
-
+import math
 
 
 def read_tab_file_handle_sorted(tab_file_handle, factor_index=0):
@@ -90,10 +90,12 @@ def split_cigar(cigar_string):
     return cigar_elems
 
 
-def compute_depth(reads_by_pos, discarded_reads=None):
-    if discarded_reads is None:
-        discarded_reads=[]
-    return [len([r for r in reads if r not in discarded_reads]) for reads in reads_by_pos]
+def compute_local_depth(reads, discarded_reads=None):
+    depth = 0
+    for r in reads:
+        if r not in discarded_reads:
+            depth += 1
+    return depth
 
 
 def restrict_depth(reads_by_pos, threshold):
@@ -102,11 +104,19 @@ def restrict_depth(reads_by_pos, threshold):
     the depth threshold
     """
     discarded_reads = set()
-    for pos, reads in enumerate(reads_by_pos):
-        remaining_reads = [r for r in reads if r not in discarded_reads]
-        depth = len(remaining_reads)
-        if depth > threshold:
-            discarded_reads |= set(random.sample(remaining_reads, depth - threshold))
+
+    while True:
+        #select pos with coverage > threshold
+        random_pos = [ pos for (pos, reads) in enumerate(reads_by_pos) if compute_local_depth(reads, discarded_reads) > threshold ]
+        if not random_pos: break #no more positions to treat
+        random.shuffle(random_pos)
+        for pos in random_pos:
+            reads = reads_by_pos[pos]
+            remaining_reads = [ r for r in reads if r not in discarded_reads ]
+            depth = len(remaining_reads)
+            if depth > threshold:
+                k = max(1, math.floor((depth - threshold) * 0.10)) # 10% of reads
+                discarded_reads |= set(random.sample(remaining_reads, k))
     return discarded_reads
 
 
