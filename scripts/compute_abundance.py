@@ -93,6 +93,7 @@ to the abundance of this scaffold only as 1 weight where weight=1/uniq_scaffolds
         for read in set(reads):
             abundance_by_scaffold[scaffold]+= read_weight[read]
 
+        abundance_by_scaffold[scaffold] = round(abundance_by_scaffold[scaffold], 2)
     return abundance_by_scaffold
 
 
@@ -142,7 +143,6 @@ def complete_fasta_with_abundance(input_fasta, output_fasta, abundance):
             sys.exit("Can't find abundance")
         else:
             ab = abundance[id]
-            ab = round(ab)
             header = '{header} count={abundance}'.format(header=header, abundance=ab)
             out_fasta_handler.write( '>{header}\n{seq}\n'.format(header=header, seq=format_seq(seq)) )
 
@@ -150,7 +150,7 @@ def complete_fasta_with_abundance(input_fasta, output_fasta, abundance):
     out_fasta_handler.close()
 
 
-def get_abundance_from_fasta(fasta, regexp='count=(\d+)'):
+def get_abundance_from_fasta(fasta, regexp='count=(\d+\.\d+|\d+)'):
     abundance = {}
     in_fasta_handler = open(fasta, 'r')
     p = re.compile(regexp)
@@ -160,6 +160,6 @@ def get_abundance_from_fasta(fasta, regexp='count=(\d+)'):
         if not m:
             logger.fatal("Can't retrieve abundance information:\nfasta_path:%s\nfasta_header:%s" % (fasta, header))
             sys.exit("Cant't retrieve abundance")
-        abundance[id] = int(m.group(1))
+        abundance[id] = float(m.group(1))
     in_fasta_handler.close()
     return abundance
