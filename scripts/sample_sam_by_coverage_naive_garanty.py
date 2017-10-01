@@ -108,6 +108,7 @@ def compute_ref_coverage(ref_sam_tab_list, ref_length):
     #
     return ref_coverage_list
 
+
 def sample_by_depth(sam_handler, fasta_ref_handler, threshold, sampled_out_sam_handler):
     """
     sample the SAM file based on the coverage at each pos
@@ -125,32 +126,34 @@ def sample_by_depth(sam_handler, fasta_ref_handler, threshold, sampled_out_sam_h
         # Compute ref coverage list
         ref_coverage_list = compute_ref_coverage(ref_sam_tab_list, ref_length)
         #
-        for pos_sam_tab_list in tab_list_group_by(ref_sam_tab_list, 3):           
+        for pos_sam_tab_list in tab_list_group_by(ref_sam_tab_list, 3):
             starting_pos = int(pos_sam_tab_list[0][3]) - 1 #SAM positions are 1-based
             ref_coverage = ref_coverage_list[starting_pos]
             if ref_coverage <= threshold:
                 for alignment_tab in pos_sam_tab_list:
                     print('{}'.format('\t'.join(alignment_tab)), file=sampled_out_sam_handler)
             else:
-                num_alignments_to_keep = len(pos_sam_tab_list)-(ref_coverage-threshold)
-                selected_alignments_indices = random.sample([i for i in range(len(pos_sam_tab_list))], num_alignments_to_keep)
-                selected_alignments_bool_list = [False for i in range(len(pos_sam_tab_list))]
-                for i in selected_alignments_indices:
-                    selected_alignments_bool_list[i]=True
-                for i in range(len(pos_sam_tab_list)):
+                num_alignments_to_remove = ref_coverage - threshold
+                random_alignments_order_indices = [i for i in range(len(pos_sam_tab_list))]
+                random.shuffle(random_alignments_order_indices)
+                #
+                for i in random_alignments_order_indices:
                     alignment_tab = pos_sam_tab_list[i]
-                    if selected_alignments_bool_list[i]:
-                        print('{}'.format('\t'.join(alignment_tab)), file=sampled_out_sam_handler)
-                    else:
+                    if num_alignments_to_remove > 0:
                         starting_pos = int(alignment_tab[3]) - 1 #SAM positions are 1-based
                         cigar = alignment_tab[5]
                         alignment_length_on_ref = get_alignment_length_on_ref(cigar)
                         end_pos = starting_pos + alignment_length_on_ref - 1 #We want the last mapped nucleotide, not the first free one
-                        ref_coverage_list[starting_pos:end_pos+1] -= 1
+                        if min(ref_coverage_list[starting_pos:end_pos+1]) <= threshold:
+                            print('{}'.format('\t'.join(alignment_tab)), file=sampled_out_sam_handler)
+                        else:
+                            ref_coverage_list[starting_pos:end_pos+1] -= 1
+                            num_alignments_to_remove -= 1
+                    else:
+                        print('{}'.format('\t'.join(alignment_tab)), file=sampled_out_sam_handler)
 
 
 if __name__ == '__main__':
-
     # Arguments parsing
     parser = argparse.ArgumentParser(description='')
     # -i / --input_sam
@@ -178,7 +181,8 @@ if __name__ == '__main__':
                         default=50,
                         help='Identity threshold. '
                              'Default is %(default)s')
-
+    #
     args = parser.parse_args()
-
+    #
+    random.seed()
     sample_by_depth(args.input_sam, args.references, args.cov_threshold, args.output_sam)
