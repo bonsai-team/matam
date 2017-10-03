@@ -4,23 +4,17 @@ import sys
 import re
 import random
 import argparse
-import math
+import numpy as np
 
 
-def read_tab_file_handle_sorted(tab_file_handle, factor_index=0):
+def tab_list_group_by(tab_list, factor_index=0):
     """
-    Parse a tab file (sorted by a column) and return a generator
+    Read a sorted tab list and group by the given colum index
     """
     previous_factor_id = ''
     factor_tab_list = list()
     # Reading tab file
-    for line in tab_file_handle:
-        #ignore header lines
-        if line.startswith('@'): continue
-        l = line.strip()
-        #ignore blanck lines
-        if not l: continue
-        tab = l.split()
+    for tab in tab_list:
         current_factor = tab[factor_index]
         # Yield the previous factor tab list
         if current_factor != previous_factor_id:
@@ -31,6 +25,14 @@ def read_tab_file_handle_sorted(tab_file_handle, factor_index=0):
         previous_factor_id = current_factor
     # Yield the last tab list
     yield factor_tab_list
+
+
+def read_tab_file_handle_sorted(tab_file_handle, factor_index=0):
+    """
+    Parse a tab file (sorted by a column) and return a generator
+    """
+    for factor_tab_list in tab_list_group_by((l.split() for l in tab_file_handle if l.strip()), factor_index):
+        yield factor_tab_list
     # Close tab file
     tab_file_handle.close()
 
@@ -62,121 +64,96 @@ def read_fasta_file_handle(fasta_file_handle):
     fasta_file_handle.close()
 
 
-def decode_cigar(cigar_values, current_pos=0):
+def parse_cigar(cigar):
     """
-    Return a list of positions (on the ref) covered by this CIGAR (read)
+    Parse a CIGAR string and return a list of (operation, count) tuples
     """
-    covered_pos = set()
-    for c_val in cigar_values:
-        c_len = int(c_val[:-1])
-        c_letter = c_val[-1].upper()
-        if c_letter in ('M','X', '='):
-            start = current_pos
-            end = start + c_len - 1
-            covered_pos |= set(range(start, end + 1))
-            current_pos += c_len
-        elif c_letter in ('N', 'D'):
-            current_pos += c_len
-    return covered_pos
-
-
-def split_cigar(cigar_string):
-    """
-    Return all cigar's components
-    One cigar component is a number of any digit, followed by a letter or =
-    """
-    cigar_pattern = re.compile("[\\d]+[a-zA-Z|=]")
-    cigar_elems = re.findall(cigar_pattern, cigar_string)
-    return cigar_elems
-
-
-def compute_local_depth(reads, discarded_reads=None):
-    depth = 0
-    for r in reads:
-        if r not in discarded_reads:
-            depth += 1
-    return depth
-
-
-def restrict_depth(reads_by_pos, threshold):
-    """
-    Return the name of reads to be discarded to fulfill
-    the depth threshold
-    """
-    discarded_reads = set()
-
-    while True:
-        #select pos with coverage > threshold
-        random_pos = [ pos for (pos, reads) in enumerate(reads_by_pos) if compute_local_depth(reads, discarded_reads) > threshold ]
-        if not random_pos: break #no more positions to treat
-        random.shuffle(random_pos)
-        for pos in random_pos:
-            reads = reads_by_pos[pos]
-            remaining_reads = [ r for r in reads if r not in discarded_reads ]
-            depth = len(remaining_reads)
-            if depth > threshold:
-                k = max(1, math.floor((depth - threshold) * 0.10)) # 10% of reads
-                discarded_reads |= set(random.sample(remaining_reads, k))
-    return discarded_reads
-
-
-def get_reads_by_pos(alignment_tabs_list, ref_len):
-    """
-    Take a list of alignments (SAM alignment lines)
-    and return foreach pos on the reference, the list
-    of reads constributing to this pos
-    """
-
-    #reads_by_pos = [ set() for p in range(ref_len) ]
-    #do not use a set because the same exact read can be mapped at the same pos more than once
-    #see https://github.com/biocore/sortmerna/issues/137
-    #Init an empty list foreach pos of the reference
-    cigar_cache = {}
-    reads_by_pos = [ list() for p in range(ref_len) ]
-    for alignment_tab in alignment_tabs_list:
-        read_id = alignment_tab[0]
-        cigar = alignment_tab[5]
-        #get zero-based position
-        leftmost_mapping_pos = int(alignment_tab[3]) - 1
-        #only mapped reads are considered
-        if leftmost_mapping_pos < 0: continue
-        if cigar in cigar_cache:
-            mapping_positions = cigar_cache[cigar]
+    cigar_tab = list()
+    count_str = ''
+    for c in cigar:
+        if c.isdigit():
+            count_str += c
         else:
-            mapping_positions = decode_cigar(split_cigar(cigar))
-            cigar_cache[cigar] = mapping_positions
+            operation = c
+            count = 1
+            if count_str:
+                count = int(count_str)
+            if cigar_tab and operation == cigar_tab[-1][0]:
+                cigar_tab[-1][1] += count
+            else:
+                cigar_tab.append((operation, count))
+            count_str = ''
+    #
+    return cigar_tab
 
-        for pos in mapping_positions:
-            reads_by_pos[leftmost_mapping_pos + pos].append(read_id)
-    return reads_by_pos
+
+def get_alignment_length_on_ref(cigar):
+    """
+    """
+    return sum((count for operation, count in parse_cigar(cigar) if operation in ('M','D','N','=','X')))
+
+
+def compute_ref_coverage(ref_sam_tab_list, ref_length):
+    """
+    """
+    # Init ref coverage list
+    ref_coverage_list = np.zeros(ref_length, dtype=np.int)
+    # Read alignments on the ref
+    for alignment_tab in ref_sam_tab_list:
+        starting_pos = int(alignment_tab[3]) - 1 #SAM positions are 1-based
+        cigar = alignment_tab[5]
+        alignment_length_on_ref = get_alignment_length_on_ref(cigar)
+        end_pos = starting_pos + alignment_length_on_ref - 1 #We want the last mapped nucleotide, not the first free one
+        ref_coverage_list[starting_pos:end_pos+1] += 1
+    #
+    return ref_coverage_list
 
 
 def sample_by_depth(sam_handler, fasta_ref_handler, threshold, sampled_out_sam_handler):
     """
-    sample the SAM file based on the depth at each pos
+    sample the SAM file based on the coverage at each pos
     """
+    # Read reference sequences and store them in a dict
     ref_seq_dict = dict()
     for header, seq in read_fasta_file_handle(fasta_ref_handler):
-            seqid = header.split()[0]
-            ref_seq_dict[seqid] = seq.upper()
-
-    # Reading sam file reference by reference
-    for alignment_tabs_list in read_tab_file_handle_sorted(sam_handler, 2):
-        ref_id = alignment_tabs_list[0][2]
-        ref_len = len(ref_seq_dict[ref_id])
-        #print("@SQ	SN:%s	LN:%s" % (ref_id, ref_len), file=sys.stderr)
-        reads_by_pos = get_reads_by_pos(alignment_tabs_list, ref_len)
-        reads_to_discard = restrict_depth(reads_by_pos, threshold)
-        for alignment_tab in alignment_tabs_list:
-            read_id = alignment_tab[0]
-            cigar = alignment_tab[5]
-            leftmost_mapping_pos = int(alignment_tab[3]) - 1
-            if read_id not in reads_to_discard:
-                print('{}\n'.format('\t'.join(alignment_tab)), file=sampled_out_sam_handler, end='')
+        seqid = header.split()[0]
+        ref_seq_dict[seqid] = seq.upper()
+    # Read SAM by ref
+    # OPTI: instead of storing all SAM records for each ref in mem, we could read twice the file block corresponding to this ref
+    for ref_sam_tab_list in read_tab_file_handle_sorted((l for l in sam_handler if l[0]!='@'), 2):
+        ref_id = ref_sam_tab_list[0][2]
+        ref_length = len(ref_seq_dict[ref_id])
+        # Compute ref coverage list
+        ref_coverage_list = compute_ref_coverage(ref_sam_tab_list, ref_length)
+        #
+        for pos_sam_tab_list in tab_list_group_by(ref_sam_tab_list, 3):
+            starting_pos = int(pos_sam_tab_list[0][3]) - 1 #SAM positions are 1-based
+            ref_coverage = ref_coverage_list[starting_pos]
+            if ref_coverage <= threshold:
+                for alignment_tab in pos_sam_tab_list:
+                    print('{}'.format('\t'.join(alignment_tab)), file=sampled_out_sam_handler)
+            else:
+                num_alignments_to_remove = ref_coverage - threshold
+                random_alignments_order_indices = [i for i in range(len(pos_sam_tab_list))]
+                random.shuffle(random_alignments_order_indices)
+                #
+                for i in random_alignments_order_indices:
+                    alignment_tab = pos_sam_tab_list[i]
+                    if num_alignments_to_remove > 0:
+                        starting_pos = int(alignment_tab[3]) - 1 #SAM positions are 1-based
+                        cigar = alignment_tab[5]
+                        alignment_length_on_ref = get_alignment_length_on_ref(cigar)
+                        end_pos = starting_pos + alignment_length_on_ref - 1 #We want the last mapped nucleotide, not the first free one
+                        if min(ref_coverage_list[starting_pos:end_pos+1]) <= threshold:
+                            print('{}'.format('\t'.join(alignment_tab)), file=sampled_out_sam_handler)
+                        else:
+                            ref_coverage_list[starting_pos:end_pos+1] -= 1
+                            num_alignments_to_remove -= 1
+                    else:
+                        print('{}'.format('\t'.join(alignment_tab)), file=sampled_out_sam_handler)
 
 
 if __name__ == '__main__':
-
     # Arguments parsing
     parser = argparse.ArgumentParser(description='')
     # -i / --input_sam
@@ -201,9 +178,11 @@ if __name__ == '__main__':
     parser.add_argument('-c', '--cov_threshold',
                         metavar='COV',
                         type=int,
-                        default=500,
+                        default=50,
                         help='Identity threshold. '
                              'Default is %(default)s')
-
+    #
     args = parser.parse_args()
+    #
+    random.seed()
     sample_by_depth(args.input_sam, args.references, args.cov_threshold, args.output_sam)
