@@ -48,11 +48,11 @@ if __name__ == '__main__':
     parser.add_argument('-s1', '--input_sam1',
                         type=argparse.FileType('r'),
                         required=True,
-                        help='Non filtered sam')
+                        help='Non filtered sam, sorted by reference and position')
     parser.add_argument('-s2', '--input_sam2',
                         type=argparse.FileType('r'),
                         required=True,
-                        help='filtered_sam')
+                        help='filtered_sam, sorted by reference and position')
     parser.add_argument('-r', '--references',
                         type=argparse.FileType('r'),
                         required=True,
