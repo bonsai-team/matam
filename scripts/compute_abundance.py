@@ -137,14 +137,14 @@ def complete_fasta_with_abundance(input_fasta, output_fasta, abundance):
 
     for header, seq in read_fasta_file_handle(in_fasta_handler):
         id = header.split()[0].strip()
+        ab = 0
         if id not in abundance:
-            logger.fatal("Can't find the abundance for:%s" % id)
-            sys.exit("Can't find abundance")
+            logger.warning("Can't find the abundance for:%s. Set to 0 by default." % id)
         else:
             ab = abundance[id]
             ab = round(ab)
-            header = '{header} count={abundance}'.format(header=header, abundance=ab)
-            out_fasta_handler.write( '>{header}\n{seq}\n'.format(header=header, seq=format_seq(seq)) )
+        header = '{header} count={abundance}'.format(header=header, abundance=ab)
+        out_fasta_handler.write( '>{header}\n{seq}\n'.format(header=header, seq=format_seq(seq)) )
 
     in_fasta_handler.close()
     out_fasta_handler.close()
