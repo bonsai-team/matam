@@ -88,6 +88,7 @@ void buildCompatibilityGraph(TGraph &graph,
 
     int64_t i=0, j=1;
 
+    // We go through every pair of read. For each pair we compare the alignments buffers.
     for (; bamRecordBufferItI != bamRecordBufferEndItI; ++bamRecordBufferItI)
     {
 //        std::cerr << i << "\n" << std::flush;
@@ -256,8 +257,8 @@ void computeReadsPairCompatibility(GlobalStatistics &globalStats,
     bool wasFoundWithMultiRef = false;
 
     bool trueCoEmittedReadsSpecie = (seqan::prefix(readNames[i], 3) == seqan::prefix(readNames[j], 3));
-//    areReadsOverlapping = alignOvStats.totalOverlapPositions >= options.minOverlapLength;
 
+    // Initialize the overlap description
     OverlapDescription alignOvDescription;
 
     // Test each pair of bamRecords from read_i vs. read_j
@@ -343,6 +344,7 @@ fastExit:
         else if (seqan::hasFlagRC(bamRecordJ) || alignOvDescription.isRead2RC)
             seqan::reverseComplement(readSeqJ);
 
+        // Perform the de-novo alignment of the 2 reads sequences, using the levenstein distance as a score scheme
         TAlign align;
         // int score = align2ReadSequences(align, readSeqI, readSeqJ);
         align2ReadSequences(align, readSeqI, readSeqJ);
@@ -359,6 +361,7 @@ fastExit:
             ++globalStats.enclosedOverlapsNum;
         }
 
+        // Here are the major criteria to determine wether 2 reads are compatible.
         areReadsOverlapping = alignOvStats.totalOverlapPositions >= options.minOverlapLength;
         areReadsCompatible = (areReadsOverlapping && (alignOvStats.indelNum == 0)
                               && (seqIdentityPercent >= options.idRateThreshold));

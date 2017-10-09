@@ -41,7 +41,7 @@ struct GlobalStatistics
 };
 
 /***************************************************************************************
-    Overlap Statistics structure
+    Overlap Statistics structure // ATTENTION: shoudl be in alignmentsComparison and should be merged with the OverlapDescription object
 ***************************************************************************************/
 struct OverlapStatistics
 {
