@@ -4,7 +4,7 @@
 ############################################################
 
 # Set the base image to Debian
-FROM debian
+FROM debian:jessie
 
 # File Author / Maintainer
 MAINTAINER Bonsai Team
