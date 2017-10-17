@@ -64,7 +64,7 @@ Since the samtools package in current Ubuntu-like distributions is usualy a depr
 * C++ libraries: rt, pthread, zlib
 * Samtools v1.x or superior
 * Python 3
-* automake, make, cmake
+* automake, make, **cmake v3.1 or superior**
 * Apache Ant
 * Java SE 7 JDK. OpenJDK is ok (openjdk-7-jdk paquet on debian)
 * bzip2
