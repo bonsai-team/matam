@@ -1,4 +1,8 @@
-cmake_minimum_required (VERSION 2.8)
+cmake_minimum_required(VERSION 3.1)
+
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_program(CMAKE_C_COMPILER NAMES $ENV{CC} gcc PATHS ENV PATH NO_DEFAULT_PATH)
 find_program(CMAKE_CXX_COMPILER NAMES $ENV{CXX} g++ PATHS ENV PATH NO_DEFAULT_PATH)
@@ -35,29 +39,4 @@ if (OPENMP_FOUND)
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif()
 
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-
-include(CheckCXXCompilerFlag)
-
-set(ENABLE_CXXFLAGS_TO_CHECK 
-    -std=gnu++1z 
-    -std=c++1z
-    -std=gnu++14 
-    -std=c++14
-    -std=gnu++1y 
-    -std=c++1y)
-
-foreach(flag ${ENABLE_CXXFLAGS_TO_CHECK})
-    string(REPLACE "-std=" "_" flag_var ${flag})
-    string(REPLACE "+" "x" flag_var ${flag_var})
-    CHECK_CXX_COMPILER_FLAG("${flag}" COMPILER_HAS_CXX_FLAG${flag_var})
-    if(COMPILER_HAS_CXX_FLAG${flag_var})
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${flag}")
-        break()
-    endif()
-endforeach()
-
-
-#set_property(TARGET ovgraphbuild PROPERTY CXX_STANDARD 14)
 set(CMAKE_BUILD_TYPE Release)
