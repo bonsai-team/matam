@@ -1566,10 +1566,9 @@ def main():
             sys.stderr.write('\n')
 
         # Expose final files
-        force_symlink(fasta_with_abundance_filepath, final_assembly_symlink_filepath)
         force_symlink(krona_text_filepath, final_krona_tab_symlink_filepath)
         force_symlink(krona_html_filepath, final_krona_html_symlink_filepath)
-
+    force_symlink(fasta_with_abundance_filepath, final_assembly_symlink_filepath)
     ###########################
     # Print Assembly Statistics
 
