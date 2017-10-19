@@ -12,6 +12,7 @@ import cProfile
 from collections import defaultdict
 import shutil
 
+import runner
 from compute_abundance import get_abundance_by_scaffold, complete_fasta_with_abundance, get_abundance_from_fasta
 from rdp import run_rdp_classifier
 from krona import rdp_file_to_krona_text_file, make_krona_plot
@@ -28,20 +29,35 @@ logger = logging.getLogger()
 logging_config = dict(
     version = 1,
     disable_existing_loggers = False,
+    root = {
+        'handlers': ['console'],
+        'level': logging.INFO
+    },
     formatters = {
-        'f': {'format':
-              '%(levelname)s - %(message)s'}
+        'default': {'format': '%(levelname)s - %(message)s'},
     },
     handlers = {
-        'h': {'class': 'logging.StreamHandler',
-              'formatter': 'f',
-              'level': logging.DEBUG}
+        'console': {'class': 'logging.StreamHandler',
+              'formatter': 'default'},
     },
-    root = {
-        'handlers': ['h'],
-        'level': logging.DEBUG,
-    },
+
+
 )
+
+def update_logger_settings(logger_filepath, verbose, debug):
+    """
+    update logging level and logging format accordinlgy to verbose/debug flag.
+    add a file logger for root/runner logger.
+    """
+    file_handler = logging.FileHandler(filename=logger_filepath)
+    file_handler.formatter = logging.Formatter('%(levelname)s - %(message)s')
+    logger.addHandler(file_handler)
+    if debug:
+        logger.setLevel(logging.DEBUG)
+        # update formatter for debug level
+        for handler in logger.handlers:
+            handler.formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
 
 # Get program filename
 program_filename = os.path.basename(sys.argv[0])
@@ -230,7 +246,7 @@ class DefaultHelpParser(argparse.ArgumentParser):
     on parser error instead of only usage
     """
     def error(self, message):
-        sys.stderr.write('\nError: %s\n\n' % message)
+        logger.fatal(message)
         self.print_help()
         sys.exit(2)
 
@@ -554,10 +570,7 @@ def print_intro(args):
     Print the introduction
     """
 
-    sys.stderr.write("""
-#################################
-         MATAM assembly
-#################################\n\n""")
+    logger.info('=== MATAM assembly ===')
 
     # Retrieve complete cmd line
     cmd_line = '{binpath} '.format(binpath=matam_assembly_bin)
@@ -635,7 +648,7 @@ def print_intro(args):
     cmd_line += '--input_fastx {0} '.format(args.input_fastx)
 
     # Print cmd line
-    sys.stderr.write('CMD: {0}\n\n'.format(cmd_line))
+    logger.info('CMD: {0}'.format(cmd_line))
 
     return 0
 
@@ -661,23 +674,8 @@ def main():
     # Arguments parsing
     args = parse_arguments()
 
-    # Print intro infos
-    if not args.filter_only:
-        print_intro(args)
-
     # Init error code
     error_code = 0
-
-    if args.debug:
-        logger.setLevel(logging.DEBUG)
-        # update formatter for debug level
-        for h in logger.handlers:
-            h.formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-    else:
-        if args.verbose:
-            logger.setLevel(logging.INFO)
-        else:
-            logger.setLevel(logging.WARNING)
 
     # Init list of tmp files to delete at the end
     to_rm_filepath_list = list()
@@ -691,6 +689,22 @@ def main():
     # Set all files and directories names + paths
 
     workdir = os.path.join(args.out_dir, 'workdir')
+
+    try:
+        if not os.path.exists(workdir):
+            logger.debug('mkdir {0}'.format(workdir))
+            os.makedirs(workdir)
+    except OSError:
+        logger.exception('Could not create output directory {0}'.format(workdir))
+        raise
+
+    logger_filepath = os.path.join(args.out_dir, 'matam.log')
+    update_logger_settings(logger_filepath, args.verbose, args.debug)
+
+    # Print intro infos
+    if not args.filter_only:
+        print_intro(args)
+
     sort_bin = 'sort -T ' + workdir + ' -S ' + str(args.max_memory)
     sort_bin += 'M --parallel ' + str(args.cpu)
 
@@ -700,14 +714,6 @@ def main():
 
     ref_db_basepath = args.ref_db
     ref_db_dir, ref_db_basename = os.path.split(ref_db_basepath)
-
-    try:
-        if not os.path.exists(workdir):
-            logger.debug('mkdir {0}'.format(workdir))
-            os.makedirs(workdir)
-    except OSError:
-        logger.exception('Could not create output directory {0}'.format(workdir))
-        raise
 
     complete_ref_db_basename = ref_db_basename + '.complete'
     complete_ref_db_basepath = os.path.join(ref_db_dir, complete_ref_db_basename)
@@ -919,10 +925,9 @@ def main():
         else:
             logger.warning('Input fastx file extension was not recognised ({0})'.format(input_fastx_extension))
 
+        logger.info('=== Input ===')
         logger.info('Input file: {}'.format(input_fastx_filepath))
         logger.info('Input file reads nb: {} reads'.format(input_reads_nb))
-        if args.verbose:
-            sys.stderr.write('\n')
 
     ###############################
     # Reads mapping against ref db
@@ -947,10 +952,7 @@ def main():
         # Set t0
         t0_wall = time.time()
 
-        logger.debug('CMD: {0}'.format(cmd_line))
-        error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
-        if args.verbose:
-            sys.stderr.write('\n')
+        runner.logged_check_call(cmd_line, verbose=args.verbose)
 
         # Output running time
         logger.info('Reads mapping terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
@@ -965,8 +967,6 @@ def main():
         selected_reads_nb = int(subprocess.check_output('grep -c "^>" {0}'.format(sortme_output_fastx_filepath), shell=True, bufsize=0))
 
     logger.info('Identified as marker: {} / {} reads ({:.2f}%)'.format(selected_reads_nb, input_reads_nb, selected_reads_nb*100.0/input_reads_nb))
-    if args.verbose:
-        sys.stderr.write('\n')
 
     # Tag tmp files for removal
     to_rm_filepath_list.append(sortme_output_basepath + '.log')
@@ -996,7 +996,7 @@ def main():
         t0_wall = time.time()
 
         logger.debug('CMD: {0}'.format(cmd_line))
-        error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
+        runner.logged_call(cmd_line, verbose=args.verbose)
 
         # Output running time
         logger.info('Good alignments filtering terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
@@ -1012,14 +1012,10 @@ def main():
             # Set t0
             t0_wall = time.time()
 
-            logger.debug('CMD: {0}'.format(cmd_line))
-            error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
+            runner.logged_check_call(cmd_line, verbose=args.verbose)
 
             # Output running time
             logger.info('Ref coverage filtering terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
-
-        if args.verbose:
-            sys.stderr.write('\n')
 
     # Tag tmp files for removal
     if args.coverage_threshold:
@@ -1055,8 +1051,7 @@ def main():
         # Set t0
         t0_wall = time.time()
 
-        logger.debug('CMD: {0}'.format(cmd_line))
-        error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
+        runner.logged_check_call(cmd_line, verbose=args.verbose)
 
         # Output running time
         logger.info('Overlap-graph building terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
@@ -1069,8 +1064,6 @@ def main():
     ovgraph_edges_nb = int(subprocess.check_output('wc -l {0}'.format(ovgraphbuild_edges_csv_filepath), shell=True, bufsize=0).split()[0]) - 1
 
     logger.info('Overlap graph stats: {} nodes, {} edges'.format(ovgraph_nodes_nb, ovgraph_edges_nb))
-    if args.verbose:
-        sys.stderr.write('\n')
 
     ###############################################
     # Graph compaction & Components identification
@@ -1096,13 +1089,7 @@ def main():
         # Set t0
         t0_wall = time.time()
 
-        logger.debug('CMD: {0}'.format(cmd_line))
-        if args.verbose:
-            error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
-        else:
-            # Needed because ComponentSearch doesnt have a verbose option
-            # and output everything to stderr
-            error_code += subprocess.call(cmd_line, shell=True, bufsize=0, stderr=FNULL)
+        runner.logged_check_call(cmd_line, verbose=args.verbose)
 
         # Output running time
         logger.info('Graph compaction & Components identification terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
@@ -1120,8 +1107,6 @@ def main():
     components_nb = int(subprocess.check_output('cut -d ";" -f5 {0} | {1} | uniq | wc -l'.format(componentsearch_components_csv_filepath, sort_bin), shell=True).split()[0]) - 1
 
     logger.info('Compressed graph: {} components'.format(components_nb))
-    if args.verbose:
-        sys.stderr.write('\n')
 
     ################
     # LCA labelling
@@ -1138,8 +1123,8 @@ def main():
         cmd_line += ' | ' + sort_bin + ' -k1,1 > '
         cmd_line += read_metanode_component_filepath
 
-        logger.debug('CMD: {0}'.format(cmd_line))
-        error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
+
+        error_code += runner.logged_call(cmd_line, verbose=args.verbose)
 
         # Join sam file with ref taxo on ref name, and join it to the
         # component-node file on read name.
@@ -1151,16 +1136,15 @@ def main():
         cmd_line += ' - | sed "s/ /\\t/g" > '
         cmd_line += complete_taxo_filepath
 
-        logger.debug('CMD: {0}'.format(cmd_line))
-        error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
+
+        error_code += runner.logged_call(cmd_line, verbose=args.verbose)
 
         # Compute LCA at component level using quorum threshold
         cmd_line = 'cat ' + complete_taxo_filepath + ' | ' + sort_bin + ' -k3,3 -k1,1 | '
         cmd_line += compute_lca_bin + ' -t 4 -f 3 -g 1 -m ' + str(args.quorum)
         cmd_line += ' -o ' + components_lca_filepath
 
-        logger.debug('CMD: {0}'.format(cmd_line))
-        error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
+        error_code += runner.logged_call(cmd_line, verbose=args.verbose)
 
         # Output running time
         logger.info('LCA labelling terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
@@ -1168,9 +1152,6 @@ def main():
         # Tag tmp files for removal
         to_rm_filepath_list.append(componentsearch_basepath + '.components.tab')
         to_rm_filepath_list.append(complete_taxo_filepath)
-
-        if args.verbose:
-            sys.stderr.write('\n')
 
     # ###################################
     # # Computing compressed graph stats
@@ -1231,16 +1212,14 @@ def main():
         cmd_line = remove_redundant_bin + ' -i ' + contigs_symlink_filepath
         cmd_line += ' -o ' + contigs_NR_filepath
 
-        logger.debug('CMD: {0}'.format(cmd_line))
-        error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
+        runner.logged_check_call(cmd_line, verbose=args.verbose)
 
         # Filter out small contigs
         cmd_line = fasta_length_filter_bin + ' -m ' + str(args.min_scaffold_length)
         cmd_line += ' -i ' + contigs_NR_filepath
         cmd_line += ' -o ' + large_NR_contigs_filepath
 
-        logger.debug('CMD: {0}'.format(cmd_line))
-        error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
+        runner.logged_check_call(cmd_line, verbose=args.verbose)
 
         # Output running time
         logger.info('Contigs assembly terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
@@ -1255,8 +1234,7 @@ def main():
             cmd_line = evaluate_assembly_bin + ' -r ' + args.true_references
             cmd_line += ' -i ' + contigs_symlink_filepath
 
-            logger.debug('CMD: {0}'.format(cmd_line))
-            error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
+            runner.logged_check_call(cmd_line, verbose=args.verbose)
 
             contigs_assembly_stats_filename = contigs_symlink_basename + '.exonerate_vs_'
             contigs_assembly_stats_filename += true_ref_basename + '.assembly.stats'
@@ -1270,8 +1248,7 @@ def main():
             cmd_line = evaluate_assembly_bin + ' -r ' + args.true_references
             cmd_line += ' -i ' + large_NR_contigs_filepath
 
-            logger.debug('CMD: {0}'.format(cmd_line))
-            error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
+            runner.logged_check_call(cmd_line, verbose=args.verbose)
 
             large_NR_contigs_assembly_stats_filename = large_NR_contigs_basename + '.exonerate_vs_'
             large_NR_contigs_assembly_stats_filename += true_ref_basename + '.assembly.stats'
@@ -1293,9 +1270,6 @@ def main():
     # Compute contigs assembly stats
     contigs_stats = compute_fasta_stats(contigs_filepath)
     large_NR_contigs_stats = compute_fasta_stats(large_NR_contigs_filepath)
-
-    if args.verbose:
-        sys.stderr.write('\n')
 
     ##############
     # Scaffolding
@@ -1326,10 +1300,7 @@ def main():
         if args.verbose:
             cmd_line += ' -v '
 
-        logger.debug('CMD: {0}'.format(cmd_line))
-        error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
-        if args.verbose:
-            sys.stderr.write('\n')
+        runner.logged_check_call(cmd_line, verbose=args.verbose)
 
         # Output running time
         logger.info('[scaff] Contig mapping terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
@@ -1343,23 +1314,20 @@ def main():
         cmd_line = sort_bin + ' -k1,1V -k12,12nr ' + scaff_sortme_output_blast_filepath
         cmd_line += ' | ' + get_best_matches_bin + ' -p 0.99 -o ' + best_only_blast_filepath
 
-        logger.debug('CMD: {0}'.format(cmd_line))
-        error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
+        runner.logged_check_call(cmd_line, verbose=args.verbose)
 
         # Select blast matches for scaffolding using a specific-first conserved-later approach
         cmd_line = gener_scaff_blast_bin + ' -i ' + best_only_blast_filepath
         cmd_line += ' -o ' + selected_best_only_blast_filepath
 
-        logger.debug('CMD: {0}'.format(cmd_line))
-        error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
+        runner.logged_check_call(cmd_line, verbose=args.verbose)
 
         # Filter sam file based on blast scaffolding file
         cmd_line = filter_sam_blast_bin + ' -i ' + scaff_sortme_output_sam_filepath
         cmd_line += ' -b ' +  selected_best_only_blast_filepath
         cmd_line += ' | ' + sort_bin + ' -k3,3 -k4,4n > ' + selected_sam_filepath
 
-        logger.debug('CMD: {0}'.format(cmd_line))
-        error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
+        runner.logged_check_call(cmd_line, verbose=args.verbose)
 
         # Bin compatible contigs matching on the same reference
         if args.contigs_binning:
@@ -1367,8 +1335,7 @@ def main():
             cmd_line += ' -i ' + selected_sam_filepath
             cmd_line += ' | ' + sort_bin + ' -k1,1n > ' + binned_sam_filepath
 
-            logger.debug('CMD: {0}'.format(cmd_line))
-            error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
+            runner.logged_check_call(cmd_line, verbose=args.verbose)
 
         # Convert sam to bam
         cmd_line = 'samtools view -b -S ' + processed_sam_filepath
@@ -1376,28 +1343,24 @@ def main():
             cmd_line += ' -T ' + complete_ref_db_filepath
         cmd_line += ' -o ' + bam_filepath
 
-        logger.debug('CMD: {0}'.format(cmd_line))
-        error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
+        runner.logged_check_call(cmd_line, verbose=args.verbose)
 
         # Sort bam
         cmd_line = 'samtools sort -o ' + sorted_bam_filepath + ' ' + bam_filepath
 
-        logger.debug('CMD: {0}'.format(cmd_line))
-        error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
+        runner.logged_check_call(cmd_line, verbose=args.verbose)
 
         # Generate mpileup
         cmd_line = 'samtools mpileup -d 10000 -o ' + mpileup_filepath
         cmd_line += ' ' + sorted_bam_filepath
 
-        logger.debug('CMD: {0}'.format(cmd_line))
-        error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
+        runner.logged_check_call(cmd_line, verbose=args.verbose)
 
         # Scaffold contigs based on mpileup
         cmd_line = scaffold_contigs_bin + ' -i ' + mpileup_filepath
         cmd_line += ' -o ' + scaffolds_filepath
 
-        logger.debug('CMD: {0}'.format(cmd_line))
-        error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
+        runner.logged_check_call(cmd_line, verbose=args.verbose)
 
         # Create symbolic link
         if os.path.exists(scaffolds_symlink_filepath):
@@ -1408,16 +1371,14 @@ def main():
         cmd_line = remove_redundant_bin + ' -i ' + scaffolds_symlink_filepath
         cmd_line += ' -o ' + scaffolds_NR_filepath
 
-        logger.debug('CMD: {0}'.format(cmd_line))
-        error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
+        runner.logged_check_call(cmd_line, verbose=args.verbose)
 
         # Filter out small scaffolds
         cmd_line = fasta_length_filter_bin + ' -m ' + str(args.min_scaffold_length)
         cmd_line += ' -i ' + scaffolds_NR_filepath
         cmd_line += ' -o ' + large_NR_scaffolds_filepath
 
-        logger.debug('CMD: {0}'.format(cmd_line))
-        error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
+        runner.logged_check_call(cmd_line, verbose=args.verbose)
 
         # Output running time
         logger.info('[scaff] Scaffolding terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
@@ -1443,8 +1404,7 @@ def main():
             cmd_line = evaluate_assembly_bin + ' -r ' + args.true_references
             cmd_line += ' -i ' + scaffolds_symlink_filepath
 
-            logger.debug('CMD: {0}'.format(cmd_line))
-            error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
+            runner.logged_check_call(cmd_line, verbose=args.verbose)
 
             scaffolds_assembly_stats_filename = scaffolds_symlink_basename + '.exonerate_vs_'
             scaffolds_assembly_stats_filename += true_ref_basename + '.assembly.stats'
@@ -1458,8 +1418,7 @@ def main():
             cmd_line = evaluate_assembly_bin + ' -r ' + args.true_references
             cmd_line += ' -i ' + large_NR_scaffolds_filepath
 
-            logger.debug('CMD: {0}'.format(cmd_line))
-            error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
+            runner.logged_check_call(cmd_line, verbose=args.verbose)
 
             large_NR_scaffolds_assembly_stats_filename = large_NR_scaffolds_basename + '.exonerate_vs_'
             large_NR_scaffolds_assembly_stats_filename += true_ref_basename + '.assembly.stats'
@@ -1489,9 +1448,6 @@ def main():
     # Compute scaffolds assemblies stats
     scaffolds_stats = compute_fasta_stats(scaffolds_filepath)
     large_NR_scaffolds_stats = compute_fasta_stats(large_NR_scaffolds_filepath)
-
-    if args.verbose:
-        sys.stderr.write('\n')
 
     ########################
     # Abundance calculation
@@ -1525,12 +1481,6 @@ def main():
 
         logger.info('Write abundance informations to: %s' % fasta_with_abundance_filepath)
 
-    if args.verbose:
-        sys.stderr.write('\n')
-
-
-
-
     #################################
     # taxonomic assignment with rdp
     if args.resume_from == 'taxonomic_assignment':
@@ -1559,9 +1509,6 @@ def main():
 
         logger.info('Write taxonomic assignment to: %s' % rdp_classification_filepath)
 
-        if args.verbose:
-            sys.stderr.write('\n')
-
         #############################
         # build krona representation
 
@@ -1576,9 +1523,6 @@ def main():
         make_krona_plot(krona_bin, krona_text_filepath, krona_html_filepath)
 
         logger.info('Write krona to: %s' % krona_html_filepath)
-
-        if args.verbose:
-            sys.stderr.write('\n')
 
         # Expose final files
         force_symlink(krona_text_filepath, final_krona_tab_symlink_filepath)
@@ -1685,7 +1629,7 @@ def main():
                     b += '\tNA\tNA\t0%'
             b += '\n'
 
-        sys.stderr.write(b)
+        logger.info(b)
 
     ###############
     # Exit program
@@ -1700,14 +1644,14 @@ def main():
             logger.info('Removing tmp files')
             rm_files(to_rm_filepath_list)
         #
-        sys.stderr.write('\n{0} terminated with no error\n'.format(program_filename))
+        logger.info('{0} terminated with no error'.format(program_filename))
     # Deal with errors
     else:
-        sys.stderr.write('\n{0} terminated with some errors. '.format(program_filename))
+        logger.error('{0} terminated with some errors. '.format(program_filename))
         if args.verbose:
-            sys.stderr.write('Check the log for additional infos\n')
+            logger.info('Check the log for additional infos')
         else:
-            sys.stderr.write('Rerun the program using --verbose or --debug option\n')
+            logger.info('Rerun the program using --verbose or --debug option')
         exit_code = 1
 
     logger.info('Run terminated in {0:.4f} seconds wall time'.format(time.time() - global_t0_wall))

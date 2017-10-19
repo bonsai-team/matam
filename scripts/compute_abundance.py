@@ -3,7 +3,7 @@
 import os
 import sys
 import logging
-import subprocess
+import runner
 import collections
 import tempfile
 import shutil
@@ -21,9 +21,7 @@ def index_ref(indexdb_bin_path, input_fasta_ref_path, output_basepath, max_mem, 
     if verbose:
         cmd_line += ' -v'
 
-    logger.debug('CMD: {}'.format(cmd_line))
-    rc = subprocess.call(cmd_line, shell=True)
-    return rc
+    runner.logged_check_call(cmd_line, verbose=verbose)
 
 
 def reads_mapping(sortmerna_bin, fasta_ref_path, index_ref_basepath, reads_path, output_basepath, best, min_lis, evalue, cpu, verbose=False):
@@ -38,9 +36,7 @@ def reads_mapping(sortmerna_bin, fasta_ref_path, index_ref_basepath, reads_path,
     if verbose:
         cmd_line += ' -v'
 
-    logger.debug('CMD: {}'.format(cmd_line))
-    rc = subprocess.call(cmd_line, shell=True, bufsize=0)
-    return rc
+    runner.logged_check_call(cmd_line, verbose=verbose)
 
 
 def get_best_matches(best_matches_bin, input_blast_path, out_blast_path, max_mem, cpu):
@@ -53,9 +49,7 @@ def get_best_matches(best_matches_bin, input_blast_path, out_blast_path, max_mem
     cmd_line = sort_bin + ' -k1,1V -k12,12nr ' + input_blast_path
     cmd_line += ' | ' + best_matches_bin + ' -p 0.99 -o ' + out_blast_path
 
-    logger.debug('CMD: {}'.format(cmd_line))
-    rc = subprocess.call(cmd_line, shell=True, bufsize=0)
-    return rc
+    runner.logged_check_call(cmd_line)
 
 
 def abundance_calculation(blast_path):

@@ -4,7 +4,7 @@ import binary_utils
 import os
 import sys
 import logging
-import subprocess
+import runner
 import shutil
 
 logger = logging.getLogger(__name__)
@@ -70,8 +70,7 @@ class Assembler:
             shutil.rmtree(self.workdir)
         os.mkdir(self.workdir)
 
-        logger.debug("CMD: %s" % self.cmd_line)
-        subprocess.check_call(self.cmd_line, shell=True, bufsize=0)
+        runner.logged_check_call(self.cmd_line)
 
         return self.fasta_file
 

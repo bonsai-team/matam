@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
-import subprocess
+import runner
 import logging
 
 from fasta_clean_name import read_fasta_file_handle
@@ -35,6 +35,4 @@ def make_krona_plot(krona_bin, krona_text_file, krona_html_file):
     logger.info('Make krona plot with:%s' % krona_text_file)
     cmd_line = '{bin} {txt} -o {html}'.format(bin=krona_bin, txt=krona_text_file, html=krona_html_file)
 
-    logger.debug('CMD: {}'.format(cmd_line))
-    rc = subprocess.call(cmd_line, shell=True)
-    return rc
+    runner.logged_check_call(cmd_line)
