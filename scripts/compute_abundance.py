@@ -14,7 +14,8 @@ from fasta_clean_name import read_fasta_file_handle, format_seq
 logger = logging.getLogger(__name__)
 
 def index_ref(indexdb_bin_path, input_fasta_ref_path, output_basepath, max_mem, verbose=False):
-    logger.info('Indexing %s' % input_fasta_ref_path)
+    logger.info('--- Indexing scaffolds ---')
+    logger.debug('File to index:  %s' % input_fasta_ref_path)
     parameters = { 'input': input_fasta_ref_path, 'output': output_basepath, 'max_mem': max_mem }
     cmd_line = '{bin} --ref {input},{output} -m {max_mem}'.format(bin=indexdb_bin_path, **parameters)
 
@@ -26,7 +27,8 @@ def index_ref(indexdb_bin_path, input_fasta_ref_path, output_basepath, max_mem, 
 
 def reads_mapping(sortmerna_bin, fasta_ref_path, index_ref_basepath, reads_path, output_basepath, best, min_lis, evalue, cpu, verbose=False):
 
-    logger.info('=== Reads mapping against %s ===' % index_ref_basepath)
+    logger.info('--- Reads mapping against scaffolds ---')
+    logger.debug('Database:%s' % index_ref_basepath)
     parameters = { 'fasta_ref': fasta_ref_path, 'index_ref': index_ref_basepath, 'reads': reads_path, 'output':output_basepath,
                    'best': best, 'min': min_lis, 'evalue': evalue, 'cpu': cpu }
 

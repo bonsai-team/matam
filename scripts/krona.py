@@ -32,7 +32,8 @@ def rdp_file_to_krona_text_file(rdp_file, krona_text_file, abundance=None):
 
 
 def make_krona_plot(krona_bin, krona_text_file, krona_html_file):
-    logger.info('Make krona plot with:%s' % krona_text_file)
+    logger.info('Make krona plot')
+    logger.debug('Krona tab file:%s' % krona_text_file)
     cmd_line = '{bin} {txt} -o {html}'.format(bin=krona_bin, txt=krona_text_file, html=krona_html_file)
 
     runner.logged_check_call(cmd_line)

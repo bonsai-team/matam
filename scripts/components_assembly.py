@@ -234,7 +234,7 @@ def assemble_all_components(assembler_name,
     assembled_components_fasta = dict(zip(component_id_list, fasta_list))
 
     lca_dict = extract_lca_by_component(components_lca_filepath)
-    logger.info("Pool components contigs into: %s" % out_contigs_fasta)
+    logger.debug("Pool components contigs into: %s" % out_contigs_fasta)
     concat_components_fasta_with_lca(assembled_components_fasta,
                                      out_contigs_fasta, lca_dict)
 

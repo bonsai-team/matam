@@ -955,7 +955,7 @@ def main():
         runner.logged_check_call(cmd_line, verbose=args.verbose)
 
         # Output running time
-        logger.info('Reads mapping terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
+        logger.info('Reads mapping completed in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
 
     # Get selected reads number
     selected_reads_nb = -1
@@ -999,7 +999,7 @@ def main():
         runner.logged_call(cmd_line, verbose=args.verbose)
 
         # Output running time
-        logger.info('Good alignments filtering terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
+        logger.info('Good alignments filtering completed in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
 
         if args.coverage_threshold:
             cmd_line = 'cat ' + sam_filt_filepath
@@ -1015,7 +1015,7 @@ def main():
             runner.logged_check_call(cmd_line, verbose=args.verbose)
 
             # Output running time
-            logger.info('Ref coverage filtering terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
+            logger.info('Ref coverage filtering completed in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
 
     # Tag tmp files for removal
     if args.coverage_threshold:
@@ -1054,7 +1054,7 @@ def main():
         runner.logged_check_call(cmd_line, verbose=args.verbose)
 
         # Output running time
-        logger.info('Overlap-graph building terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
+        logger.info('Overlap-graph building completed in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
 
         # Tag tmp files for removal
         to_rm_filepath_list.append(ovgraphbuild_asqg_filepath)
@@ -1092,7 +1092,7 @@ def main():
         runner.logged_check_call(cmd_line, verbose=args.verbose)
 
         # Output running time
-        logger.info('Graph compaction & Components identification terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
+        logger.info('Graph compaction & Components identification completed in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
 
         # Tag tmp files for removal
         #to_rm_filepath_list.append(ovgraphbuild_nodes_csv_filepath)
@@ -1147,7 +1147,7 @@ def main():
         error_code += runner.logged_call(cmd_line, verbose=args.verbose)
 
         # Output running time
-        logger.info('LCA labelling terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
+        logger.info('LCA labelling completed in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
 
         # Tag tmp files for removal
         to_rm_filepath_list.append(componentsearch_basepath + '.components.tab')
@@ -1175,7 +1175,7 @@ def main():
     #     error_code += subprocess.call(cmd_line, shell=True, bufsize=0)
 
     #     # Output running time
-    #     logger.info('Computing compressed graph stats terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
+    #     logger.info('Computing compressed graph stats completed in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
     #     if args.verbose:
     #         sys.stderr.write('\n')
 
@@ -1222,7 +1222,7 @@ def main():
         runner.logged_check_call(cmd_line, verbose=args.verbose)
 
         # Output running time
-        logger.info('Contigs assembly terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
+        logger.info('Contigs assembly completed in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
 
         # Evaluate assembly if true ref are provided
         if args.true_references:
@@ -1303,7 +1303,7 @@ def main():
         runner.logged_check_call(cmd_line, verbose=args.verbose)
 
         # Output running time
-        logger.info('[scaff] Contig mapping terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
+        logger.info('Contig mapping completed in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
 
         # Set t0
         t0_wall = time.time()
@@ -1381,7 +1381,7 @@ def main():
         runner.logged_check_call(cmd_line, verbose=args.verbose)
 
         # Output running time
-        logger.info('[scaff] Scaffolding terminated in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
+        logger.info('Scaffolding completed in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
 
         # check that the the resulting file is not empty
         is_empty = True
@@ -1464,6 +1464,9 @@ def main():
     if run_step:
 
         logger.info('=== Abundance calculation ===')
+        # Set t0
+        t0_wall = time.time()
+
         idx_bin = Binary.assert_which('indexdb_rna')
         map_bin = Binary.assert_which('sortmerna')
         best_bin = Binary.assert_which('get_best_matches_from_blast.py')
@@ -1479,7 +1482,9 @@ def main():
 
         complete_fasta_with_abundance(scaffolds_fasta, fasta_with_abundance_filepath, abundance)
 
-        logger.info('Write abundance informations to: %s' % fasta_with_abundance_filepath)
+        logger.debug('Write abundance informations to: %s' % fasta_with_abundance_filepath)
+        # Output running time
+        logger.info('Abundance calculation completed in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
 
     #################################
     # taxonomic assignment with rdp
@@ -1492,7 +1497,9 @@ def main():
 
 
     if run_step and args.perform_taxonomic_assignment:
-        logger.info('=== Taxonomic assignment ===')
+        logger.info('=== Taxonomic assignment & Krona visualization ===')
+        # Set t0
+        t0_wall = time.time()
         rdp_jar = Binary.which('classifier.jar')
 
         rdp_classification_filepath =  '%s.rdp.tab' % os.path.splitext(fasta_with_abundance_filepath)[0]
@@ -1507,12 +1514,11 @@ def main():
         run_rdp_classifier(rdp_exe, fasta_with_abundance_filepath,
                            rdp_classification_filepath, gene=args.training_model)
 
-        logger.info('Write taxonomic assignment to: %s' % rdp_classification_filepath)
+        logger.debug('Write taxonomic assignment to: %s' % rdp_classification_filepath)
 
         #############################
         # build krona representation
 
-        logger.info('=== Build krona representation ===')
         if not abundance:
             abundance = get_abundance_from_fasta(fasta_with_abundance_filepath)
         krona_text_filepath = '%s.krona.tab' % os.path.splitext(rdp_classification_filepath)[0]
@@ -1522,7 +1528,8 @@ def main():
         krona_html_filepath =  '%s.html' % os.path.splitext(krona_text_filepath)[0]
         make_krona_plot(krona_bin, krona_text_filepath, krona_html_filepath)
 
-        logger.info('Write krona to: %s' % krona_html_filepath)
+        logger.debug('Write krona to: %s' % krona_html_filepath)
+        logger.info('Taxonomic assignment & Krona visualization completed in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
 
         # Expose final files
         force_symlink(krona_text_filepath, final_krona_tab_symlink_filepath)
@@ -1654,7 +1661,7 @@ def main():
             logger.info('Rerun the program using --verbose or --debug option')
         exit_code = 1
 
-    logger.info('Run terminated in {0:.4f} seconds wall time'.format(time.time() - global_t0_wall))
+    logger.info('Run completed in {0:.4f} seconds wall time'.format(time.time() - global_t0_wall))
 
     return exit_code
 
