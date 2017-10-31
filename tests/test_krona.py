@@ -68,5 +68,5 @@ def test_make_krona_plot():
     krona_file = os.path.join(SAMPLE_DIR, 'krona.txt')
     krona_html_file = tempfile.NamedTemporaryFile()
 
-    assert make_krona_plot(krona_bin, krona_file, krona_html_file.name) == 0
+    make_krona_plot(krona_bin, krona_file, krona_html_file.name)
     assert os.path.getsize(krona_html_file.name) > 0
