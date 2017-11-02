@@ -7,7 +7,7 @@ import argparse
 import subprocess
 import time
 import logging
-
+from binary_utils import Binary
 
 # Create logger
 logger = logging.getLogger(__name__)
@@ -28,12 +28,8 @@ sort_fasta_bin = os.path.join(matam_script_dir, 'sort_fasta_by_length.py')
 fasta_length_filter_bin = os.path.join(matam_script_dir, 'fasta_length_filter.py')
 fasta_name_filter_bin = os.path.join(matam_script_dir, 'fasta_name_filter.py')
 clean_name_bin = os.path.join(matam_script_dir, 'fasta_clean_name.py')
-
-sortmerna_bin_dir = os.path.join(matam_root_dir, 'sortmerna')
-indexdb_bin = os.path.join(sortmerna_bin_dir, 'indexdb_rna')
-
-vsearch_bin_dir = os.path.join(matam_root_dir, 'vsearch/bin')
-vsearch_bin = os.path.join(vsearch_bin_dir, 'vsearch')
+indexdb_bin = Binary.assert_which('indexdb_rna')
+vsearch_bin = Binary.assert_which('vsearch')
 
 # Define a null file handle
 FNULL = open(os.devnull, 'w')

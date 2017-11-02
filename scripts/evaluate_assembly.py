@@ -5,6 +5,7 @@ import os
 import sys
 import argparse
 import subprocess
+from binary_utils import Binary
 
 # Get script dir absolute path
 program_filename = os.path.basename(sys.argv[0])
@@ -12,6 +13,7 @@ program_filepath = os.path.realpath(sys.argv[0])
 script_dir = os.path.dirname(program_filepath)
 
 # Get dependencies bin
+exonerate_bin = Binary.assert_which('exonerate')
 exonerate_to_sam_bin = os.path.join(script_dir, 'exonerate_to_sam.py')
 compute_assembly_stats_bin = os.path.join(script_dir, 'compute_assembly_stats.py')
 
@@ -53,7 +55,7 @@ if __name__ == '__main__':
     exonerate_output_basepath += references_basename
     exonerate_output_filepath = exonerate_output_basepath + '.tab'
 
-    cmd_line = 'exonerate --model affine:overlap --exhaustive yes --bestn 1'
+    cmd_line = exonerate_bin + ' --model affine:overlap --exhaustive yes --bestn 1'
     cmd_line += ' --subopt no --verbose 0 --showalignment no --showvulgar no'
     cmd_line += ' --ryo "%qi\\t%ti\\t%qab\\t%qae\\t%tab\\t%tae\\t%C\\n"'
     cmd_line += ' ' + args.input_contigs + ' ' + args.references

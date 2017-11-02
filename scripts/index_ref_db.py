@@ -7,7 +7,7 @@ import argparse
 import subprocess
 import time
 import logging
-
+from binary_utils import Binary
 
 # Create logger
 logger = logging.getLogger(__name__)
@@ -21,11 +21,7 @@ matam_script_dir = os.path.dirname(index_ref_db_bin)
 matam_root_dir = os.path.dirname(matam_script_dir)
 
 # Get all dependencies bin
-sortmerna_bin_dir = os.path.join(matam_root_dir, 'sortmerna')
-indexdb_bin = os.path.join(sortmerna_bin_dir, 'indexdb_rna')
-
-# Define a null file handle
-FNULL = open(os.devnull, 'w')
+indexdb_bin =  Binary.assert_which('indexdb_rna')
 
 
 class DefaultHelpParser(argparse.ArgumentParser):

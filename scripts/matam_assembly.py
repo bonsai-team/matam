@@ -87,19 +87,21 @@ filter_sam_blast_bin = os.path.join(matam_script_dir, 'filter_sam_based_on_blast
 compute_contigs_compatibility_bin = os.path.join(matam_script_dir, 'compute_contigs_compatibility.py')
 scaffold_contigs_bin = os.path.join(matam_script_dir, 'scaffold_contigs.py')
 fasta_length_filter_bin = os.path.join(matam_script_dir, 'fasta_length_filter.py')
+sortmerna_bin = Binary.assert_which('sortmerna')
+indexdb_bin = Binary.assert_which('indexdb_rna')
+ovgraphbuild_bin = Binary.assert_which('ovgraphbuild')
+componentsearch_bin = Binary.assert_which('componentsearch')
+krona_bin = Binary.assert_which('ktImportText')
 
-sortmerna_bin_dir = os.path.join(matam_root_dir, 'sortmerna')
-sortmerna_bin = os.path.join(sortmerna_bin_dir, 'sortmerna')
-indexdb_bin = os.path.join(sortmerna_bin_dir, 'indexdb_rna')
+rdp_jar = Binary.which('classifier.jar')
 
-ovgraphbuild_bin_dir = os.path.join(matam_root_dir, 'ovgraphbuild', 'bin')
-ovgraphbuild_bin = os.path.join(ovgraphbuild_bin_dir, 'ovgraphbuild')
+# the rdp exe name is different between submodule installation and conda installation
+if rdp_jar is not None:
+    java = Binary.assert_which('java')
+    rdp_exe = '{java} -Xmx1g -jar {jar}'.format(java=java, jar=rdp_jar)
+else:
+    rdp_exe = Binary.assert_which('classifier')
 
-componentsearch_bin_dir = os.path.join(matam_root_dir, 'componentsearch')
-componentsearch_bin = os.path.join(componentsearch_bin_dir, 'componentsearch')
-
-# Define a null file handle
-FNULL = open(os.devnull, 'w')
 
 def force_symlink(target, link_name):
     if os.path.exists(link_name):
@@ -1467,10 +1469,7 @@ def main():
         # Set t0
         t0_wall = time.time()
 
-        idx_bin = Binary.assert_which('indexdb_rna')
-        map_bin = Binary.assert_which('sortmerna')
-        best_bin = Binary.assert_which('get_best_matches_from_blast.py')
-        abundance = get_abundance_by_scaffold(idx_bin, map_bin, best_bin,
+        abundance = get_abundance_by_scaffold(indexdb_bin, sortmerna_bin, get_best_matches_bin,
                                               scaffolds_fasta, reads,
                                               args.best, args.min_lis, args.evalue,
                                               args.max_memory, args.cpu,
@@ -1500,17 +1499,7 @@ def main():
         logger.info('=== Taxonomic assignment & Krona visualization ===')
         # Set t0
         t0_wall = time.time()
-        rdp_jar = Binary.which('classifier.jar')
-
         rdp_classification_filepath =  '%s.rdp.tab' % os.path.splitext(fasta_with_abundance_filepath)[0]
-
-        # the rdp exe name is different between submodule installation and conda installation
-        if rdp_jar is not None:
-            java = Binary.assert_which('java')
-            rdp_exe = '{java} -Xmx1g -jar {jar}'.format(java=java, jar=rdp_jar)
-        else:
-            rdp_exe = Binary.assert_which('classifier')
-
         run_rdp_classifier(rdp_exe, fasta_with_abundance_filepath,
                            rdp_classification_filepath, gene=args.training_model)
 
@@ -1524,7 +1513,6 @@ def main():
         krona_text_filepath = '%s.krona.tab' % os.path.splitext(rdp_classification_filepath)[0]
         rdp_file_to_krona_text_file(rdp_classification_filepath, krona_text_filepath, abundance=abundance)
 
-        krona_bin = Binary.assert_which('ktImportText')
         krona_html_filepath =  '%s.html' % os.path.splitext(krona_text_filepath)[0]
         make_krona_plot(krona_bin, krona_text_filepath, krona_html_filepath)
 
