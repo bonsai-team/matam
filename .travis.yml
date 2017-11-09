@@ -1,0 +1,37 @@
+dist: trusty
+sudo: required
+language: cpp
+
+#gcc 4.9
+matrix:
+  include:
+    # works on Precise and Trusty
+    - os: linux
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-4.9
+      env:
+         - MATRIX_EVAL="CC=gcc-4.9 && CXX=g++-4.9"
+
+before_install:
+    - eval "${MATRIX_EVAL}"
+
+install:
+  - sudo apt-get -qq update
+  - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+  - bash miniconda.sh -b -p $HOME/miniconda
+  - export PATH="$HOME/miniconda/bin:$PATH"
+  - hash -r
+  - conda config --set always_yes yes --set changeps1 no
+  # Useful for debugging any issues with conda
+  - conda info -a
+  - sudo apt-get install -y curl default-jdk ant libsparsehash-dev zlib1g-dev bzip2
+  - conda install --yes -c bioconda samtools
+  - conda install --yes pytest
+  - ./build.py
+
+script:
+   - pytest
