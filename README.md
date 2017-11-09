@@ -75,8 +75,7 @@ Since the samtools package in current Ubuntu-like distributions is usualy a depr
 * google sparse hash library (libsparsehash-dev paquet on debian)
 
 ## MATAM in Docker
-
-https://hub.docker.com/r/bonsaiteam/matam/
+[![Docker Build Status](https://img.shields.io/docker/build/bonsaiteam/matam.svg)](https://hub.docker.com/r/bonsaiteam/matam/)
 
 To run MATAM using docker, just run:
 
