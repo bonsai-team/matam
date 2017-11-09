@@ -52,9 +52,11 @@ Some steps of MATAM are highly paralelized. You can get a significant speed incr
 
 ### Quick install
 
-To install all of the needed depencies except samtools, you can run the following command-line in Debian-like distributions :
-
-  `sudo apt-get update && sudo apt-get install curl git gcc g++ python3 default-jdk automake make cmake ant libsparsehash-dev zlib1g-dev bzip2`
+To install all of the needed dependencies except samtools, you can run the following command-lines in Debian-like distributions :
+```bash
+sudo apt-get update && sudo apt-get install curl git gcc g++ python3 python3-pip default-jdk automake make cmake ant libsparsehash-dev zlib1g-dev bzip2
+sudo pip install numpy
+```
 
 Since the samtools package in current Ubuntu-like distributions is usualy a deprecated version (v0.1.19), you probably have to get a more recent version. We recommand getting samtools through bioconda (https://bioconda.github.io/)
 
@@ -63,8 +65,10 @@ Since the samtools package in current Ubuntu-like distributions is usualy a depr
 * **gcc v4.9.0 or superior**, (full C++11 support, \<regex\> included, and partial C++14 support)
 * C++ libraries: rt, pthread, zlib
 * Samtools v1.x or superior
-* Python 3
 * automake, make, **cmake v3.1 or superior**
+* Python 3
+* pip
+* numpy
 * Apache Ant
 * Java SE 7 JDK. OpenJDK is ok (openjdk-7-jdk paquet on debian)
 * bzip2
