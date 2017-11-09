@@ -86,8 +86,6 @@ To run MATAM using docker, just run:
 [![Anaconda-Server Badge](https://anaconda.org/bonsai-team/matam/badges/installer/conda.svg)](https://conda.anaconda.org/bonsai-team)
 [![Anaconda-Server Badge](https://anaconda.org/bonsai-team/matam/badges/version.svg)](https://anaconda.org/bonsai-team/matam)
 
-A conda package is available here: https://anaconda.org/bonsai-team/matam
-
 Before you begin, you should have installed Miniconda or Anaconda. See https://conda.io/docs/installation.html for more details.  
 Then you will need to add the followings channels:
 ```
