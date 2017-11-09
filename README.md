@@ -52,7 +52,7 @@ Some steps of MATAM are highly paralelized. You can get a significant speed incr
 
 ### Quick install
 
-To install all of the needed depencies except samtools, you can run the following command-lines in Debian-like distributions :
+To install all of the needed dependencies except samtools, you can run the following command-lines in Debian-like distributions :
 ```bash
 sudo apt-get update && sudo apt-get install curl git gcc g++ python3 python3-pip default-jdk automake make cmake ant libsparsehash-dev zlib1g-dev bzip2
 sudo pip install numpy
