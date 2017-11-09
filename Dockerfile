@@ -41,6 +41,7 @@ RUN conda config --add channels conda-forge \
     && conda config --add channels r \
     && conda config --add channels bioconda
 RUN conda install --update-dependencies -y samtools
+RUN conda install --update-dependencies -y numpy
 
 # Clean apt cache
 RUN rm -rf /var/lib/apt/lists/*
