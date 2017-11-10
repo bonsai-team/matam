@@ -49,7 +49,7 @@ def update_logger_settings(logger_filepath, verbose, debug):
     update logging level and logging format accordinlgy to verbose/debug flag.
     add a file logger for root/runner logger.
     """
-    file_handler = logging.FileHandler(filename=logger_filepath)
+    file_handler = logging.FileHandler(filename=logger_filepath, encoding='utf8')
     file_handler.formatter = logging.Formatter('%(levelname)s - %(message)s')
     logger.addHandler(file_handler)
     if debug:
