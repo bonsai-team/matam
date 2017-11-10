@@ -34,7 +34,7 @@ def logged_call(command, verbose=False):
     with subprocess.Popen(command, stdout=stdout, stderr=stderr, shell=True, bufsize=0) as process:
         if verbose:
             while process.poll() is None:
-                logger.info(os.read(process.stdout.fileno(), 1024).decode())
+                logger.info(os.read(process.stdout.fileno(), 1024).decode("utf-8", "ignore"))
 
     # rehabilitate previous handler
     for handler in logger.handlers:
