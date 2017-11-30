@@ -1,28 +1,27 @@
 #this is a comment
-32		Root	rootrank	1.0	Bacteria	domain	1.0	"Proteobacteria"	phylum	1.0	Gammaproteobacteria	class	1.0	Pseudomonadales	order	1.0	Pseudomonadaceae	family	1.0	Pseudomonas	genus	1.0
-45		Root	rootrank	1.0	Bacteria	domain	1.0	"Proteobacteria"	phylum	1.0	Gammaproteobacteria	class	1.0	Pseudomonadales	order	1.0	Pseudomonadaceae	family	1.0	Pseudomonas	genus	1.0
-3		Root	rootrank	1.0	Bacteria	domain	1.0	Firmicutes	phylum	1.0	Bacilli	class	1.0	Lactobacillales	order	1.0	Streptococcaceae	family	1.0	Streptococcus	genus	1.0
-33		Root	rootrank	1.0	Bacteria	domain	1.0	"Proteobacteria"	phylum	1.0	Gammaproteobacteria	class	1.0	Pseudomonadales	order	1.0	Pseudomonadaceae	family	1.0	Pseudomonas	genus	1.0
-11		Root	rootrank	1.0	Bacteria	domain	1.0	Firmicutes	phylum	1.0	Bacilli	class	1.0	Bacillales	order	1.0	Listeriaceae	family	1.0	Listeria	genus	1.0
-49		Root	rootrank	1.0	Bacteria	domain	1.0	"Proteobacteria"	phylum	1.0	Gammaproteobacteria	class	1.0	"Enterobacteriales"	order	1.0	Enterobacteriaceae	family	1.0	Escherichia/Shigella	genus	1.0
-31		Root	rootrank	1.0	Bacteria	domain	1.0	"Proteobacteria"	phylum	1.0	Gammaproteobacteria	class	1.0	"Enterobacteriales"	order	1.0	Enterobacteriaceae	family	1.0	Escherichia/Shigella	genus	1.0
-51		Root	rootrank	1.0	Bacteria	domain	1.0	Firmicutes	phylum	1.0	Bacilli	class	1.0	Lactobacillales	order	1.0	Streptococcaceae	family	1.0	Streptococcus	genus	1.0
-38		Root	rootrank	1.0	Bacteria	domain	1.0	"Proteobacteria"	phylum	1.0	Gammaproteobacteria	class	1.0	Pseudomonadales	order	1.0	Moraxellaceae	family	1.0	Acinetobacter	genus	1.0
-15		Root	rootrank	1.0	Bacteria	domain	1.0	"Proteobacteria"	phylum	1.0	Gammaproteobacteria	class	1.0	"Enterobacteriales"	order	1.0	Enterobacteriaceae	family	1.0	Escherichia/Shigella	genus	1.0
-48		Root	rootrank	1.0	Bacteria	domain	1.0	Firmicutes	phylum	1.0	Bacilli	class	1.0	Bacillales	order	1.0	Listeriaceae	family	1.0	Listeria	genus	1.0
-47		Root	rootrank	1.0	Bacteria	domain	1.0	"Proteobacteria"	phylum	1.0	Gammaproteobacteria	class	1.0	Legionellales	order	1.0	Legionellaceae	family	1.0	Legionella	genus	1.0
-12		Root	rootrank	1.0	Bacteria	domain	1.0	Firmicutes	phylum	1.0	Bacilli	class	1.0	Lactobacillales	order	1.0	Streptococcaceae	family	1.0	Streptococcus	genus	1.0
-35		Root	rootrank	1.0	Bacteria	domain	1.0	"Proteobacteria"	phylum	1.0	Gammaproteobacteria	class	1.0	"Enterobacteriales"	order	1.0	Enterobacteriaceae	family	1.0	Escherichia/Shigella	genus	1.0
-43		Root	rootrank	1.0	Bacteria	domain	1.0	"Proteobacteria"	phylum	1.0	Gammaproteobacteria	class	1.0	"Enterobacteriales"	order	1.0	Enterobacteriaceae	family	1.0	Escherichia/Shigella	genus	1.0
-34		Root	rootrank	1.0	Bacteria	domain	1.0	"Proteobacteria"	phylum	1.0	Gammaproteobacteria	class	1.0	"Enterobacteriales"	order	1.0	Enterobacteriaceae	family	1.0	Klebsiella	genus	1.0
-40		Root	rootrank	1.0	Bacteria	domain	1.0	"Actinobacteria"	phylum	1.0	Actinobacteria	class	1.0	Actinobacteridae	subclass	1.0	Actinomycetales	order	1.0	Corynebacterineae	suborder	1.0	Mycobacteriaceae	family	1.0	Mycobacterium	genus	1.0
-39		Root	rootrank	1.0	Bacteria	domain	1.0	Firmicutes	phylum	1.0	Bacilli	class	1.0	Lactobacillales	order	1.0	Streptococcaceae	family	1.0	Streptococcus	genus	1.0
-14		Root	rootrank	1.0	Bacteria	domain	1.0	"Proteobacteria"	phylum	1.0	Gammaproteobacteria	class	1.0	"Vibrionales"	order	1.0	Vibrionaceae	family	1.0	Vibrio	genus	1.0
-16		Root	rootrank	1.0	Bacteria	domain	1.0	"Proteobacteria"	phylum	1.0	Gammaproteobacteria	class	1.0	"Enterobacteriales"	order	1.0	Enterobacteriaceae	family	1.0	Salmonella	genus	1.0
-8		Root	rootrank	1.0	Bacteria	domain	1.0	Firmicutes	phylum	1.0	Bacilli	class	1.0	Bacillales	order	1.0	Staphylococcaceae	family	1.0	Staphylococcus	genus	1.0
-4		Root	rootrank	1.0	Bacteria	domain	1.0	Firmicutes	phylum	1.0	Bacilli	class	1.0	Lactobacillales	order	1.0	Enterococcaceae	family	1.0	Enterococcus	genus	1.0
+32		Bacteria	domain	1.0	"Proteobacteria"	phylum	1.0	Gammaproteobacteria	class	1.0	Pseudomonadales	order	1.0	Pseudomonadaceae	family	1.0	Pseudomonas	genus	1.0
+45		Bacteria	domain	1.0	"Proteobacteria"	phylum	1.0	Gammaproteobacteria	class	1.0	Pseudomonadales	order	1.0	Pseudomonadaceae	family	1.0	Pseudomonas	genus	1.0
+3		Bacteria	domain	1.0	Firmicutes	phylum	1.0	Bacilli	class	1.0	Lactobacillales	order	1.0	Streptococcaceae	family	1.0	Streptococcus	genus	1.0
+33		Bacteria	domain	1.0	"Proteobacteria"	phylum	1.0	Gammaproteobacteria	class	1.0	Pseudomonadales	order	1.0	Pseudomonadaceae	family	1.0	Pseudomonas	genus	1.0
+11		Bacteria	domain	1.0	Firmicutes	phylum	1.0	Bacilli	class	1.0	Bacillales	order	1.0	Listeriaceae	family	1.0	Listeria	genus	1.0
+49		Bacteria	domain	1.0	"Proteobacteria"	phylum	1.0	Gammaproteobacteria	class	1.0	"Enterobacteriales"	order	1.0	Enterobacteriaceae	family	1.0	Escherichia/Shigella	genus	1.0
+31		Bacteria	domain	1.0	"Proteobacteria"	phylum	1.0	Gammaproteobacteria	class	1.0	"Enterobacteriales"	order	1.0	Enterobacteriaceae	family	1.0	Escherichia/Shigella	genus	1.0
+51		Bacteria	domain	1.0	Firmicutes	phylum	1.0	Bacilli	class	1.0	Lactobacillales	order	1.0	Streptococcaceae	family	1.0	Streptococcus	genus	1.0
+38		Bacteria	domain	1.0	"Proteobacteria"	phylum	1.0	Gammaproteobacteria	class	1.0	Pseudomonadales	order	1.0	Moraxellaceae	family	1.0	Acinetobacter	genus	1.0
+15		Bacteria	domain	1.0	"Proteobacteria"	phylum	1.0	Gammaproteobacteria	class	1.0	"Enterobacteriales"	order	1.0	Enterobacteriaceae	family	1.0	Escherichia/Shigella	genus	1.0
+48		Bacteria	domain	1.0	Firmicutes	phylum	1.0	Bacilli	class	1.0	Bacillales	order	1.0	Listeriaceae	family	1.0	Listeria	genus	1.0
+47		Bacteria	domain	1.0	"Proteobacteria"	phylum	1.0	Gammaproteobacteria	class	1.0	Legionellales	order	1.0	Legionellaceae	family	1.0	Legionella	genus	1.0
+12		Bacteria	domain	1.0	Firmicutes	phylum	1.0	Bacilli	class	1.0	Lactobacillales	order	1.0	Streptococcaceae	family	1.0	Streptococcus	genus	1.0
+35		Bacteria	domain	1.0	"Proteobacteria"	phylum	1.0	Gammaproteobacteria	class	1.0	"Enterobacteriales"	order	1.0	Enterobacteriaceae	family	1.0	Escherichia/Shigella	genus	1.0
+43		Bacteria	domain	1.0	"Proteobacteria"	phylum	1.0	Gammaproteobacteria	class	1.0	"Enterobacteriales"	order	1.0	Enterobacteriaceae	family	1.0	Escherichia/Shigella	genus	1.0
+34		Bacteria	domain	1.0	"Proteobacteria"	phylum	1.0	Gammaproteobacteria	class	1.0	"Enterobacteriales"	order	1.0	Enterobacteriaceae	family	1.0	Klebsiella	genus	1.0
+40		Bacteria	domain	1.0	"Actinobacteria"	phylum	1.0	Actinobacteria	class	1.0	Actinomycetales	order	1.0	Mycobacteriaceae	family	1.0	Mycobacterium	genus	1.0
+39		Bacteria	domain	1.0	Firmicutes	phylum	1.0	Bacilli	class	1.0	Lactobacillales	order	1.0	Streptococcaceae	family	1.0	Streptococcus	genus	1.0
+14		Bacteria	domain	1.0	"Proteobacteria"	phylum	1.0	Gammaproteobacteria	class	1.0	"Vibrionales"	order	1.0	Vibrionaceae	family	1.0	Vibrio	genus	1.0
+16		Bacteria	domain	1.0	"Proteobacteria"	phylum	1.0	Gammaproteobacteria	class	1.0	"Enterobacteriales"	order	1.0	Enterobacteriaceae	family	1.0	Salmonella	genus	1.0
+8		Bacteria	domain	1.0	Firmicutes	phylum	1.0	Bacilli	class	1.0	Bacillales	order	1.0	Staphylococcaceae	family	1.0	Staphylococcus	genus	1.0
+4		Bacteria	domain	1.0	Firmicutes	phylum	1.0	Bacilli	class	1.0	Lactobacillales	order	1.0	Enterococcaceae	family	1.0	Enterococcus	genus	1.0
 #The following line have spaces
-87		Root	rootrank	1.0	Bacteria	domain	1.0	Firmicutes	phylum	1.0	Clostridia	class	1.0	Clostridiales	order	1.0	Clostridiales_Incertae Sedis III	family	1.0	Caldicellulosiruptor	genus	1.0
-  
+87		Bacteria	domain	0.85	"Proteobacteria"	phylum	0.19	 Deltaproteobacteria	class	0.09	Syntrophobacterales	order	0.07	Syntrophobacteraceae	family	0.07	Thermodesulforhabdus	genus	0.07  
 
 

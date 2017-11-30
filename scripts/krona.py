@@ -18,10 +18,7 @@ def rdp_file_to_krona_text_file(rdp_file, krona_text_file, abundance=None):
         seq_id = rdp_line[0]
         count = 1
         if abundance is not None:
-            if seq_id not in abundance:
-                logger.fatal("No abundance for this seq_id:%s" % seq_id)
-                sys.exit("No abundance for this seq_id:%s" % seq_id)
-            count = abundance[seq_id]
+            count = abundance.get(seq_id, 0)
 
         lineage = get_lineage(rdp_line)
         out_line = '{abundance}\t{lineage}\n'.format(abundance=count,

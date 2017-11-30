@@ -8,7 +8,7 @@ sys.path.append(SCRIPTS_DIR)
 
 SAMPLE_DIR = os.path.join(CURRENT_DIR, 'sample')
 
-from rdp import run_rdp_classifier
+from rdp import run_rdp_classifier, read_rpd_file, get_lineage, filter_rdp_file
 from binary_utils import Binary
 
 def test_run_rdp_classifier_ok():
@@ -18,11 +18,19 @@ def test_run_rdp_classifier_ok():
     rdp_exe = '{java} -Xmx1g -jar {jar}'.format(java=bin, jar=jar)
     result_file = tempfile.NamedTemporaryFile()
     run_rdp_classifier(rdp_exe, fasta, result_file.name)
-    with open(result_file.name, 'r') as h:
-        lines = h.readlines()
-        lines = [ l for l in lines if not l.startswith('#') ] #ignore comment lines
-        lines = [ l for l in lines if l ] #ignore empty lines
-        assert len(lines) == 22 # 22 scaffolds
 
 
+def test_read_rdp_results():
+    rdp_file = os.path.join(SAMPLE_DIR, 'rdp.txt')
+    lines = list(read_rpd_file(rdp_file))
+    assert len(lines) == 23 # 23 scaffolds
 
+
+def test_filter_rdp_file():
+    rdp_file = os.path.join(SAMPLE_DIR, 'rdp.txt')
+    result_file = tempfile.NamedTemporaryFile()
+    filter_rdp_file(rdp_file, result_file.name)
+    for line in read_rpd_file(result_file.name):
+        assert len(line) == 19 # seqid + 6 taxonomic levels * 3
+        if line[0] == "87":
+            assert get_lineage(line) == ['unclassified'] * 6

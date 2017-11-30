@@ -14,7 +14,7 @@ import shutil
 
 import runner
 from compute_abundance import get_abundance_by_scaffold, complete_fasta_with_abundance, get_abundance_from_fasta
-from rdp import run_rdp_classifier
+from rdp import run_rdp_classifier, filter_rdp_file
 from krona import rdp_file_to_krona_text_file, make_krona_plot
 from binary_utils import Binary
 import components_assembly
@@ -1499,19 +1499,25 @@ def main():
         logger.info('=== Taxonomic assignment & Krona visualization ===')
         # Set t0
         t0_wall = time.time()
+        rdp_cutoff = 0.8
         rdp_classification_filepath =  '%s.rdp.tab' % os.path.splitext(fasta_with_abundance_filepath)[0]
         run_rdp_classifier(rdp_exe, fasta_with_abundance_filepath,
-                           rdp_classification_filepath, gene=args.training_model)
-
+                           rdp_classification_filepath, gene=args.training_model, cutoff=rdp_cutoff)
         logger.debug('Write taxonomic assignment to: %s' % rdp_classification_filepath)
 
+        # tag results below the confidence cutoff as unclassified
+        fltr_rdp_classification_filepath = '%s.fltr.tab' % os.path.splitext(rdp_classification_filepath)[0]
+        filter_rdp_file(rdp_classification_filepath, fltr_rdp_classification_filepath, cutoff=rdp_cutoff)
+
+        final_rdp_tab_symlink_filepath = os.path.join(args.out_dir, 'rdp.tab')
+        force_symlink(fltr_rdp_classification_filepath, final_rdp_tab_symlink_filepath)
         #############################
         # build krona representation
 
         if not abundance:
             abundance = get_abundance_from_fasta(fasta_with_abundance_filepath)
-        krona_text_filepath = '%s.krona.tab' % os.path.splitext(rdp_classification_filepath)[0]
-        rdp_file_to_krona_text_file(rdp_classification_filepath, krona_text_filepath, abundance=abundance)
+        krona_text_filepath = '%s.krona.tab' % os.path.splitext(fltr_rdp_classification_filepath)[0]
+        rdp_file_to_krona_text_file(fltr_rdp_classification_filepath, krona_text_filepath, abundance=abundance)
 
         krona_html_filepath =  '%s.html' % os.path.splitext(krona_text_filepath)[0]
         make_krona_plot(krona_bin, krona_text_filepath, krona_html_filepath)

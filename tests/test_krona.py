@@ -60,8 +60,8 @@ def test_rdp_file_to_krona_text_file_with_abundance(abundance):
     assert os.path.getsize(krona_text_file.name) > 0
     with open(krona_text_file.name,'r') as h:
         lines = h.readlines()
-        assert set([int(l.split('\t')[0]) for l in lines]) == set(abundance.values())
         assert len(lines) == 23
+        assert set([int(l.split('\t')[0]) for l in lines]) == set(abundance.values())
 
 def test_make_krona_plot():
     krona_bin = Binary.which('ktImportText')
