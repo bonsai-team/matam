@@ -16,7 +16,6 @@ from binary_utils import Binary
                                             'sortmerna',
                                             'vsearch',
                                             'java', #rdp
-                                            'classifier.jar', #rdp
                                             'ktImportText', #krona
                                             ])
 

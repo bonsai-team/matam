@@ -1,0 +1,36 @@
+name: matam
+
+channels:
+- bioconda
+- conda-forge
+- salford_systems
+- defaults
+
+dependencies:
+  - sed
+  - git
+  - curl
+  #- gcc-5
+  #- libgcc-5
+  - python >=3.5
+  - numpy
+#  - autoconf
+  - make
+  - cmake >=3.1
+  - wget
+#  - automake
+  - sparsehash
+  - zlib
+  - bzip2
+  - coreutils # Centos6 (otherwise sort --parallel is unrecognized)
+  - samtools ==1.4.1 # Centos7 (otherwise need libbz2.so.1.0)
+  - vsearch
+  - sga
+  - sortmerna >=2.1*
+  - rdptools
+  - krona
+  - exonerate=2.2
+  - pytest
+
+prefix: /home/lcouderc/miniconda3
+
