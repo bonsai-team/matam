@@ -1510,7 +1510,10 @@ def main():
         filter_rdp_file(rdp_classification_filepath, fltr_rdp_classification_filepath, cutoff=rdp_cutoff)
 
         final_rdp_tab_symlink_filepath = os.path.join(args.out_dir, 'rdp.tab')
-        force_symlink(fltr_rdp_classification_filepath, final_rdp_tab_symlink_filepath)
+        force_symlink(
+            os.path.relpath(fltr_rdp_classification_filepath, start=args.out_dir),
+            final_rdp_tab_symlink_filepath,
+        )
         #############################
         # build krona representation
 
@@ -1526,9 +1529,18 @@ def main():
         logger.info('Taxonomic assignment & Krona visualization completed in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
 
         # Expose final files
-        force_symlink(krona_text_filepath, final_krona_tab_symlink_filepath)
-        force_symlink(krona_html_filepath, final_krona_html_symlink_filepath)
-    force_symlink(fasta_with_abundance_filepath, final_assembly_symlink_filepath)
+        force_symlink(
+            os.path.relpath(krona_text_filepath, start=args.out_dir),
+            final_krona_tab_symlink_filepath,
+        )
+        force_symlink(
+            os.path.relpath(krona_html_filepath, start=args.out_dir),
+            final_krona_html_symlink_filepath,
+        )
+    force_symlink(
+        os.path.relpath(fasta_with_abundance_filepath, start=args.out_dir),
+        final_assembly_symlink_filepath,
+    )
     ###########################
     # Print Assembly Statistics
 
