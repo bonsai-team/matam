@@ -94,7 +94,6 @@ conda config --add channels defaults
 conda config --add channels r
 conda config --add channels bioconda
 conda config --add channels bonsai-team
-conda config --add channels salford_systems
 ```
 Finally, matam can be installed with:
 `conda install matam`
