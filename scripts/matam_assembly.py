@@ -479,6 +479,14 @@ def parse_arguments():
                            help = 'The training model used for taxonomic assignment. '
                                      'Default is %(default)s')
 
+    # --rdp_cutoff
+    group_taxonomic_assign.add_argument('--rdp_cutoff',
+                                        action = 'store',
+                                        type = float,
+                                        default = 0.8,
+                                        help = 'Sequences assigned (by RDP) with a confidence score < %(default)s (at genus'
+                                        ' level) will be tagged as an artificial "unclassified" taxon')
+
 
     # Advanced parameters
     group_adv = parser.add_argument_group('Advanced parameters')
@@ -535,6 +543,10 @@ def parse_arguments():
     if args.quorum < 0 or args.quorum > 1:
         parser.print_help()
         raise Exception("quorum not in range [0.51,1]")
+
+    if args.rdp_cutoff < 0 or args.rdp_cutoff > 1:
+        parser.print_help()
+        raise Exception("cutoff not in range [0,1]")
 
     # contig_coverage_threshold default value makes no sense when args.read_correction is not auto
     if args.read_correction != 'auto':
@@ -641,6 +653,7 @@ def print_intro(args):
     if args.perform_taxonomic_assignment:
         cmd_line += '--perform_taxonomic_assignment '
         cmd_line += '--training_model {} '.format(args.training_model)
+        cmd_line += '--rdp_cutoff {} '.format(args.rdp_cutoff)
 
     # Visualization
 
@@ -1499,15 +1512,14 @@ def main():
         logger.info('=== Taxonomic assignment & Krona visualization ===')
         # Set t0
         t0_wall = time.time()
-        rdp_cutoff = 0.8
         rdp_classification_filepath =  '%s.rdp.tab' % os.path.splitext(fasta_with_abundance_filepath)[0]
         run_rdp_classifier(rdp_exe, fasta_with_abundance_filepath,
-                           rdp_classification_filepath, gene=args.training_model, cutoff=rdp_cutoff)
+                           rdp_classification_filepath, gene=args.training_model, cutoff=args.rdp_cutoff)
         logger.debug('Write taxonomic assignment to: %s' % rdp_classification_filepath)
 
         # tag results below the confidence cutoff as unclassified
         fltr_rdp_classification_filepath = '%s.fltr.tab' % os.path.splitext(rdp_classification_filepath)[0]
-        filter_rdp_file(rdp_classification_filepath, fltr_rdp_classification_filepath, cutoff=rdp_cutoff)
+        filter_rdp_file(rdp_classification_filepath, fltr_rdp_classification_filepath, cutoff=args.rdp_cutoff)
 
         final_rdp_tab_symlink_filepath = os.path.join(args.out_dir, 'rdp.tab')
         force_symlink(
