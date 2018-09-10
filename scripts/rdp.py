@@ -7,6 +7,7 @@ import sys
 
 logger = logging.getLogger(__name__)
 
+
 def run_rdp_classifier(rdp_exe, in_fasta, out_classification_file, cutoff=0.8, gene='16srrna'):
 
     parameters = { 'fa': in_fasta, 'out': out_classification_file, 'cutoff': cutoff, 'gene': gene }
@@ -36,16 +37,20 @@ def read_rpd_file(rdp_path):
     parse a rdp file and return a generator
     """
     with open(rdp_path, 'r') as in_rdp_handler:
-        for l in in_rdp_handler:
-            l = l.strip()
-            if not l or l.startswith('#'): continue
-            rdp_line = re.split('"?\t+"?', l)
-            rdp_line = [field.strip() for field in rdp_line]
-            if len(rdp_line) != 19: # seqid + 6 taxonomic levels * 3
-                logger.fatal('RDP: wrong number of fields -- %s, expected 19, line: %s' % (len(rdp_line), l))
+        for line in in_rdp_handler:
+            line = line.strip()
+            if not line or line.startswith('#'): continue
+            rdp_fields = re.split('"?\t+"?', line)
+            rdp_fields = [field.strip() for field in rdp_fields]
+
+            if rdp_fields[1] == '-':  # poor prediction?
+                rdp_fields.pop(1)
+
+            if len(rdp_fields) != 19:  # seqid + 6 taxonomic levels * 3
+                logger.fatal('RDP: wrong number of fields -- %s, expected 19, line: %s' % (len(rdp_fields), line))
                 sys.exit('Failed to parse RDP file:%s' % rdp_path)
 
-            yield rdp_line
+            yield rdp_fields
 
 
 def get_lineage(splitted_rdp_line):
