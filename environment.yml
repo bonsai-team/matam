@@ -3,7 +3,7 @@ name: matam
 channels:
 - bioconda
 - conda-forge
-- salford_systems
+- bonsai-team
 - defaults
 
 dependencies:
@@ -33,4 +33,3 @@ dependencies:
   - pytest
 
 prefix: /home/lcouderc/miniconda3
-
