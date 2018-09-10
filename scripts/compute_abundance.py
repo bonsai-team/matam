@@ -80,7 +80,7 @@ def abundance_calculation(blast_path):
         if len(scaffolds) != len(uniq_scaffolds):
             # keep scaffolds names where this read map more than once
             more_than_once = {k:v for k,v in collections.Counter(scaffolds).items() if v > 1}
-            logger.warning('%s is mapped more than once on the same scaffold (%s) but it will contribute \
+            logger.debug('%s is mapped more than once on the same scaffold (%s) but it will contribute \
 to the abundance of this scaffold only as 1 weight where weight=1/uniq_scaffolds_nb=%s' % (read, more_than_once, weight))
 
     # compute abundance for each scaffold depending on read weight
