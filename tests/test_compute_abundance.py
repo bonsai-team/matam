@@ -39,4 +39,4 @@ def test_abundance_calculation(blast, expected_abundance):
     abundance = abundance_calculation(blast_file)
 
     assert set(abundance.keys()) == set(expected_abundance.keys())
-    assert set(abundance.values()) == pytest.approx(set(expected_abundance.values()))
+    assert sorted(abundance.values()) == pytest.approx(sorted(expected_abundance.values()))
