@@ -32,7 +32,7 @@ class SampleCollection():
         if not samples_path:
             logger.fatal('The sample collection is empty')
             sys.exit('Empty collection')
-        
+
         self._check_path_validity()
         #contingency table is build from the comparaison table
         self._build_comparaison_table()
@@ -132,7 +132,8 @@ def retrieve_samples_path(listing_file):
             if sample_id in samples:
                 logger.fatal("Duplicated sample_id (id:%s, file:%s)" % (sample_id, listing_file))
                 sys.exit("Duplicated id")
-            samples[sample_id] = (fasta_path,rdp_path)
+            samples[sample_id] = (os.path.expanduser(fasta_path),
+                                  os.path.expanduser(rdp_path))
         return samples
 
 
@@ -140,14 +141,15 @@ if __name__ == '__main__':
 
     logging.basicConfig(level=logging.INFO)
     # Arguments parsing
-    parser = argparse.ArgumentParser(description='')
+    parser = argparse.ArgumentParser(description='This script let you compare two or more samples coming from MATAM -- v1.5.1 or superior')
 
     parser.add_argument('-s', '--samples_file',
                         type=argparse.FileType('r'),
-                        help="A tabulated file with one sample by row." \
-                         "The first column contains the sample id (must be unique)" \
-                         "The second column contains the fasta path. The abundances must be present into this file." \
-                         "The third, the rdp path",
+                        help="A tabulated file with one sample by row. "
+                        "The first column contains the sample id (must be unique) "
+                        "The second column contains the fasta path. The abundances must be present into this file. "
+                        "The third, the rdp path. "
+                        "Paths can be absolute or relative to the current working directory.",
                          required=True)
 
     parser.add_argument('-t', '--ouput_comparaison_table',
@@ -176,4 +178,3 @@ if __name__ == '__main__':
     sample_collection.write_contingency_table(args.ouput_contingency_table)
 
     logger.info("Done")
-    
