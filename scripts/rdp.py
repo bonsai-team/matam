@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 
-import runner
 import logging
 import re
 import sys
+
+import runner
 
 logger = logging.getLogger(__name__)
 
@@ -18,15 +19,22 @@ def run_rdp_classifier(rdp_exe, in_fasta, out_classification_file, cutoff=0.8, g
 def filter_rdp_file(rdp_file, out_fltr_rdp_file, cutoff=0.8):
     """
     For a given line, if any level has a confidence score under cutoff:
-        tag all nodes as "unclassified"
+        tag these nodes as "unclassified"
     """
 
     with open(out_fltr_rdp_file, 'w') as rdp_out:
         for tab in read_rpd_file(rdp_file):
             seqid = tab.pop(0)
-            rank_names, rank_levels, rank_scores = zip(*[tab[i:i+3] for i in range(0,len(tab),3)])
-            if any([float(score) < cutoff for score in rank_scores]):
-                rank_names = ['unclassified'] * 6
+            # split line in names, levels & scores:
+            # tab = ['name_0', 'level_0', 'score_0', 'name_1', 'level_1', 'score_1', ...]
+            # rank_names = ('name_0', 'name_1', ...)
+            # rank_levels = ('level_0', 'level_1', ...)
+            # rank_scores = ('score_0', 'score_1', ...)
+            rank_names, rank_levels, rank_scores = zip(*[tab[i:i + 3] for i in range(0, len(tab), 3)])
+            rank_names = list(rank_names)
+            for rank, score in enumerate(rank_scores):
+                if float(score) < cutoff:
+                    rank_names[rank] = 'unclassified'
 
             rdp_line = [seqid] + ['\t'.join(triplet) for triplet in zip(rank_names, rank_levels, rank_scores)]
             print('\t'.join(rdp_line), file=rdp_out)
@@ -58,5 +66,5 @@ def get_lineage(splitted_rdp_line):
     Extract lineage from splitted rdp line
     """
 
-    splitted_rdp_line.pop(0) # remove id
+    splitted_rdp_line.pop(0)  # remove id
     return [ splitted_rdp_line[i] for i in range(0, len(splitted_rdp_line), 3) ]

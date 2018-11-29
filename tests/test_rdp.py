@@ -39,4 +39,5 @@ def test_filter_rdp_file():
     for line in read_rpd_file(result_file.name):
         assert len(line) == 19  # seqid + 6 taxonomic levels * 3
         if line[0] == "87":
-            assert get_lineage(line) == ['unclassified'] * 6
+            expected_lineage = 87
+            assert get_lineage(line) == ['Bacteria'] + ['unclassified'] * 5
