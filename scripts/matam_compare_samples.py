@@ -26,25 +26,25 @@ class SampleCollection():
         self.samples_path = samples_path
         #keep the same order to generate the tables
         self.samples_id = [k for (k,v) in samples_path.items()] #no keys method for ordereddict
-        self.comparaison_table = [('Taxonomy', 'SampleID', 'SequenceID', 'Abundance', 'Normalized_Abundance(%)')]
-        self.contingency_table = [['Taxonomy/Samples', *self.samples_id]]
+        self.contingency_table = [('Taxonomy', 'SampleID', 'SequenceID', 'Abundance', 'Normalized_Abundance(%)')]
+        self.comparaison_table = [['Taxonomy/Samples', *self.samples_id]]
 
         if not samples_path:
             logger.fatal('The sample collection is empty')
             sys.exit('Empty collection')
 
         self._check_path_validity()
-        #contingency table is build from the comparaison table
-        self._build_comparaison_table()
+        #comparaison table is build from the contingency table
         self._build_contingency_table()
-
-
-    def write_comparaison_table(self, out_handler):
-        self._write_table(self.comparaison_table, out_handler)
+        self._build_comparaison_table()
 
 
     def write_contingency_table(self, out_handler):
         self._write_table(self.contingency_table, out_handler)
+
+
+    def write_comparaison_table(self, out_handler):
+        self._write_table(self.comparaison_table, out_handler)
 
     def _write_table(self, table, out_handler):
         for row in table:
@@ -55,12 +55,12 @@ class SampleCollection():
         return itertools.groupby(sorted(table,key=operator), operator)
 
 
-    def _build_comparaison_table(self):
+    def _build_contingency_table(self):
         taxonomic_col = operator.itemgetter(0)
         sample_col = operator.itemgetter(1)
 
         for sample_id, (fasta_path, rdp_path) in self.samples_path.items():
-            sample_comp_table = []
+            sample_cont_table = []
             abundance_by_sequence = get_abundance_from_fasta(fasta_path)
             total_abundance = sum(abundance_by_sequence.values())
             for rdp_line in read_rpd_file(rdp_path):
@@ -69,19 +69,19 @@ class SampleCollection():
                 normalized_abundance = round(abundance / total_abundance * 100, self.float_precision)
                 taxonomy = ';'.join(get_lineage(rdp_line))
                 row = [taxonomy, sample_id, sequence_id, abundance, normalized_abundance]
-                sample_comp_table.append(row)
+                sample_cont_table.append(row)
 
-            sample_comp_table = sorted(sample_comp_table, key=taxonomic_col)
-            self.comparaison_table.extend(sample_comp_table)
+            sample_cont_table = sorted(sample_cont_table, key=taxonomic_col)
+            self.contingency_table.extend(sample_cont_table)
 
 
-    def _build_contingency_table(self):
+    def _build_comparaison_table(self):
         taxonomic_col = operator.itemgetter(0)
         sample_col = operator.itemgetter(1)
-        unpivoted_contingence_table = []
+        unpivoted_comparaison_table = []
 
-        # Build long format contingency table
-        for sample, sample_group in self._groupby(self.comparaison_table[1:],sample_col):
+        # Build long format comparaison table
+        for sample, sample_group in self._groupby(self.contingency_table[1:],sample_col):
             sample_group_list = list(sample_group)
             total_abundance = sum([ row[3] for row in sample_group_list ])
 
@@ -90,14 +90,14 @@ class SampleCollection():
                 taxonomic_abundance = sum([ row[3] for row in taxonomic_group_list ])
                 normalized_taxo_abd = round(taxonomic_abundance / total_abundance * 100, self.float_precision)
                 row = [taxonomy, sample, normalized_taxo_abd]
-                unpivoted_contingence_table.append(row)
+                unpivoted_comparaison_table.append(row)
 
         # Pivot the table to wide format
-        for taxonomy, taxonomic_group in self._groupby(unpivoted_contingence_table, taxonomic_col):
+        for taxonomy, taxonomic_group in self._groupby(unpivoted_comparaison_table, taxonomic_col):
             row = [taxonomy]
             abd_by_sample = dict([(row[1], row[2]) for row in taxonomic_group])
             row.extend( [abd_by_sample.get(sample, None) for sample in self.samples_id])
-            self.contingency_table.append(row)
+            self.comparaison_table.append(row)
 
 
     def _check_path_validity(self):
@@ -152,15 +152,15 @@ if __name__ == '__main__':
                         "Paths can be absolute or relative to the current working directory.",
                          required=True)
 
-    parser.add_argument('-t', '--ouput_comparaison_table',
+    parser.add_argument('-t', '--ouput_contingency_table',
                         type=argparse.FileType('w'),
                         help='Output a table with the abundance for each sequence',
                         required=True)
 
-    parser.add_argument('-c', '--ouput_contingency_table',
+    parser.add_argument('-c', '--ouput_comparaison_table',
                         type=argparse.FileType('w'),
                         default='-',
-                        help='Output a contingency table (taxonomy vs samples)',
+                        help='Output a comparaison table (taxonomy vs samples)',
                         required=True)
 
     args = parser.parse_args()
@@ -174,7 +174,7 @@ if __name__ == '__main__':
     sample_collection = SampleCollection(samples_path)
 
     logger.info("Write the tables")
-    sample_collection.write_comparaison_table(args.ouput_comparaison_table)
     sample_collection.write_contingency_table(args.ouput_contingency_table)
+    sample_collection.write_comparaison_table(args.ouput_comparaison_table)
 
     logger.info("Done")
