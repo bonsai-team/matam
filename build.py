@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import os
-import sys
 import argparse
-import subprocess
-import time
 import logging
+import os
+import subprocess
+import sys
+import time
 
 # Create logger
 logger = logging.getLogger(__name__)
@@ -60,6 +60,7 @@ def execute_cmd(cmd_line, directory, info, warning, createdir=False):
     sys.stderr.write('\n')
 
     return error_code
+
 
 if __name__ == '__main__':
 
@@ -274,6 +275,7 @@ normally created by building the program. Default is %(default)s",
         matam_bin_dirpath = os.path.join(matam_root_dirpath, 'bin')
         cmd_line = 'ln -sf ' + \
             os.path.join(matam_scripts_dirpath, 'matam_*.py')
+        cmd_line += ' ' + os.path.join(matam_root_dirpath, "index_default_ssu_rrna_db.py")
         cmd_line += ' ' + os.path.join(matam_bin_dirpath, '.')
         warning = 'A problem might have happened while creating links into bin dir. Check log above'
         global_error_code += execute_cmd(cmd_line,
