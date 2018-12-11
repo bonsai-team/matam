@@ -54,18 +54,18 @@ Finally, matam can be installed with:
 
 `conda install matam`
 
-All the commandes used in this README will be available in your PATH.
+All the commands used in this README will be available in your PATH.
 
 
 ## <a id="matam-in-docker"></a>MATAM in Docker
 
 [![Docker Build Status](https://img.shields.io/docker/build/bonsaiteam/matam.svg)](https://hub.docker.com/r/bonsaiteam/matam/)
 
-To retrieve the docker image, run the following commande:
+To retrieve the docker image, run the following command:
 
 `docker pull bonsaiteam/matam`
 
-Then all the commandes used in this README will be available as:
+Then all the commands used in this README will be available as:
 
 `docker run -v host_directory:/workdir bonsaiteam/matam CMD`
 
