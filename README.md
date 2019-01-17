@@ -117,7 +117,7 @@ Since the samtools package in current Ubuntu-like distributions is usualy a depr
 3.  Update your PATH to make MATAM's commands available:
 
   ```bash
-  echo 'export PATH=$MATAMDIR/bin:$PATH' >> ~/.profile
+  echo 'export PATH="$MATAMDIR/bin:$PATH"' >> ~/.profile
   source ~/.profile
   ```
 
