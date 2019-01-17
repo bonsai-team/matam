@@ -172,7 +172,7 @@ For developpers, the commande to run assembly in validation mode (Exonerate must
 
 `$MATAMDIR/bin/matam_assembly.py -i 16sp.art_HS25_pe_100bp_50x.fq  --true_references $MATAMDIR/examples/16sp_simulated_dataset/16sp.fasta --true_ref_taxo $MATAMDIR/examples/16sp_simulated_dataset/16sp.taxo.tab --cpu 4 --max_memory 10000 --debug`
 
-# <a id="samples-comparaison"></a>Samples Comparaison
+# <a id="samples-comparaison"></a>Samples comparaison
 
 An utilatary script is provided to compare the abundance of different samples. (Available only if the `--perform_taxonomic_assignment` was used when running MATAM).
 
