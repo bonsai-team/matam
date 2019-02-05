@@ -9,34 +9,42 @@ The related article of this method is available [here](https://doi.org/10.1093/b
 
 
 # Table of contents
-* [Hardware requirements](#hardware-requirements)
-* [Installation](#installation)
-  * [MATAM with conda](#matam-with-conda) (recommanded)
-  * [MATAM in Docker](#matam-in-docker)
-  * [MATAM from source code](#matam-from-source-code)
-    * [Full dependencies list](#full-dependencies-list)
-    * [Install dependencies](#install-dependencies)
-    * [Compile MATAM](#compile-matam)
-* [Run MATAM](#run-matam)
-  * [Database preparation](#database-preparation)
-    * [Provided database](#provided-database)
-    * [Custom database](#custom-database)
-  * [De-novo assembly](#de-novo-assembly)
-  * [Example with default database and provided dataset](#example-with-default-database-and-provided-dataset)
-* [Samples Comparaison](#samples-comparaison)
-* [Release versioning](#release-versioning)
+* [1. Hardware requirements](#hardware-requirements)
+* [2. Installation](#installation)
+  * [2.1 MATAM with conda](#matam-with-conda) (recommanded)
+  * [2.2 MATAM in Docker](#matam-in-docker)
+  * [2.3 MATAM from source code](#matam-from-source-code)
+    * [2.3.1 Full dependencies list](#full-dependencies-list)
+    * [2.3.2 Install dependencies](#install-dependencies)
+    * [2.3.3 Compile MATAM](#compile-matam)
+* [3. Run MATAM](#run-matam)
+  * [3.1 Database preparation](#database-preparation)
+    * [3.1.1 Provided database](#provided-database)
+    * [3.1.2 Custom database](#custom-database)
+  * [3.2 De-novo assembly](#de-novo-assembly)
+  * [3.3 Example with default database and provided dataset](#example-with-default-database-and-provided-dataset)
+* [4. Samples Comparaison](#samples-comparaison)
+* [5. Release versioning](#release-versioning)
 
 
-# <a id="hardware-requirements"></a>Hardware requirements
+# <a id="hardware-requirements"></a>1. Hardware requirements
 
-We recommand running MATAM with at least 10Go of free RAM. You can try running MATAM with less RAM if --max\_memory is set to a lower value (eg. --max\_memory 4000 for 4Go).
+We recommend running MATAM with at least 10Go of free RAM. You can try
+running MATAM with less RAM by setting  --max_memory  to a lower value
+(eg. --max_memory 4000 for 4Go). However, this could degrade the performance of the
+software.
 
-Some steps of MATAM are highly paralelized. You can get a significant speed increase during these steps by setting the --cpu option to a higher value
+Some steps of MATAM are highly parallelized. So you can get a
+significant speed up  by setting the --cpu option according to your
+hardware configuration.
 
 
-# <a id="installation"></a>Installation
+# <a id="installation"></a>2. Installation
 
-## <a id="matam-with-conda"></a>MATAM with conda
+There are three possible ways of installing MATAM: either with CONDA,
+or as a docker container, or directly from the source code.
+
+## <a id="matam-with-conda"></a>2.1 MATAM with conda
 
 [![Anaconda-Server Badge](https://anaconda.org/bonsai-team/matam/badges/installer/conda.svg)](https://conda.anaconda.org/bonsai-team)
 [![Anaconda-Server Badge](https://anaconda.org/bonsai-team/matam/badges/version.svg)](https://anaconda.org/bonsai-team/matam)
@@ -57,7 +65,7 @@ Finally, matam can be installed with:
 All the commands used in this README will be available in your PATH.
 
 
-## <a id="matam-in-docker"></a>MATAM in Docker
+## <a id="matam-in-docker"></a>2.2 MATAM in Docker
 
 [![Docker Build Status](https://img.shields.io/docker/build/bonsaiteam/matam.svg)](https://hub.docker.com/r/bonsaiteam/matam/)
 
@@ -76,9 +84,9 @@ Finally, if you prefer an interactive session with the container, run:
 `docker run -it bonsaiteam/matam`
 
 
-## <a id="matam-from-source-code"></a>MATAM from source code
+## <a id="matam-from-source-code"></a>2.3 MATAM from source code
 
-### <a id="full-dependencies-list"></a>Full dependencies list
+### <a id="full-dependencies-list"></a>2.3.1 Full dependencies list
 
 * **gcc v4.9.0 or superior**, (full C++11 support, \<regex\> included, and partial C++14 support)
 * C++ libraries: rt, pthread, zlib
@@ -93,7 +101,7 @@ Finally, if you prefer an interactive session with the container, run:
 * google sparse hash library (libsparsehash-dev paquet on debian)
 
 
-### <a id="install-dependencies"></a>Install dependencies
+### <a id="install-dependencies"></a>2.3.2 Install dependencies
 
 To install all of the needed dependencies except samtools, you can run the following command-lines in Debian-like distributions :
 ```bash
@@ -101,10 +109,12 @@ sudo apt-get update && sudo apt-get install curl git gcc g++ python3 python3-pip
 sudo pip install numpy
 ```
 
-Since the samtools package in current Ubuntu-like distributions is usualy a deprecated version (v0.1.19), you probably have to get a more recent version. We recommand getting samtools through bioconda (https://bioconda.github.io/)
+The samtools package available in current Ubuntu-like distributions is
+usually a deprecated version (v0.1.19). So we recommend getting samtools through bioconda (https://bioconda.github.io/)
 
 
-### <a id="compile-matam"></a>Compile MATAM
+
+### <a id="compile-matam"></a>2.3.3 Compile MATAM
 
 1. Cloning MATAM repository
 
@@ -122,11 +132,11 @@ Since the samtools package in current Ubuntu-like distributions is usualy a depr
   ```
 
 
-# <a id="run-matam"></a>Run MATAM
+# <a id="run-matam"></a>3. Run MATAM
 
-## <a id="database-preparation"></a>1. Database preparation (clusterization & indexation)
+## <a id="database-preparation"></a>3.1 Database preparation (clusterization & indexation)
 
-### <a id="provided-database"></a>Provided database
+### <a id="provided-database"></a>3.1.1 Provided database
 
 By default, MATAM provides a SSU rRNA reference database where the clusterisation step has already been done (i.e. the sequences sharing 95% of identity have been clusterised with [Sumaclust](https://git.metabarcoding.org/obitools/sumaclust/wikis/home)).  
 The  [FASTA](https://www.arb-silva.de/fileadmin/silva_databases/release_128/Exports/SILVA_128_SSURef_Nr99_tax_silva_trunc.fasta.gz) file used for this database comes from [SILVA 128 release](https://www.arb-silva.de/documentation/release-128/).
@@ -135,46 +145,50 @@ To use the default SSU rRNA reference database, run the following command:
 
 `index_default_ssu_rrna_db.py -d $DBDIR --max_memory 10000`
 
-### <a id="custom-database"></a>Custom database
+where `$DBDIR` is the directory used to store the database.
+
+### <a id="custom-database"></a>3.1.2 Custom database
 
 If the provided database does not fulfill your needs, you can prepare a custom database of your own by running the following command:
 
 `matam_db_preprocessing.py -i ref_db.fasta -d $DBDIR --cpu 4 --max_memory 10000 -v`
 
-## <a id="de-novo-assembly"></a>2. De-novo assembly
+where `$DBDIR` is the directory used to store the database.
+
+## <a id="de-novo-assembly"></a>3.2 De-novo assembly
 
 When your database is ready, then you will be able to reconstruct your markers:
-* SSU rRNA recovery only
-
+* Assembly only  
+  In this mode, MATAM will reconstruct the full length sequences present in the sample.  
   `matam_assembly.py -d $DBDIR/prefix -i reads.fastq --cpu 4 --max_memory 10000 -v`
 
-* SSU rRNA recovery and taxonomic assignment
-
+* Assembly and taxonomic assignment  
+  In this mode, MATAM additionnaly provides a taxonomic classification of the sequences found, together with their abundance. Note that the
+  classification is done with RDP with the default training model "16srrna". So this mode may be not suitable for other phylogenetic markers.  
   `matam_assembly.py -d $DBDIR/prefix -i reads.fastq --cpu 4 --max_memory 10000 -v --perform_taxonomic_assignment`  
     The taxonomic assignment is done with [RDP classifier](https://rdp.cme.msu.edu/) and the training model used by default is "16srrna"
 
+where `$DBDIR` is the database directory and `prefix` is the common prefix used to name the database files.
+For example, with the default database, the prefix is SILVA_128_SSURef_NR95.
 
-## <a id="example-with-default-database-and-provided-dataset"></a>Example with default database and provided dataset
+## <a id="example-with-default-database-and-provided-dataset"></a>3.3 Example with default database and provided dataset
 
-1. Getting and indexing default SSU rRNA reference database
-
-  `index_default_ssu_rrna_db.py -d $DBDIR --max_memory 10000`
-
-2. Retrieve the example dataset: [16 bacterial species simulated dataset](examples/16sp_simulated_dataset/16sp.art_HS25_pe_100bp_50x.fq)
+1. Retrieve the example dataset: [16 bacterial species simulated dataset](examples/16sp_simulated_dataset/16sp.art_HS25_pe_100bp_50x.fq)
 
   `wget https://raw.githubusercontent.com/bonsai-team/matam/master/examples/16sp_simulated_dataset/16sp.art_HS25_pe_100bp_50x.fq`
+
+2. Getting and indexing default SSU rRNA reference database
+
+  `index_default_ssu_rrna_db.py -d $DBDIR --max_memory 10000`
 
 3. De-novo assembly
 
   `matam_assembly.py -d $DBDIR/SILVA_128_SSURef_NR95 -i 16sp.art_HS25_pe_100bp_50x.fq --cpu 4 --max_memory 10000 -v --perform_taxonomic_assignment`
 
-For developpers, the commande to run assembly in validation mode (Exonerate must be available in $PATH) is:
 
-`$MATAMDIR/bin/matam_assembly.py -i 16sp.art_HS25_pe_100bp_50x.fq  --true_references $MATAMDIR/examples/16sp_simulated_dataset/16sp.fasta --true_ref_taxo $MATAMDIR/examples/16sp_simulated_dataset/16sp.taxo.tab --cpu 4 --max_memory 10000 --debug`
+# <a id="samples-comparaison"></a>4. Samples comparaison
 
-# <a id="samples-comparaison"></a>Samples comparaison
-
-An utilatary script is provided to compare the abundance of different samples. (Available only if the `--perform_taxonomic_assignment` was used when running MATAM).
+We provide a script to compare the abundances of different samples. Available only if the `--perform_taxonomic_assignment` was used when running MATAM.
 
 `matam_compare_samples.py -s samples_to_compare.tsv -t contingency_table.tsv -c comparaison_table.tsv`
 
@@ -191,8 +205,6 @@ sample2 <tab> $WORKDIR/matam_sample2/final_assembly.fa <tab> $WORKDIR/matam_samp
 
 The first column is the ID of the sample and it must be unique among the file.  
 
-
-
-# <a id="release-versioning"></a>Release versioning
+# <a id="release-versioning"></a>5. Release versioning
 
 MATAM releases will be following the Semantic Versioning 2.0.0 rules described here: http://semver.org/spec/v2.0.0.html
