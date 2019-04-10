@@ -36,12 +36,15 @@ RUN wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh \
 ENV PATH /root/miniconda3/bin:$PATH
 
 # Install Bioconda and samtools
-RUN conda config --add channels conda-forge \
-    && conda config --add channels defaults \
-    && conda config --add channels r \
-    && conda config --add channels bioconda
-RUN conda install --update-dependencies -y samtools
-RUN conda install --update-dependencies -y numpy
+
+# Keep channels in this order. See https://github.com/bioconda/bioconda-recipes/issues/12100
+# for more details.
+RUN conda config --add channels defaults
+RUN conda config --add channels bioconda
+RUN conda config --add channels conda-forge
+
+RUN conda install --update-deps -y samtools
+RUN conda install --update-deps -y numpy
 
 # Clean apt cache
 RUN rm -rf /var/lib/apt/lists/*
@@ -53,6 +56,9 @@ RUN git clone https://github.com/bonsai-team/matam.git
 WORKDIR /matam
 RUN ./build.py
 #RUN ./index_default_ssu_rrna_db.py --max_memory 4000
+
+# Add index_default_ssu_rrna_db.py in the PATH
+# ln -s /matam/index_default_ssu_rrna_db.py /matam/bin/index_default_ssu_rrna_db.py
 
 # Set PATH
 ENV PATH /matam/bin:$PATH
