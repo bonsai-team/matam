@@ -146,7 +146,7 @@ def complete_fasta_with_abundance(input_fasta, output_fasta, abundance):
     out_fasta_handler.close()
 
 
-def get_abundance_from_fasta(fasta, regexp='count=(\d+\.\d+|\d+)'):
+def get_abundance_from_fasta(fasta, regexp=r'count=(\d+\.\d+|\d+)'):
     abundance = {}
     in_fasta_handler = open(fasta, 'r')
     p = re.compile(regexp)
