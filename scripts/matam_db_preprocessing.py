@@ -331,7 +331,7 @@ if __name__ == '__main__':
     # This is the output MATAM db basepath to pass to matam_assembly.py
     output_ref_db_basename = clustered_ref_db_basename
     if args.out_db_name:
-        output_ref_db_basename = os.basename(args.out_db_name)
+        output_ref_db_basename = os.path.basename(args.out_db_name)
     output_ref_db_basepath = os.path.join(args.db_dir, output_ref_db_basename)
     # This is the output MATAM db file names
     # For the complete db fasta file
