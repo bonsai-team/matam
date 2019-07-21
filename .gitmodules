@@ -9,7 +9,7 @@
 	url = https://github.com/seqan/seqan.git
 [submodule "lib/bamtools"]
 	path = lib/bamtools
-	url = http://github.com/pezmaster31/bamtools
+	url = https://github.com/pezmaster31/bamtools
 [submodule "componentsearch"]
 	path = componentsearch
 	url = https://github.com/bonsai-team/ComponentSearch2.git
