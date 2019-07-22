@@ -88,7 +88,7 @@ Finally, if you prefer an interactive session with the container, run:
 
 ### <a id="full-dependencies-list"></a>2.3.1 Full dependencies list
 
-* **gcc v4.9.0 or superior**, (full C++11 support, \<regex\> included, and partial C++14 support)
+* **gcc v4.9.0 or superior**, (full C++11 support, \<regex\> included, and partial C++14 support). Compiling was tested and worked with up to GCC v9.1.0
 * C++ libraries: rt, pthread, zlib
 * Samtools v1.x or superior
 * automake, make, **cmake v3.1 or superior**
