@@ -99,13 +99,13 @@ Finally, if you prefer an interactive session with the container, run:
 * Java SE 7 or 8 JDK. OpenJDK is ok (openjdk-7-jdk or openjdk-8-jdk paquet on debian). Java version 11 or superior is not yet supported by RDPTools
 * bzip2
 * google sparse hash library (libsparsehash-dev paquet on debian)
-
+* groff
 
 ### <a id="install-dependencies"></a>2.3.2 Install dependencies
 
 To install all of the needed dependencies except samtools, you can run the following command-lines in Debian-like distributions :
 ```bash
-sudo apt-get update && sudo apt-get install curl git gcc g++ python3 python3-pip openjdk-8-jdk automake make cmake ant libsparsehash-dev zlib1g-dev bzip2
+sudo apt-get update && sudo apt-get install curl git gcc g++ python3 python3-pip openjdk-8-jdk automake make cmake ant libsparsehash-dev zlib1g-dev bzip2 groff
 sudo pip install numpy
 ```
 
