@@ -131,7 +131,7 @@ def test_metaquast(matam_results):
     error_rate = (mismatches + indels + ns) / 1000  # 100000bp * 100
 
     assert genome_fraction > 86.4
-    assert error_rate < 0.06
+    assert error_rate < 0.15
 
     if os.path.isdir(data_directory):
         shutil.rmtree(data_directory)
