@@ -29,6 +29,7 @@ dependencies:
   - krona
   - pytest
   - exonerate=2.2
+  - quast==5.0.2
 
 
 prefix: /home/lcouderc/miniconda3
