@@ -61,11 +61,9 @@ All the commands used in this README will be available in your PATH.
 
 ## <a id="matam-in-docker"></a>2.2 MATAM in Docker
 
-[![Docker Build Status](https://img.shields.io/docker/build/bonsaiteam/matam.svg)](https://hub.docker.com/r/bonsaiteam/matam/)
-
 To retrieve the docker image, run the following command:
 
-`docker pull bonsaiteam/matam`
+`docker pull quay.io/biocontainers/matam:{release_version}`
 
 Then all the commands used in this README will be available as:
 
@@ -79,8 +77,6 @@ Finally, if you prefer an interactive session with the container, run:
 
 
 ## <a id="matam-from-source-code"></a>2.3 MATAM from source code
-
-
 
 
 To install all of the needed dependencies you need conda installed. See the following section for more details on how to configure conda:
