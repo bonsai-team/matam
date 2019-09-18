@@ -67,14 +67,13 @@ To retrieve the docker image, run the following command:
 
 Then all the commands used in this README will be available as:
 
-`docker run -v host_directory:/workdir bonsaiteam/matam CMD`
+`docker run -v host_directory:/workdir quay.io/biocontainers/matam:{release_version} CMD`
 
 Noticed that you have to specify a docker volume to share data between the host and the container and use this workdir for your analysis. Otherwise your data will be lost when exiting the container.
 
 Finally, if you prefer an interactive session with the container, run:
 
-`docker run -it bonsaiteam/matam`
-
+`docker run -it quay.io/biocontainers/matam:{release_version}`
 
 ## <a id="matam-from-source-code"></a>2.3 MATAM from source code
 
