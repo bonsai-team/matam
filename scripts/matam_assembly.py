@@ -19,6 +19,8 @@ from krona import rdp_file_to_krona_text_file, make_krona_plot
 from binary_utils import Binary
 import components_assembly
 from assembler_factory import AssemblerFactory
+from fastq_utils import read_fastq_file_handle, is_phred33
+
 
 # Set LC_LANG to C for standard sort behaviour
 os.environ["LC_ALL"] = "C"
@@ -160,33 +162,6 @@ def read_fasta_file_handle(fasta_file_handle):
         yield (header, ''.join(seqlines))
     # Close input file
     fasta_file_handle.close()
-
-
-def read_fastq_file_handle(fastq_file_handle):
-    """
-    Parse a fastq file and return a generator
-    """
-    # Variables initialization
-    count = 0
-    header = ''
-    seq = ''
-    qual = ''
-    # Reading input file
-    for line in (l.strip() for l in fastq_file_handle if l.strip()):
-        count += 1
-        if count % 4 == 1:
-            if header:
-                yield header, seq, qual
-            header = line[1:].split()[0]
-        elif count % 4 == 2:
-            seq = line
-        elif count % 4 == 0:
-            qual = line
-    # yield last fastq sequence
-    yield header, seq, qual
-    # Close input file
-    fastq_file_handle.close()
-
 
 class FastaStats():
     """
@@ -934,6 +909,9 @@ def main():
             input_fastx_line_nb = int(subprocess.check_output('wc -l {0}'.format(input_fastx_filepath), shell=True, bufsize=0).split()[0])
             if input_fastx_line_nb % 4 != 0:
                 logger.warning('FastQ input file does not have a number of lines multiple of 4')
+            elif not is_phred33(input_fastx_filepath, number_of_reads_to_test=400):
+                logger.fatal('Due to SGA, MATAM support only FastQ file with an offset of +33')
+                sys.exit('Not a Phred+33 FastQ file')
             input_reads_nb = input_fastx_line_nb // 4
         elif input_fastx_extension in ('.fa', '.fasta'):
             input_reads_nb = int(subprocess.check_output('grep -c "^>" {0}'.format(input_fastx_filepath), shell=True, bufsize=0))

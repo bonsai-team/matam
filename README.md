@@ -131,7 +131,7 @@ where `$DBDIR` is the directory used to store the database.
 When your database is ready, then you will be able to reconstruct your markers:
 * Assembly only  
   In this mode, MATAM will reconstruct the full length sequences present in the sample.  
-  `matam_assembly.py -d $DBDIR/prefix -i reads.fastq --cpu 4 --max_memory 10000 -v`
+  `matam_assembly.py -d $DBDIR/prefix -i $FASTX --cpu 4 --max_memory 10000 -v`
 
 * Assembly and taxonomic assignment  
   In this mode, MATAM additionnaly provides a taxonomic classification of the sequences found, together with their abundance. Note that the
@@ -141,6 +141,7 @@ When your database is ready, then you will be able to reconstruct your markers:
 
 where `$DBDIR` is the database directory and `prefix` is the common prefix used to name the database files.
 For example, with the default database, the prefix is SILVA_128_SSURef_NR95.
+where `$FASTX` is either a FASTA or a FASTQ file. Note that in the case of FASTQ file, the score must be Phred+33 encoded.
 
 ## <a id="example-with-default-database-and-provided-dataset"></a>3.3 Example with default database and provided dataset
 
