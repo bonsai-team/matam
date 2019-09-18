@@ -141,7 +141,7 @@ When your database is ready, then you will be able to reconstruct your markers:
 
 where `$DBDIR` is the database directory and `prefix` is the common prefix used to name the database files.
 For example, with the default database, the prefix is SILVA_128_SSURef_NR95.
-where `$FASTX` is either a FASTA or a FASTQ file. Note that in the case of FASTQ file, the score must be Phred+33 encoded.
+where `$FASTX` is either a FASTA or a FASTQ file. Note that in bof cases, **the sequence identifiers have to be unique** and in the case of FASTQ file, **the score must be Phred+33 encoded**.
 
 ## <a id="example-with-default-database-and-provided-dataset"></a>3.3 Example with default database and provided dataset
 
