@@ -79,8 +79,7 @@ Finally, if you prefer an interactive session with the container, run:
 ## <a id="matam-from-source-code"></a>2.3 MATAM from source code
 
 
-To install all of the needed dependencies you need conda installed. See the following section for more details on how to configure conda:
-[2.1 MATAM with conda](#matam-with-conda)
+To install all of the needed dependencies you need conda installed. See the [following](#matam-with-conda) section for more details on how to configure conda.
 
 Then run the following commands:
 
