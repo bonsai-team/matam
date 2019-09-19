@@ -36,7 +36,7 @@ def is_phred33(fastq, number_of_reads_to_test=-1):
     max_ascii_code = 0
     with open(fastq, 'r') as handler:
         for i, (header, seq, qual) in enumerate(read_fastq_file_handle(handler)):
-            if number_of_reads_to_test > 0 and i > number_of_reads_to_test:
+            if number_of_reads_to_test > 0 and i >= number_of_reads_to_test:
                 break
 
             ascii_codes = set([ord(qual_char) for qual_char in qual])
