@@ -989,7 +989,7 @@ def main():
         t0_wall = time.time()
 
         logger.debug('CMD: {0}'.format(cmd_line))
-        runner.logged_call(cmd_line, verbose=args.verbose)
+        runner.logged_check_call(cmd_line, verbose=args.verbose)
 
         # Output running time
         logger.info('Good alignments filtering completed in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
