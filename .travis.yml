@@ -1,31 +1,13 @@
-dist: trusty
+dist: bionic
 sudo: required
-language: cpp
-
-
-#gcc 4.9
-matrix:
-  include:
-    # works on Precise and Trusty
-    - os: linux
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
-            - g++-4.9
-      env:
-         - MATRIX_EVAL="CC=gcc-4.9 && CXX=g++-4.9"
 
 before_install:
-  # - ./travis_download_db.sh & pid=$!
+  - ./travis_download_db.sh & pid=$!
   - free -m
-  - eval "${MATRIX_EVAL}"
 
 
 install:
   - sudo apt-get -qq update
-  # - sudo apt-get install -y xz-utils
   - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
   - bash miniconda.sh -b -p $HOME/miniconda
   - export PATH="$HOME/miniconda/bin:$PATH"
@@ -35,10 +17,9 @@ install:
   - conda info -a
   - conda env create -n matam -f environment.yml
   - source activate matam
-  - ./travis_build.sh
-  # - cd $HOME && wget https://sourceforge.net/projects/quast/files/quast-4.6.1.tar.gz && tar xvf quast-4.6.1.tar.gz  && export PATH="$HOME/quast-4.6.1":$PATH && cd -
+  - ./build.py
   # Wait until the db is dowloaded
-  # - while kill -0 $pid 2> /dev/null;  do sleep 1; done;
+  - while kill -0 $pid 2> /dev/null;  do sleep 1; done;
 
 script:
   - travis_wait 60 pytest -rs
