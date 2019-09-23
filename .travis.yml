@@ -22,4 +22,4 @@ install:
   - while kill -0 $pid 2> /dev/null;  do sleep 1; done;
 
 script:
-  - travis_wait 60 pytest -rs
+  - python -m pytest -s
