@@ -21,14 +21,14 @@ dependencies:
   - git
   - python >=3.5
   - numpy
-  - samtools=1.9=h8571acd_11 # samtools libcrypto.so.1.0.0 error (https://github.com/sunbeam-labs/sunbeam/issues/181)
+  - samtools==1.9=h8571acd_11 # samtools libcrypto.so.1.0.0 error (https://github.com/sunbeam-labs/sunbeam/issues/181)
   - sga
   - sortmerna
   - vsearch
   - rdptools
   - krona
   - pytest
-  - exonerate=2.2
+  - exonerate==2.2
   - quast==5.0.2
 
 
