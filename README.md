@@ -15,11 +15,12 @@ The related article of this method is available [here](https://doi.org/10.1093/b
   * [2.2 MATAM in Docker](#matam-in-docker)
   * [2.3 MATAM from source code](#matam-from-source-code)
 * [3. Run MATAM](#run-matam)
-  * [3.1 Database preparation](#database-preparation)
-    * [3.1.1 Provided database](#provided-database)
-    * [3.1.2 Custom database](#custom-database)
-  * [3.2 De-novo assembly](#de-novo-assembly)
-  * [3.3 Example with default database and provided dataset](#example-with-default-database-and-provided-dataset)
+  * [3.1 Input data](#input-data)
+  * [3.2 Database preparation](#database-preparation)
+    * [3.2.1 Provided database](#provided-database)
+    * [3.2.2 Custom database](#custom-database)
+  * [3.3 De-novo assembly](#de-novo-assembly)
+  * [3.4 Example with default database and provided dataset](#example-with-default-database-and-provided-dataset)
 * [4. Samples Comparaison](#samples-comparaison)
 * [5. Release versioning](#release-versioning)
 
@@ -103,9 +104,15 @@ Then run the following commands:
 
 # <a id="run-matam"></a>3. Run MATAM
 
-## <a id="database-preparation"></a>3.1 Database preparation (clustering & indexation)
+## <a id="input-data"></a>3.1 Input data
 
-### <a id="provided-database"></a>3.1.1 Provided database
+The reads used to reconstruct the markers can be provided under FASTA or FASTQ format.  
+Be aware than the **the sequence identifiers have to be unique**.  
+Moreover, for FASTQ format, the **the score must be Phred+33 encoded**.
+
+## <a id="database-preparation"></a>3.2 Database preparation (clustering & indexation)
+
+### <a id="provided-database"></a>3.2.1 Provided database
 
 By default, MATAM provides a SSU rRNA reference database where the clusterisation step has already been done (i.e. the sequences sharing 95% of identity have been clustered with [Sumaclust](https://git.metabarcoding.org/obitools/sumaclust/wikis/home)).  
 The  [FASTA](https://www.arb-silva.de/fileadmin/silva_databases/release_128/Exports/SILVA_128_SSURef_Nr99_tax_silva_trunc.fasta.gz) file used for this database comes from [SILVA 128 release](https://www.arb-silva.de/documentation/release-128/).
@@ -116,7 +123,7 @@ To use the default SSU rRNA reference database, run the following command:
 
 where `$DBDIR` is the directory used to store the database.
 
-### <a id="custom-database"></a>3.1.2 Custom database
+### <a id="custom-database"></a>3.2.2 Custom database
 
 If the provided database does not fulfill your needs, you can prepare a custom database of your own by running the following command:
 
@@ -124,7 +131,7 @@ If the provided database does not fulfill your needs, you can prepare a custom d
 
 where `$DBDIR` is the directory used to store the database.
 
-## <a id="de-novo-assembly"></a>3.2 De-novo assembly
+## <a id="de-novo-assembly"></a>3.3 De-novo assembly
 
 When your database is ready, then you will be able to reconstruct your markers:
 * Assembly only  
@@ -139,9 +146,9 @@ When your database is ready, then you will be able to reconstruct your markers:
 
 where `$DBDIR` is the database directory and `prefix` is the common prefix used to name the database files.
 For example, with the default database, the prefix is SILVA_128_SSURef_NR95.  
-where `$FASTX` is either a FASTA or a FASTQ file. Note that in bof cases, **the sequence identifiers have to be unique** and in the case of FASTQ file, **the score must be Phred+33 encoded**.
 
-## <a id="example-with-default-database-and-provided-dataset"></a>3.3 Example with default database and provided dataset
+
+## <a id="example-with-default-database-and-provided-dataset"></a>3.4 Example with default database and provided dataset
 
 1. Retrieve the example dataset: [16 bacterial species simulated dataset](examples/16sp_simulated_dataset/16sp.art_HS25_pe_100bp_50x.fq)
 
