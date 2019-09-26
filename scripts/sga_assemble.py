@@ -7,6 +7,13 @@ import argparse
 import re
 import subprocess
 
+def is_empty(fpath):
+    try:
+        return not (os.path.getsize(fpath) > 0)
+    except OSError:
+        pass
+    return True
+
 if __name__ == '__main__':
 
     # Arguments parsing
@@ -97,6 +104,9 @@ if __name__ == '__main__':
 
     sys.stdout.write('\nCMD: {0}\n\n'.format(cmd_line))
     subprocess.check_call(cmd_line, shell=True)
+    if is_empty(preprocess_output):
+        sys.stdout.write('\nWARNING: sga preprocess cmd return an empty file\n')
+        exit(0)
 
     ## Error correction
     error_corrected_output_basename = 'preprocess_output'
@@ -124,6 +134,10 @@ if __name__ == '__main__':
         sys.stdout.write('\nCMD: {0}\n\n'.format(cmd_line))
         subprocess.check_call(cmd_line, shell=True)
 
+        if is_empty(error_corrected_output_basename + '.fq'):
+            sys.stdout.write('\nWARNING: sga correct cmd return an empty file\n')
+            exit(0)
+
     ## Contig assembly
     # Index the corrected data
     cmd_line = args.sga_bin + ' index -a sais' # ropebwt algo will only work for sequences < 200bp
@@ -149,6 +163,10 @@ if __name__ == '__main__':
     sys.stdout.write('\nCMD: {0}\n'.format(cmd_line))
     subprocess.check_call(cmd_line, shell=True)
 
+    if is_empty(filtered_output):
+        sys.stdout.write('\nWARNING: sga filter cmd return an empty file\n')
+        exit(0)
+
     # Merge simple, unbranched chains of vertices
     fm_merge_overlap = 55
     merged_output_basename = 'merged_output'
@@ -159,6 +177,10 @@ if __name__ == '__main__':
 
     sys.stdout.write('\nCMD: {0}\n'.format(cmd_line))
     subprocess.check_call(cmd_line, shell=True)
+
+    if is_empty(merged_output_basename + '.fa'):
+        sys.stdout.write('\nWARNING: sga fm-merge cmd return an empty file\n')
+        exit(0)
 
     # Build an index of the merged sequences
     cmd_line = args.sga_bin + ' index -d 1000000'

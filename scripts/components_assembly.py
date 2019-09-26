@@ -14,20 +14,13 @@ from assembler_factory import AssemblerFactory
 
 logger = logging.getLogger(__name__)
 
-class FatalNonZeroFilter(logging.Filter):
-    """
-    workaround:
-    Some component assembly are authorized to fails (few amount of reads)
-    Remove FATAL message about non-zero return code
-    The component will log a WARNING instead
-    """
-    def filter(self, record):
-        if "non-zero return code" in record.getMessage().lower() and \
-        record.levelno == logging.FATAL:
-            return False
-        return True
 
-fn_filter = FatalNonZeroFilter()
+def is_empty(fpath):
+    try:
+        return not (os.path.getsize(fpath) > 0)
+    except OSError:
+        pass
+    return True
 
 def extract_reads_by_component(fastq, read_metanode_component_filepath):
     if not os.path.isfile(fastq):
@@ -161,9 +154,6 @@ def assemble_component(assembler_name,
                        in_fastq, workdir,
                        read_correction, cpu, coverage_threshold):
 
-    logging.getLogger().addFilter(fn_filter) # workaround to avoid FATAL messages on non-zero return code
-    fasta_file = os.path.join(workdir, 'empty.fasta')
-
     try:
         if read_correction != 'auto' and coverage_threshold is not None:
             logger.warning("Coverage_threshold %s makes no sense when read_correction is not auto. This argument will be ignored" % coverage_threshold)
@@ -174,6 +164,8 @@ def assemble_component(assembler_name,
         assembler.build_command_line(in_fastq, workdir, read_correction, cpu)
 
         fasta_file = assembler.run()
+        if is_empty(fasta_file): return
+
         estimated_cov = estimate_coverage(in_fastq, fasta_file)
         logger.debug("Estimated coverage:%s, %s" % (estimated_cov, in_fastq))
 
@@ -181,6 +173,7 @@ def assemble_component(assembler_name,
         if read_correction == 'auto' and estimated_cov is not None and estimated_cov > coverage_threshold:
             assembler.build_command_line(in_fastq, workdir, 'yes', cpu)
             fasta_file = assembler.run()
+            if is_empty(fasta_file): return
             estimated_cov2 = estimate_coverage(in_fastq, fasta_file)
             logger.debug("Estimated coverage, before:%s, after:%s, component:%s, cov_threshold:%s" % (estimated_cov, estimated_cov2, in_fastq, coverage_threshold))
 
@@ -188,16 +181,8 @@ def assemble_component(assembler_name,
             if estimated_cov2 is None:
                 logger.warning("0 length contigs from reads component: %s" % in_fastq)
     except SystemExit as se:
-        logger.warning('MATAM failed to assemble component: %s', in_fastq)
-        logger.warning(se)
-    except Exception as e:
-        logger.warning('MATAM failed to assemble component: %s', in_fastq)
-        logger.warning(e)
-    finally:
-        logging.getLogger().removeFilter(fn_filter)
-        # if the assembly of a component fails, the next steps will fail if the result file is missing
-        if not os.path.isfile(fasta_file):
-            os.mknod(fasta_file) #create empty file
+        logger.fatal('MATAM failed to assemble component: %s', in_fastq)
+        raise Exception # SystemExit cause the pool to hang, prefer a generic exception instead
 
     return fasta_file
 
@@ -256,10 +241,15 @@ def assemble_all_components(assembler_name,
         fasta_list = pool.starmap(assemble_component, params)
 
 
-
-
     # Make the correspondance between the component_id and the fasta file
     assembled_components_fasta = dict(zip(component_id_list, fasta_list))
+
+    # Filter out empty components
+    total_cpnt_nb = len(assembled_components_fasta)
+    assembled_components_fasta = { cpnt:fasta for (cpnt,fasta) in assembled_components_fasta.items() if fasta }
+    non_empty_cpnt_nb = len(assembled_components_fasta)
+    if non_empty_cpnt_nb != total_cpnt_nb:
+        logger.warning('Number of non empty components: %s/%s', non_empty_cpnt_nb, total_cpnt_nb)
 
     lca_dict = extract_lca_by_component(components_lca_filepath)
     logger.debug("Pool components contigs into: %s" % out_contigs_fasta)
