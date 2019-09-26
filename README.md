@@ -106,9 +106,8 @@ Then run the following commands:
 
 ## <a id="input-data"></a>3.1 Input data
 
-The reads used to reconstruct the markers can be provided under FASTA or FASTQ format.  
-Be aware than the **the sequence identifiers have to be unique**.  
-Moreover, for FASTQ format, the **the score must be Phred+33 encoded**.
+The reads used to reconstruct the markers must be provided under FASTQ format.  
+Be aware than the **the sequence identifiers have to be unique** and the **the score must be Phred+33 encoded**.
 
 ## <a id="database-preparation"></a>3.2 Database preparation (clustering & indexation)
 

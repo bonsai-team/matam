@@ -239,10 +239,10 @@ def parse_arguments():
 
     # Main parameters
     group_main = parser.add_argument_group('Main parameters')
-    # -i / --input_fastx
-    group_main.add_argument('-i', '--input_fastx',
+    # -i / --input_fastq
+    group_main.add_argument('-i', '--input_fastq',
                             action = 'store',
-                            metavar = 'FASTX',
+                            metavar = 'FASTQ',
                             type = str,
                             required = True,
                             help = 'Input reads file (fasta or fastq format)')
@@ -542,7 +542,7 @@ def parse_arguments():
         args.out_dir = 'matam_assembly'
 
     # Get absolute path for all arguments
-    args.input_fastx = os.path.abspath(args.input_fastx)
+    args.input_fastq = os.path.abspath(args.input_fastq)
     args.ref_db = os.path.abspath(args.ref_db)
     args.out_dir = os.path.abspath(args.out_dir)
     if args.true_references:
@@ -635,7 +635,7 @@ def print_intro(args):
     # Main parameters
     cmd_line += '--out_dir {0} '.format(args.out_dir)
     cmd_line += '--ref_db {0} '.format(args.ref_db)
-    cmd_line += '--input_fastx {0} '.format(args.input_fastx)
+    cmd_line += '--input_fastq {0} '.format(args.input_fastq)
 
     # Print cmd line
     logger.info('CMD: {0}'.format(cmd_line))
@@ -698,9 +698,9 @@ def main():
     sort_bin = 'sort -T ' + workdir + ' -S ' + str(args.max_memory)
     sort_bin += 'M --parallel ' + str(args.cpu)
 
-    input_fastx_filepath = args.input_fastx
-    input_fastx_filename = os.path.basename(input_fastx_filepath)
-    input_fastx_basename, input_fastx_extension = os.path.splitext(input_fastx_filename)
+    input_fastq_filepath = args.input_fastq
+    input_fastq_filename = os.path.basename(input_fastq_filepath)
+    input_fastq_basename, input_fastq_extension = os.path.splitext(input_fastq_filename)
 
     ref_db_basepath = args.ref_db
     ref_db_dir, ref_db_basename = os.path.split(ref_db_basepath)
@@ -719,12 +719,12 @@ def main():
     clustered_ref_db_filepath = os.path.join(ref_db_dir, clustered_ref_db_filename)
 
     # Read mapping
-    sortme_output_basename = input_fastx_basename
+    sortme_output_basename = input_fastq_basename
     sortme_output_basename += '.sortmerna_vs_' + ref_db_basename
     sortme_output_basename += '_b' + str(args.best) + '_m' + str(args.min_lis)
     sortme_output_basepath = os.path.join(workdir, sortme_output_basename)
 
-    sortme_output_fastx_filepath = sortme_output_basepath + input_fastx_extension
+    sortme_output_fastq_filepath = sortme_output_basepath + input_fastq_extension
     sortme_output_sam_filepath = sortme_output_basepath + '.sam'
 
     # Alignments filtering
@@ -905,21 +905,19 @@ def main():
     input_reads_nb = -1
 
     if run_step:
-        if input_fastx_extension in ('.fq', '.fastq'):
-            input_fastx_line_nb = int(subprocess.check_output('wc -l {0}'.format(input_fastx_filepath), shell=True, bufsize=0).split()[0])
-            if input_fastx_line_nb % 4 != 0:
+        if input_fastq_extension in ('.fq', '.fastq'):
+            input_fastq_line_nb = int(subprocess.check_output('wc -l {0}'.format(input_fastq_filepath), shell=True, bufsize=0).split()[0])
+            if input_fastq_line_nb % 4 != 0:
                 logger.warning('FastQ input file does not have a number of lines multiple of 4')
-            elif not is_phred33(input_fastx_filepath, number_of_reads_to_test=400):
+            elif not is_phred33(input_fastq_filepath, number_of_reads_to_test=400):
                 logger.fatal('Due to SGA, MATAM support only FastQ file with an offset of +33')
                 sys.exit('Not a Phred+33 FastQ file')
-            input_reads_nb = input_fastx_line_nb // 4
-        elif input_fastx_extension in ('.fa', '.fasta'):
-            input_reads_nb = int(subprocess.check_output('grep -c "^>" {0}'.format(input_fastx_filepath), shell=True, bufsize=0))
+            input_reads_nb = input_fastq_line_nb // 4
         else:
-            logger.warning('Input fastx file extension was not recognised ({0})'.format(input_fastx_extension))
+            logger.warning('Input fastq file extension was not recognised ({0})'.format(input_fastq_extension))
 
         logger.info('=== Input ===')
-        logger.info('Input file: {}'.format(input_fastx_filepath))
+        logger.info('Input file: {}'.format(input_fastq_filepath))
         logger.info('Input file reads nb: {} reads'.format(input_reads_nb))
 
     ###############################
@@ -934,7 +932,7 @@ def main():
 
         cmd_line = sortmerna_bin + ' --ref ' + clustered_ref_db_filepath
         cmd_line += ',' + clustered_ref_db_basepath + ' --reads '
-        cmd_line += input_fastx_filepath + ' --aligned ' + sortme_output_basepath
+        cmd_line += input_fastq_filepath + ' --aligned ' + sortme_output_basepath
         cmd_line += ' --fastx --sam --blast "1" --log --best '
         cmd_line += str(args.best) + ' --min_lis ' + str(args.min_lis)
         cmd_line += ' -e {0:.2e}'.format(args.evalue)
@@ -953,11 +951,9 @@ def main():
     # Get selected reads number
     selected_reads_nb = -1
 
-    if input_fastx_extension in ('.fq', '.fastq'):
-        selected_fastx_line_nb = int(subprocess.check_output('wc -l {0}'.format(sortme_output_fastx_filepath), shell=True, bufsize=0).split()[0])
-        selected_reads_nb = selected_fastx_line_nb // 4
-    elif input_fastx_extension in ('.fa', '.fasta'):
-        selected_reads_nb = int(subprocess.check_output('grep -c "^>" {0}'.format(sortme_output_fastx_filepath), shell=True, bufsize=0))
+    if input_fastq_extension in ('.fq', '.fastq'):
+        selected_fastq_line_nb = int(subprocess.check_output('wc -l {0}'.format(sortme_output_fastq_filepath), shell=True, bufsize=0).split()[0])
+        selected_reads_nb = selected_fastq_line_nb // 4
 
     logger.info('Identified as marker: {} / {} reads ({:.2f}%)'.format(selected_reads_nb, input_reads_nb, selected_reads_nb*100.0/input_reads_nb))
 
@@ -1186,7 +1182,7 @@ def main():
         t0_wall = time.time()
 
         components_assembly.assemble_all_components(args.assembler,
-                                                    sortme_output_fastx_filepath, read_metanode_component_filepath, components_lca_filepath,
+                                                    sortme_output_fastq_filepath, read_metanode_component_filepath, components_lca_filepath,
                                                     contigs_filepath, contigs_assembly_wkdir,
                                                     args.cpu, args.read_correction, args.contig_coverage_threshold)
 
@@ -1446,7 +1442,7 @@ def main():
     # Abundance calculation
 
     scaffolds_fasta = large_NR_scaffolds_filepath
-    reads = sortme_output_fastx_filepath
+    reads = sortme_output_fastq_filepath
     fasta_with_abundance_filepath =  '%s.abd%s' % os.path.splitext(scaffolds_fasta)
     abundance = None
 
