@@ -135,7 +135,7 @@ where `$DBDIR` is the directory used to store the database.
 When your database is ready, then you will be able to reconstruct your markers:
 * Assembly only  
   In this mode, MATAM will reconstruct the full length sequences present in the sample.  
-  `matam_assembly.py -d $DBDIR/prefix -i $FASTX --cpu 4 --max_memory 10000 -v`
+  `matam_assembly.py -d $DBDIR/prefix -i reads.fastq --cpu 4 --max_memory 10000 -v`
 
 * Assembly and taxonomic assignment  
   In this mode, MATAM additionnaly provides a taxonomic classification of the sequences found, together with their abundance. Note that the
