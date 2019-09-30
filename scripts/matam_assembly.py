@@ -73,38 +73,6 @@ matam_db_dir = os.path.join(matam_root_dir, 'db')
 # Set default ref db
 default_ref_db = os.path.join(matam_db_dir, 'SILVA_128_SSURef_NR95')
 
-# Get all dependencies bin
-matam_script_dir = os.path.join(matam_root_dir, 'scripts')
-clean_name_bin = os.path.join(matam_script_dir, 'fasta_clean_name.py')
-sample_sam_cov_bin = Binary.assert_which('sample_sam_by_coverage.py')
-filter_score_bin = os.path.join(matam_script_dir, 'filter_score_multialign.py')
-compute_lca_bin = os.path.join(matam_script_dir, 'compute_lca_from_tab.py')
-compute_compressed_graph_stats_bin = os.path.join(matam_script_dir, 'compute_compressed_graph_stats.py')
-remove_redundant_bin = os.path.join(matam_script_dir, 'remove_redundant_sequences.py')
-fastq_name_filter_bin = os.path.join(matam_script_dir, 'fastq_name_filter.py')
-evaluate_assembly_bin = os.path.join(matam_script_dir, 'evaluate_assembly.py')
-get_best_matches_bin = os.path.join(matam_script_dir, 'get_best_matches_from_blast.py')
-gener_scaff_blast_bin = os.path.join(matam_script_dir, 'generate_scaffolding_blast.py')
-filter_sam_blast_bin = os.path.join(matam_script_dir, 'filter_sam_based_on_blast.py')
-compute_contigs_compatibility_bin = os.path.join(matam_script_dir, 'compute_contigs_compatibility.py')
-scaffold_contigs_bin = os.path.join(matam_script_dir, 'scaffold_contigs.py')
-fasta_length_filter_bin = os.path.join(matam_script_dir, 'fasta_length_filter.py')
-sortmerna_bin = Binary.assert_which('sortmerna')
-indexdb_bin = Binary.assert_which('indexdb_rna')
-ovgraphbuild_bin = Binary.assert_which('ovgraphbuild')
-componentsearch_bin = Binary.assert_which('componentsearch')
-krona_bin = Binary.assert_which('ktImportText')
-
-rdp_jar = Binary.which('classifier.jar')
-
-# the rdp exe name is different between submodule installation and conda installation
-if rdp_jar is not None:
-    java = Binary.assert_which('java')
-    rdp_exe = '{java} -Xmx1g -jar {jar}'.format(java=java, jar=rdp_jar)
-else:
-    rdp_exe = Binary.assert_which('classifier')
-
-
 def force_symlink(target, link_name):
     if os.path.exists(link_name):
         os.remove(link_name)
@@ -663,6 +631,42 @@ def main():
 
     # Arguments parsing
     args = parse_arguments()
+
+    # Get all dependencies bin
+    matam_script_dir = os.path.join(matam_root_dir, 'scripts')
+    clean_name_bin = os.path.join(matam_script_dir, 'fasta_clean_name.py')
+    sample_sam_cov_bin = Binary.assert_which('sample_sam_by_coverage.py')
+    filter_score_bin = os.path.join(matam_script_dir, 'filter_score_multialign.py')
+    compute_lca_bin = os.path.join(matam_script_dir, 'compute_lca_from_tab.py')
+    compute_compressed_graph_stats_bin = os.path.join(matam_script_dir, 'compute_compressed_graph_stats.py')
+    remove_redundant_bin = os.path.join(matam_script_dir, 'remove_redundant_sequences.py')
+    fastq_name_filter_bin = os.path.join(matam_script_dir, 'fastq_name_filter.py')
+    evaluate_assembly_bin = os.path.join(matam_script_dir, 'evaluate_assembly.py')
+    get_best_matches_bin = os.path.join(matam_script_dir, 'get_best_matches_from_blast.py')
+    gener_scaff_blast_bin = os.path.join(matam_script_dir, 'generate_scaffolding_blast.py')
+    filter_sam_blast_bin = os.path.join(matam_script_dir, 'filter_sam_based_on_blast.py')
+    compute_contigs_compatibility_bin = os.path.join(matam_script_dir, 'compute_contigs_compatibility.py')
+    scaffold_contigs_bin = os.path.join(matam_script_dir, 'scaffold_contigs.py')
+    fasta_length_filter_bin = os.path.join(matam_script_dir, 'fasta_length_filter.py')
+    sortmerna_bin = Binary.assert_which('sortmerna')
+    indexdb_bin = Binary.assert_which('indexdb_rna')
+    ovgraphbuild_bin = Binary.assert_which('ovgraphbuild')
+    componentsearch_bin = Binary.assert_which('componentsearch')
+    krona_bin = Binary.assert_which('ktImportText')
+
+    rdp_jar = Binary.which('classifier.jar')
+
+    # the rdp exe name is different between submodule installation and conda installation
+    if rdp_jar is not None:
+        java = Binary.assert_which('java')
+        rdp_exe = '{java} -Xmx1g -jar {jar}'.format(java=java, jar=rdp_jar)
+    else:
+        rdp_exe = Binary.assert_which('classifier')
+
+    # the assembler is determined by the user, let the facotry check for us
+    assembler_factory = AssemblerFactory()
+    assembler = assembler_factory.get(args.assembler)
+
 
     # Init error code
     error_code = 0
