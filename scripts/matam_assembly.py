@@ -654,14 +654,19 @@ def main():
     componentsearch_bin = Binary.assert_which('componentsearch')
     krona_bin = Binary.assert_which('ktImportText')
 
-    rdp_jar = Binary.which('classifier.jar')
-
-    # the rdp exe name is different between submodule installation and conda installation
-    if rdp_jar is not None:
-        java = Binary.assert_which('java')
-        rdp_exe = '{java} -Xmx1g -jar {jar}'.format(java=java, jar=rdp_jar)
-    else:
-        rdp_exe = Binary.assert_which('classifier')
+    # check the presence of the classifer only if needed
+    java, rdp_jar, rdp_exe = (None, None, None)
+    if args.perform_taxonomic_assignment:
+        rdp_jar = Binary.which('classifier.jar')
+        # the rdp exe name is different between submodule installation and conda installation
+        if rdp_jar is not None:
+            java = Binary.assert_which('java')
+            rdp_exe = '{java} -Xmx1g -jar {jar}'.format(java=java, jar=rdp_jar)
+        else:
+            rdp_exe = Binary.which('classifier')
+            if not rdp_exe:
+                logger.fatal('RDP classifier is missing. MATAM can still be run by removing the --perform_taxonomic_assignment flag')
+                sys.exit(1)
 
     # the assembler is determined by the user, let the facotry check for us
     assembler_factory = AssemblerFactory()
