@@ -912,13 +912,15 @@ def main():
         if input_fastq_extension in ('.fq', '.fastq'):
             input_fastq_line_nb = int(subprocess.check_output('wc -l {0}'.format(input_fastq_filepath), shell=True, bufsize=0).split()[0])
             if input_fastq_line_nb % 4 != 0:
-                logger.warning('FastQ input file does not have a number of lines multiple of 4')
+                logger.fatal('FastQ input file does not have a number of lines multiple of 4')
+                sys.exit('Wrong number of lines')
             elif not is_phred33(input_fastq_filepath, number_of_reads_to_test=400):
                 logger.fatal('Due to SGA, MATAM support only FastQ file with an offset of +33')
                 sys.exit('Not a Phred+33 FastQ file')
             input_reads_nb = input_fastq_line_nb // 4
         else:
-            logger.warning('Input fastq file extension was not recognised ({0})'.format(input_fastq_extension))
+            logger.fatal('Input fastq file extension was not recognised ({0})'.format(input_fastq_extension))
+            sys.exit('Wrong extension')
 
         logger.info('=== Input ===')
         logger.info('Input file: {}'.format(input_fastq_filepath))
