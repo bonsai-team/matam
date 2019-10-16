@@ -7,19 +7,17 @@ channels:
 
 
 dependencies:
-  - gcc_linux-64
+  - gxx_linux-64
   - make
   - cmake
   - autoconf
   - automake
+
   - coreutils # Centos6 (otherwise sort --parallel is unrecognized)
   - wget
   - bzip2
   - zlib
-  - curl
-  - sed
-  - git
-  - python >=3.5
+  - python >=3
   - numpy
   - samtools
   - sga
@@ -27,6 +25,10 @@ dependencies:
   - vsearch
   - rdptools
   - krona
+
+  - curl
+  - sed
+  - git
   - pytest
   - exonerate==2.2
   - quast==5.0.2

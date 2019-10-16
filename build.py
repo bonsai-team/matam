@@ -114,7 +114,7 @@ normally created by building the program. Default is %(default)s",
 
     elif args.target == 'build':
         info = '-- Compiling ComponentSearch --'
-        cmd_line = 'make'
+        cmd_line = 'make CC=$CXX'
         warning = 'A problem might have happened while compiling ComponentSearch. Check log above'
         global_error_code += execute_cmd(cmd_line,
                                          componentsearch_dirpath, info, warning)
