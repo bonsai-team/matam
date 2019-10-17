@@ -79,11 +79,6 @@ Exemple:
 
 This workflow extend the contribution workflow of [Bioconda](https://bioconda.github.io/index.html)
 
-## 0 - Prerequisites
-
-* [Anaconda](https://docs.anaconda.com/anaconda/install/)
-* [Docker](https://docs.docker.com/install/)
-
 ## 1 - Initial Setup
 1. Create a Fork of our [Recipes Repo](https://github.com/bioconda/bioconda-recipes.git)
 2. Create Local “Clone”
@@ -141,6 +136,7 @@ bioconda-utils build --docker --mulled-test --packages matam
   ```
 
 WARNING: checks out that the right matam package was used!
-## 4 - Remove the dev label on anaconda
+
+## 4 - Remove the anaconda package
 if you are happy with your new package, remove the conda package from [anaconca](https://anaconda.org/bonsai-team/matam/files)
 and perform a pull request to Bioconca team.
