@@ -94,7 +94,7 @@ to the abundance of this scaffold only as 1 weight where weight=1/uniq_scaffolds
 
 
 def get_abundance_by_scaffold(idx_bin, map_bin, best_bin,
-                              input_fasta_ref, input_fasta_reads,
+                              input_fasta_ref, input_fastq_reads,
                               best=10, min_lis=10, evalue=1e-05,
                               max_mem=10000, cpu=4,
                               output_dir_basepath="/tmp/",
@@ -111,7 +111,7 @@ def get_abundance_by_scaffold(idx_bin, map_bin, best_bin,
 
     #reads mapping
     filtered_basepath = os.path.join(outdir, 'filt_prefix')
-    reads_mapping(map_bin, input_fasta_ref, idx_ref_basepath, input_fasta_reads, filtered_basepath, best, min_lis, evalue, cpu, verbose=verbose)
+    reads_mapping(map_bin, input_fasta_ref, idx_ref_basepath, input_fastq_reads, filtered_basepath, best, min_lis, evalue, cpu, verbose=verbose)
 
     #best matches
     blast_path = '%s.blast' % filtered_basepath

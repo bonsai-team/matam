@@ -21,12 +21,6 @@ matam_root_dirpath = program_dirpath
 matam_scripts_dirpath = os.path.join(matam_root_dirpath, 'scripts')
 componentsearch_dirpath = os.path.join(matam_root_dirpath, 'componentsearch')
 ovgraphbuild_dirpath = os.path.join(matam_root_dirpath, 'ovgraphbuild')
-sortmerna_dirpath = os.path.join(matam_root_dirpath, 'sortmerna')
-vsearch_dirpath = os.path.join(matam_root_dirpath, 'vsearch')
-bamtools_lib_dirpath = os.path.join(matam_root_dirpath, 'lib', 'bamtools')
-sga_dirpath = os.path.join(matam_root_dirpath, 'sga')
-rdptools_dirpath = os.path.join(matam_root_dirpath, 'RDPTools')
-kronatools_dirpath = os.path.join(matam_root_dirpath, 'Krona', 'KronaTools')
 
 
 def makedir(dirpath):
@@ -120,7 +114,7 @@ normally created by building the program. Default is %(default)s",
 
     elif args.target == 'build':
         info = '-- Compiling ComponentSearch --'
-        cmd_line = 'make'
+        cmd_line = 'make CC=$CXX'
         warning = 'A problem might have happened while compiling ComponentSearch. Check log above'
         global_error_code += execute_cmd(cmd_line,
                                          componentsearch_dirpath, info, warning)
@@ -147,123 +141,6 @@ normally created by building the program. Default is %(default)s",
                                          info,
                                          warning,
                                          createdir=True)
-
-    #####################
-    # Building SortMeRNA
-
-    if args.target == 'clean':
-        info = '-- Cleaning SortMeRNA --'
-        cmd_line = 'make distclean'
-        warning = 'A problem might have happened while cleaning SortMeRNA. Check log above'
-        global_error_code += execute_cmd(cmd_line,
-                                         sortmerna_dirpath, info, warning)
-
-    elif args.target == 'build':
-        info = '-- Building SortMeRNA --'
-        cmd_line = './build.sh'
-        warning = 'A problem might have happened while building SortMeRNA. Check log above'
-        global_error_code += execute_cmd(cmd_line,
-                                         sortmerna_dirpath, info, warning)
-
-    ######################
-    # Compiling VSearch
-
-    if args.target == 'clean':
-        info = '-- Cleaning VSearch --'
-        cmd_line = 'make clean'
-        warning = 'A problem might have happened while cleaning VSearch. Check log above'
-        global_error_code += execute_cmd(cmd_line,
-                                         vsearch_dirpath, info, warning)
-
-    elif args.target == 'build':
-        info = '-- Compiling VSearch --'
-
-        cmd_line = './autogen.sh && ./configure && make'
-        warning = 'A problem might have happened while compiling VSearch. Check log above'
-        global_error_code += execute_cmd(cmd_line,
-                                         vsearch_dirpath, info, warning)
-
-    #########################
-    # Compiling Bamtools lib
-
-    if args.target == 'clean':
-        info = '-- Cleaning Bamtools lib (for SGA) --'
-        warning = 'A problem might have happened while cleaning Bamtools lib. Check log above'
-        cmd_line = 'rm -rf build bin include lib src/toolkit/bamtools_version.h'
-        global_error_code += execute_cmd(cmd_line,
-                                         bamtools_lib_dirpath, info, warning,)
-    elif args.target == 'build':
-        info = '-- Compiling Bamtools lib (for SGA) --'
-        bamtools_lib_build_dirpath = os.path.join(
-            bamtools_lib_dirpath, 'build')
-        cmd_line = 'CC=gcc CXX=g++ cmake .. && make'
-        warning = 'A problem might have happened while compiling Bamtools lib. Check log above'
-        global_error_code += execute_cmd(cmd_line,
-                                         bamtools_lib_build_dirpath,
-                                         info,
-                                         warning,
-                                         createdir=True)
-
-    ################
-    # Compiling SGA
-
-    if args.target == 'clean':
-        info = '-- Cleaning SGA --'
-        # "make distclean" is not enough, use git clean instead.
-        # Be aware that all local changes to SGA submodule
-        # will be lost
-        cmd_line = 'git clean -xfd'
-        warning = 'A problem might have happened while cleaning SGA. Check log above'
-        global_error_code += execute_cmd(cmd_line, sga_dirpath, info, warning)
-    elif args.target == 'build':
-        info = '-- Compiling SGA --'
-        sga_src_dirpath = os.path.join(sga_dirpath, 'src')
-        cmd_line = './autogen.sh && '
-        cmd_line += 'CC=gcc CXX=g++ ./configure --with-bamtools=' + \
-            bamtools_lib_dirpath + ' && make'
-        warning = 'A problem might have happened while compiling SGA. Check log above'
-        global_error_code += execute_cmd(cmd_line,
-                                         sga_src_dirpath, info, warning)
-
-    #####################
-    # Compiling RDPTools
-
-    if args.target == 'clean':
-        info = '-- Cleaning RDPTools --'
-        cmd_line = 'make clean'
-        warning = 'A problem might have happened while cleaning RDPTools. Check log above'
-        global_error_code += execute_cmd(cmd_line,
-                                         rdptools_dirpath, info, warning)
-
-    elif args.target == 'build':
-        info = '-- Compiling RDPTools --'
-        cmd_line = 'make && chmod +x classifier.jar'
-        warning = 'A problem might have happened while compiling RDPTools. Check log above'
-        global_error_code += execute_cmd(cmd_line,
-                                         rdptools_dirpath,
-                                         info,
-                                         warning,
-                                         createdir=True)
-
-    ########################
-    # Installing KronaTools
-    krona_install_dirpath = os.path.join(
-        kronatools_dirpath, 'bin')
-
-    if args.target == 'clean':
-        info = '-- Cleaning Krona --'
-        warning = 'A problem might have happened while cleaning Krona. Check log above'
-        cmd_line = 'rm -rf %s' % krona_install_dirpath
-        global_error_code += execute_cmd(cmd_line,
-                                         krona_install_dirpath, info, warning)
-    elif args.target == 'build':
-        info = '-- Installing Krona --'
-        cmd_line = './install.pl --prefix %s' % kronatools_dirpath
-        warning = 'A problem might have happened while installing Krona. Check log above'
-        global_error_code += execute_cmd(cmd_line,
-                                         kronatools_dirpath,
-                                         info,
-                                         warning)
 
     ##############################
     # Creating links into bin dir

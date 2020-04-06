@@ -52,5 +52,6 @@ def logged_check_call(command, verbose=False):
     """
     returncode = logged_call(command, verbose=verbose)
     if returncode != 0:
+        logger.info('CMD: {0}'.format(command))
         logger.fatal('The last command returns a non-zero return code: %s' % returncode)
         sys.exit('Non-zero return code')

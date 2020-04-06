@@ -1,35 +1,37 @@
 name: matam
 
 channels:
-- bioconda
 - conda-forge
-- bonsai-team
+- bioconda
 - defaults
 
+
 dependencies:
-  - sed
-  - git
-  - curl
-  #- gcc-5
-  #- libgcc-5
-  - python >=3.5
-  - numpy
-#  - autoconf
+  - gxx_linux-64
   - make
-  - cmake >=3.1
-  - wget
-#  - automake
-  - sparsehash
-  - zlib
-  - bzip2
+  - cmake
+  - autoconf
+  - automake
+
   - coreutils # Centos6 (otherwise sort --parallel is unrecognized)
-  - samtools ==1.4.1 # Centos7 (otherwise need libbz2.so.1.0)
-  - vsearch
+  - wget
+  - bzip2
+  - zlib
+  - python >=3
+  - numpy
+  - samtools
   - sga
-  - sortmerna >=2.1*
+  - sortmerna
+  - vsearch
   - rdptools
   - krona
-  - exonerate=2.2
+
+  - curl
+  - sed
+  - git
   - pytest
+  - exonerate==2.2
+  - quast==5.0.2
+
 
 prefix: /home/lcouderc/miniconda3
