@@ -1001,7 +1001,7 @@ def main():
 
         cmd_line = 'cat ' + sortme_output_sam_filepath
         cmd_line += ' | grep -v "^@" | '
-        cmd_line += sort_bin + ' -k 1,1V -k 12,12nr'
+        cmd_line += sort_bin + ' -k 1,1V -k 12,12Vr'
         cmd_line += ' | ' + filter_score_bin + ' -t ' + str(args.score_threshold)
         if not args.straight_mode:
             cmd_line += ' --geometric'
@@ -1021,7 +1021,7 @@ def main():
             cmd_line += ' | ' + sort_bin + ' -k 3,3 -k 4,4n'
             cmd_line += ' | ' + sample_sam_cov_bin + ' -c ' + str(args.coverage_threshold)
             cmd_line += ' -r ' + clustered_ref_db_filepath
-            cmd_line += ' | ' + sort_bin + ' -k 1,1V -k 12,12nr'
+            cmd_line += ' | ' + sort_bin + ' -k 1,1V -k 12,12Vr'
             cmd_line += ' > ' + sam_cov_filt_filepath
 
             # Set t0
