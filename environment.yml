@@ -7,26 +7,28 @@ channels:
 
 
 dependencies:
-  - gcc_linux-64
+  - gxx_linux-64
   - make
   - cmake
   - autoconf
   - automake
+
   - coreutils # Centos6 (otherwise sort --parallel is unrecognized)
   - wget
   - bzip2
   - zlib
-  - curl
-  - sed
-  - git
-  - python >=3.5
+  - python >=3
   - numpy
-  - samtools==1.9=h8571acd_11 # samtools libcrypto.so.1.0.0 error (https://github.com/sunbeam-labs/sunbeam/issues/181)
+  - samtools
   - sga
   - sortmerna
   - vsearch
   - rdptools
   - krona
+
+  - curl
+  - sed
+  - git
   - pytest
   - exonerate==2.2
   - quast==5.0.2

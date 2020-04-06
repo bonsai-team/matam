@@ -46,7 +46,7 @@ or as a docker container, or directly from the source code.
 
 [![Anaconda-Server Badge](https://anaconda.org/bioconda/matam/badges/version.svg)](https://anaconda.org/bioconda/matam)
 
-Before you begin, you should have installed Miniconda or Anaconda. See https://conda.io/docs/installation.html for more details.  
+Before you begin, you should have installed Miniconda or Anaconda. See https://docs.conda.io/projects/conda/en/latest/user-guide/install/ for more details.  
 Then you will need to add the followings channels:
 ```
 conda config --add channels defaults
