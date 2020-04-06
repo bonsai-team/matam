@@ -1,24 +1,6 @@
-[submodule "sortmerna"]
-	path = sortmerna
-	url = https://github.com/biocore/sortmerna.git
-[submodule "sga"]
-	path = sga
-	url = https://github.com/jts/sga.git
 [submodule "ovgraphbuild/lib/seqan"]
 	path = ovgraphbuild/lib/seqan
 	url = https://github.com/seqan/seqan.git
-[submodule "lib/bamtools"]
-	path = lib/bamtools
-	url = https://github.com/pezmaster31/bamtools
 [submodule "componentsearch"]
 	path = componentsearch
 	url = https://github.com/bonsai-team/ComponentSearch2.git
-[submodule "vsearch"]
-	path = vsearch
-	url = https://github.com/torognes/vsearch.git
-[submodule "RDPTools"]
-	path = RDPTools
-	url = https://github.com/rdpstaff/RDPTools.git
-[submodule "Krona"]
-	path = Krona
-	url = https://github.com/marbl/Krona.git

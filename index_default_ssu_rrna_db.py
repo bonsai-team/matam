@@ -165,6 +165,7 @@ if __name__ == '__main__':
 
     if global_error_code > 0:
         logger.warning('Problems might have happened during indexing. Please check log above')
+        sys.exit(global_error_code)
     else:
         logger.debug('Indexing completed in {0:.2f} seconds'.format(time.time() - global_t0_wall))
         logger.info('Indexing went well. '

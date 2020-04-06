@@ -14,6 +14,14 @@ from assembler_factory import AssemblerFactory
 
 logger = logging.getLogger(__name__)
 
+
+def is_empty(fpath):
+    try:
+        return not (os.path.getsize(fpath) > 0)
+    except OSError:
+        pass
+    return True
+
 def extract_reads_by_component(fastq, read_metanode_component_filepath):
     if not os.path.isfile(fastq):
         logger.fatal('The input reads file does not exists:%s' % fastq)
@@ -142,33 +150,39 @@ def estimate_coverage(reads_fq, contigs_fa):
 
     return estimated_cov
 
-
 def assemble_component(assembler_name,
                        in_fastq, workdir,
                        read_correction, cpu, coverage_threshold):
 
-    if read_correction != 'auto' and coverage_threshold is not None:
-        logger.warning("Coverage_threshold %s makes no sense when read_correction is not auto. This argument will be ignored" % coverage_threshold)
+    try:
+        if read_correction != 'auto' and coverage_threshold is not None:
+            logger.warning("Coverage_threshold %s makes no sense when read_correction is not auto. This argument will be ignored" % coverage_threshold)
 
-    logger.debug('Assembling: %s' % in_fastq)
-    assembler_factory = AssemblerFactory()
-    assembler = assembler_factory.get(assembler_name)
-    assembler.build_command_line(in_fastq, workdir, read_correction, cpu)
+        logger.debug('Assembling: %s' % in_fastq)
+        assembler_factory = AssemblerFactory()
+        assembler = assembler_factory.get(assembler_name)
+        assembler.build_command_line(in_fastq, workdir, read_correction, cpu)
 
-    fasta_file = assembler.run()
-    estimated_cov = estimate_coverage(in_fastq, fasta_file)
-    logger.debug("Estimated coverage:%s, %s" % (estimated_cov, in_fastq))
-
-    # Re-run the assembly with error correction activated when read_correction == auto
-    if read_correction == 'auto' and estimated_cov is not None and estimated_cov > coverage_threshold:
-        assembler.build_command_line(in_fastq, workdir, 'yes', cpu)
         fasta_file = assembler.run()
-        estimated_cov2 = estimate_coverage(in_fastq, fasta_file)
-        logger.debug("Estimated coverage, before:%s, after:%s, component:%s, cov_threshold:%s" % (estimated_cov, estimated_cov2, in_fastq, coverage_threshold))
+        if is_empty(fasta_file): return
 
-        # suspicious when estimate_cov is not None and estimated_cov2 is None
-        if estimated_cov2 is None:
-            logger.warning("0 length contigs from reads component: %s" % in_fastq)
+        estimated_cov = estimate_coverage(in_fastq, fasta_file)
+        logger.debug("Estimated coverage:%s, %s" % (estimated_cov, in_fastq))
+
+        # Re-run the assembly with error correction activated when read_correction == auto
+        if read_correction == 'auto' and estimated_cov is not None and estimated_cov > coverage_threshold:
+            assembler.build_command_line(in_fastq, workdir, 'yes', cpu)
+            fasta_file = assembler.run()
+            if is_empty(fasta_file): return
+            estimated_cov2 = estimate_coverage(in_fastq, fasta_file)
+            logger.debug("Estimated coverage, before:%s, after:%s, component:%s, cov_threshold:%s" % (estimated_cov, estimated_cov2, in_fastq, coverage_threshold))
+
+            # suspicious when estimate_cov is not None and estimated_cov2 is None
+            if estimated_cov2 is None:
+                logger.warning("0 length contigs from reads component: %s" % in_fastq)
+    except SystemExit as se:
+        logger.fatal('MATAM failed to assemble component: %s', in_fastq)
+        raise Exception # SystemExit cause the pool to hang, prefer a generic exception instead
 
     return fasta_file
 
@@ -224,14 +238,18 @@ def assemble_all_components(assembler_name,
         component_id_list.append(component_id)
 
     with multiprocessing.Pool(processes=cpu) as pool:
-        try:
-            fasta_list = pool.starmap(assemble_component, params)
-        except subprocess.CalledProcessError as cpe:
-            logger.fatal('Command %s returned non-zero exit status %s' % (cpe.cmd, cpe.returncode))
-            sys.exit('Components assembly step failed')
+        fasta_list = pool.starmap(assemble_component, params)
+
 
     # Make the correspondance between the component_id and the fasta file
     assembled_components_fasta = dict(zip(component_id_list, fasta_list))
+
+    # Filter out empty components
+    total_cpnt_nb = len(assembled_components_fasta)
+    assembled_components_fasta = { cpnt:fasta for (cpnt,fasta) in assembled_components_fasta.items() if fasta }
+    non_empty_cpnt_nb = len(assembled_components_fasta)
+    if non_empty_cpnt_nb != total_cpnt_nb:
+        logger.warning('Number of non empty components: %s/%s', non_empty_cpnt_nb, total_cpnt_nb)
 
     lca_dict = extract_lca_by_component(components_lca_filepath)
     logger.debug("Pool components contigs into: %s" % out_contigs_fasta)

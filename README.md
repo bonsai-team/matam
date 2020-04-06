@@ -14,15 +14,13 @@ The related article of this method is available [here](https://doi.org/10.1093/b
   * [2.1 MATAM with conda](#matam-with-conda) (recommended)
   * [2.2 MATAM in Docker](#matam-in-docker)
   * [2.3 MATAM from source code](#matam-from-source-code)
-    * [2.3.1 Full dependencies list](#full-dependencies-list)
-    * [2.3.2 Install dependencies](#install-dependencies)
-    * [2.3.3 Compile MATAM](#compile-matam)
 * [3. Run MATAM](#run-matam)
-  * [3.1 Database preparation](#database-preparation)
-    * [3.1.1 Provided database](#provided-database)
-    * [3.1.2 Custom database](#custom-database)
-  * [3.2 De-novo assembly](#de-novo-assembly)
-  * [3.3 Example with default database and provided dataset](#example-with-default-database-and-provided-dataset)
+  * [3.1 Input data](#input-data)
+  * [3.2 Database preparation](#database-preparation)
+    * [3.2.1 Provided database](#provided-database)
+    * [3.2.2 Custom database](#custom-database)
+  * [3.3 De-novo assembly](#de-novo-assembly)
+  * [3.4 Example with default database and provided dataset](#example-with-default-database-and-provided-dataset)
 * [4. Samples Comparaison](#samples-comparaison)
 * [5. Release versioning](#release-versioning)
 
@@ -46,85 +44,57 @@ or as a docker container, or directly from the source code.
 
 ## <a id="matam-with-conda"></a>2.1 MATAM with conda
 
-[![Anaconda-Server Badge](https://anaconda.org/bonsai-team/matam/badges/installer/conda.svg)](https://conda.anaconda.org/bonsai-team)
-[![Anaconda-Server Badge](https://anaconda.org/bonsai-team/matam/badges/version.svg)](https://anaconda.org/bonsai-team/matam)
+[![Anaconda-Server Badge](https://anaconda.org/bioconda/matam/badges/version.svg)](https://anaconda.org/bioconda/matam)
 
 Before you begin, you should have installed Miniconda or Anaconda. See https://conda.io/docs/installation.html for more details.  
 Then you will need to add the followings channels:
 ```
-conda config --add channels conda-forge
 conda config --add channels defaults
-conda config --add channels r
 conda config --add channels bioconda
-conda config --add channels bonsai-team
+conda config --add channels conda-forge
 ```
 Finally, matam can be installed with:
 
-`conda install matam`
+`conda install -c bioconda matam`
 
 All the commands used in this README will be available in your PATH.
 
 
 ## <a id="matam-in-docker"></a>2.2 MATAM in Docker
 
-[![Docker Build Status](https://img.shields.io/docker/build/bonsaiteam/matam.svg)](https://hub.docker.com/r/bonsaiteam/matam/)
-
 To retrieve the docker image, run the following command:
 
-`docker pull bonsaiteam/matam`
+`docker pull quay.io/biocontainers/matam:{release_version}`
 
 Then all the commands used in this README will be available as:
 
-`docker run -v host_directory:/workdir bonsaiteam/matam CMD`
+`docker run -v host_directory:/workdir quay.io/biocontainers/matam:{release_version} CMD`
 
 Noticed that you have to specify a docker volume to share data between the host and the container and use this workdir for your analysis. Otherwise your data will be lost when exiting the container.
 
 Finally, if you prefer an interactive session with the container, run:
 
-`docker run -it bonsaiteam/matam`
-
+`docker run -it quay.io/biocontainers/matam:{release_version}`
 
 ## <a id="matam-from-source-code"></a>2.3 MATAM from source code
 
-### <a id="full-dependencies-list"></a>2.3.1 Full dependencies list
 
-* **gcc v4.9.0 or superior**, (full C++11 support, \<regex\> included, and partial C++14 support). Compiling was tested and worked with up to GCC v9.1.0
-* C++ libraries: rt, pthread, zlib
-* Samtools v1.x or superior
-* automake, make, **cmake v3.1 or superior**
-* Python 3
-* pip
-* numpy
-* Apache Ant
-* Java SE 7 or 8 JDK. OpenJDK is ok (openjdk-7-jdk or openjdk-8-jdk paquet on debian). Java version 11 or superior is not yet supported by RDPTools
-* bzip2
-* google sparse hash library (libsparsehash-dev paquet on debian)
-* groff
+To install all of the needed dependencies you need conda installed. See the [following](#matam-with-conda) section for more details on how to configure conda.
 
-### <a id="install-dependencies"></a>2.3.2 Install dependencies
-
-To install all of the needed dependencies except samtools, you can run the following command-lines in Debian-like distributions :
-```bash
-sudo apt-get update && sudo apt-get install curl git gcc g++ python3 python3-pip openjdk-8-jdk automake make cmake ant libsparsehash-dev zlib1g-dev bzip2 groff
-sudo pip install numpy
-```
-
-The samtools package available in current Ubuntu-like distributions is
-usually a deprecated version (v0.1.19). So we recommend getting samtools through bioconda (https://bioconda.github.io/)
-
-
-
-### <a id="compile-matam"></a>2.3.3 Compile MATAM
+Then run the following commands:
 
 1. Cloning MATAM repository
 
   `git clone https://github.com/bonsai-team/matam.git && cd matam`
 
-2. Compile MATAM and dependencies
+2. Install dependencies:
+  `conda env create -f environment.yml && conda activate matam`
+
+3. Compile MATAM
 
   `./build.py`
 
-3.  Update your PATH to make MATAM's commands available:
+4. Update your PATH to make MATAM's commands available:
 
   ```bash
   echo 'export PATH="$MATAMDIR/bin:$PATH"' >> ~/.profile
@@ -134,9 +104,14 @@ usually a deprecated version (v0.1.19). So we recommend getting samtools through
 
 # <a id="run-matam"></a>3. Run MATAM
 
-## <a id="database-preparation"></a>3.1 Database preparation (clustering & indexation)
+## <a id="input-data"></a>3.1 Input data
 
-### <a id="provided-database"></a>3.1.1 Provided database
+The reads used to reconstruct the markers must be provided under FASTQ format.  
+Be aware than the **the sequence identifiers have to be unique** and the **the score must be Phred+33 encoded**.
+
+## <a id="database-preparation"></a>3.2 Database preparation (clustering & indexation)
+
+### <a id="provided-database"></a>3.2.1 Provided database
 
 By default, MATAM provides a SSU rRNA reference database where the clusterisation step has already been done (i.e. the sequences sharing 95% of identity have been clustered with [Sumaclust](https://git.metabarcoding.org/obitools/sumaclust/wikis/home)).  
 The  [FASTA](https://www.arb-silva.de/fileadmin/silva_databases/release_128/Exports/SILVA_128_SSURef_Nr99_tax_silva_trunc.fasta.gz) file used for this database comes from [SILVA 128 release](https://www.arb-silva.de/documentation/release-128/).
@@ -147,7 +122,7 @@ To use the default SSU rRNA reference database, run the following command:
 
 where `$DBDIR` is the directory used to store the database.
 
-### <a id="custom-database"></a>3.1.2 Custom database
+### <a id="custom-database"></a>3.2.2 Custom database
 
 If the provided database does not fulfill your needs, you can prepare a custom database of your own by running the following command:
 
@@ -155,7 +130,7 @@ If the provided database does not fulfill your needs, you can prepare a custom d
 
 where `$DBDIR` is the directory used to store the database.
 
-## <a id="de-novo-assembly"></a>3.2 De-novo assembly
+## <a id="de-novo-assembly"></a>3.3 De-novo assembly
 
 When your database is ready, then you will be able to reconstruct your markers:
 * Assembly only  
@@ -169,9 +144,10 @@ When your database is ready, then you will be able to reconstruct your markers:
     The taxonomic assignment is done with [RDP classifier](https://rdp.cme.msu.edu/) and the training model used by default is "16srrna"
 
 where `$DBDIR` is the database directory and `prefix` is the common prefix used to name the database files.
-For example, with the default database, the prefix is SILVA_128_SSURef_NR95.
+For example, with the default database, the prefix is SILVA_128_SSURef_NR95.  
 
-## <a id="example-with-default-database-and-provided-dataset"></a>3.3 Example with default database and provided dataset
+
+## <a id="example-with-default-database-and-provided-dataset"></a>3.4 Example with default database and provided dataset
 
 1. Retrieve the example dataset: [16 bacterial species simulated dataset](examples/16sp_simulated_dataset/16sp.art_HS25_pe_100bp_50x.fq)
 

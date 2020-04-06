@@ -168,4 +168,4 @@ if __name__ == '__main__':
     ###############
     # Exit program
 
-    exit(0)
+    exit(error_code)

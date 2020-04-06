@@ -19,6 +19,8 @@ from krona import rdp_file_to_krona_text_file, make_krona_plot
 from binary_utils import Binary
 import components_assembly
 from assembler_factory import AssemblerFactory
+from fastq_utils import read_fastq_file_handle, is_phred33
+
 
 # Set LC_LANG to C for standard sort behaviour
 os.environ["LC_ALL"] = "C"
@@ -70,38 +72,6 @@ matam_db_dir = os.path.join(matam_root_dir, 'db')
 
 # Set default ref db
 default_ref_db = os.path.join(matam_db_dir, 'SILVA_128_SSURef_NR95')
-
-# Get all dependencies bin
-matam_script_dir = os.path.join(matam_root_dir, 'scripts')
-clean_name_bin = os.path.join(matam_script_dir, 'fasta_clean_name.py')
-sample_sam_cov_bin = Binary.assert_which('sample_sam_by_coverage.py')
-filter_score_bin = os.path.join(matam_script_dir, 'filter_score_multialign.py')
-compute_lca_bin = os.path.join(matam_script_dir, 'compute_lca_from_tab.py')
-compute_compressed_graph_stats_bin = os.path.join(matam_script_dir, 'compute_compressed_graph_stats.py')
-remove_redundant_bin = os.path.join(matam_script_dir, 'remove_redundant_sequences.py')
-fastq_name_filter_bin = os.path.join(matam_script_dir, 'fastq_name_filter.py')
-evaluate_assembly_bin = os.path.join(matam_script_dir, 'evaluate_assembly.py')
-get_best_matches_bin = os.path.join(matam_script_dir, 'get_best_matches_from_blast.py')
-gener_scaff_blast_bin = os.path.join(matam_script_dir, 'generate_scaffolding_blast.py')
-filter_sam_blast_bin = os.path.join(matam_script_dir, 'filter_sam_based_on_blast.py')
-compute_contigs_compatibility_bin = os.path.join(matam_script_dir, 'compute_contigs_compatibility.py')
-scaffold_contigs_bin = os.path.join(matam_script_dir, 'scaffold_contigs.py')
-fasta_length_filter_bin = os.path.join(matam_script_dir, 'fasta_length_filter.py')
-sortmerna_bin = Binary.assert_which('sortmerna')
-indexdb_bin = Binary.assert_which('indexdb_rna')
-ovgraphbuild_bin = Binary.assert_which('ovgraphbuild')
-componentsearch_bin = Binary.assert_which('componentsearch')
-krona_bin = Binary.assert_which('ktImportText')
-
-rdp_jar = Binary.which('classifier.jar')
-
-# the rdp exe name is different between submodule installation and conda installation
-if rdp_jar is not None:
-    java = Binary.assert_which('java')
-    rdp_exe = '{java} -Xmx1g -jar {jar}'.format(java=java, jar=rdp_jar)
-else:
-    rdp_exe = Binary.assert_which('classifier')
-
 
 def force_symlink(target, link_name):
     if os.path.exists(link_name):
@@ -160,33 +130,6 @@ def read_fasta_file_handle(fasta_file_handle):
         yield (header, ''.join(seqlines))
     # Close input file
     fasta_file_handle.close()
-
-
-def read_fastq_file_handle(fastq_file_handle):
-    """
-    Parse a fastq file and return a generator
-    """
-    # Variables initialization
-    count = 0
-    header = ''
-    seq = ''
-    qual = ''
-    # Reading input file
-    for line in (l.strip() for l in fastq_file_handle if l.strip()):
-        count += 1
-        if count % 4 == 1:
-            if header:
-                yield header, seq, qual
-            header = line[1:].split()[0]
-        elif count % 4 == 2:
-            seq = line
-        elif count % 4 == 0:
-            qual = line
-    # yield last fastq sequence
-    yield header, seq, qual
-    # Close input file
-    fastq_file_handle.close()
-
 
 class FastaStats():
     """
@@ -264,10 +207,10 @@ def parse_arguments():
 
     # Main parameters
     group_main = parser.add_argument_group('Main parameters')
-    # -i / --input_fastx
-    group_main.add_argument('-i', '--input_fastx',
+    # -i / --input_fastq
+    group_main.add_argument('-i', '--input_fastq',
                             action = 'store',
-                            metavar = 'FASTX',
+                            metavar = 'FASTQ',
                             type = str,
                             required = True,
                             help = 'Input reads file (fasta or fastq format)')
@@ -567,7 +510,7 @@ def parse_arguments():
         args.out_dir = 'matam_assembly'
 
     # Get absolute path for all arguments
-    args.input_fastx = os.path.abspath(args.input_fastx)
+    args.input_fastq = os.path.abspath(args.input_fastq)
     args.ref_db = os.path.abspath(args.ref_db)
     args.out_dir = os.path.abspath(args.out_dir)
     if args.true_references:
@@ -660,7 +603,7 @@ def print_intro(args):
     # Main parameters
     cmd_line += '--out_dir {0} '.format(args.out_dir)
     cmd_line += '--ref_db {0} '.format(args.ref_db)
-    cmd_line += '--input_fastx {0} '.format(args.input_fastx)
+    cmd_line += '--input_fastq {0} '.format(args.input_fastq)
 
     # Print cmd line
     logger.info('CMD: {0}'.format(cmd_line))
@@ -688,6 +631,47 @@ def main():
 
     # Arguments parsing
     args = parse_arguments()
+
+    # Get all dependencies bin
+    matam_script_dir = os.path.join(matam_root_dir, 'scripts')
+    clean_name_bin = os.path.join(matam_script_dir, 'fasta_clean_name.py')
+    sample_sam_cov_bin = Binary.assert_which('sample_sam_by_coverage.py')
+    filter_score_bin = os.path.join(matam_script_dir, 'filter_score_multialign.py')
+    compute_lca_bin = os.path.join(matam_script_dir, 'compute_lca_from_tab.py')
+    compute_compressed_graph_stats_bin = os.path.join(matam_script_dir, 'compute_compressed_graph_stats.py')
+    remove_redundant_bin = os.path.join(matam_script_dir, 'remove_redundant_sequences.py')
+    fastq_name_filter_bin = os.path.join(matam_script_dir, 'fastq_name_filter.py')
+    evaluate_assembly_bin = os.path.join(matam_script_dir, 'evaluate_assembly.py')
+    get_best_matches_bin = os.path.join(matam_script_dir, 'get_best_matches_from_blast.py')
+    gener_scaff_blast_bin = os.path.join(matam_script_dir, 'generate_scaffolding_blast.py')
+    filter_sam_blast_bin = os.path.join(matam_script_dir, 'filter_sam_based_on_blast.py')
+    compute_contigs_compatibility_bin = os.path.join(matam_script_dir, 'compute_contigs_compatibility.py')
+    scaffold_contigs_bin = os.path.join(matam_script_dir, 'scaffold_contigs.py')
+    fasta_length_filter_bin = os.path.join(matam_script_dir, 'fasta_length_filter.py')
+    sortmerna_bin = Binary.assert_which('sortmerna')
+    indexdb_bin = Binary.assert_which('indexdb_rna')
+    ovgraphbuild_bin = Binary.assert_which('ovgraphbuild')
+    componentsearch_bin = Binary.assert_which('componentsearch')
+    krona_bin = Binary.assert_which('ktImportText')
+
+    # check the presence of the classifer only if needed
+    java, rdp_jar, rdp_exe = (None, None, None)
+    if args.perform_taxonomic_assignment:
+        rdp_jar = Binary.which('classifier.jar')
+        # the rdp exe name is different between submodule installation and conda installation
+        if rdp_jar is not None:
+            java = Binary.assert_which('java')
+            rdp_exe = '{java} -Xmx1g -jar {jar}'.format(java=java, jar=rdp_jar)
+        else:
+            rdp_exe = Binary.which('classifier')
+            if not rdp_exe:
+                logger.fatal('RDP classifier is missing. MATAM can still be run by removing the --perform_taxonomic_assignment flag')
+                sys.exit(1)
+
+    # the assembler is determined by the user, let the facotry check for us
+    assembler_factory = AssemblerFactory()
+    assembler = assembler_factory.get(args.assembler)
+
 
     # Init error code
     error_code = 0
@@ -723,9 +707,9 @@ def main():
     sort_bin = 'sort -T ' + workdir + ' -S ' + str(args.max_memory)
     sort_bin += 'M --parallel ' + str(args.cpu)
 
-    input_fastx_filepath = args.input_fastx
-    input_fastx_filename = os.path.basename(input_fastx_filepath)
-    input_fastx_basename, input_fastx_extension = os.path.splitext(input_fastx_filename)
+    input_fastq_filepath = args.input_fastq
+    input_fastq_filename = os.path.basename(input_fastq_filepath)
+    input_fastq_basename, input_fastq_extension = os.path.splitext(input_fastq_filename)
 
     ref_db_basepath = args.ref_db
     ref_db_dir, ref_db_basename = os.path.split(ref_db_basepath)
@@ -744,12 +728,12 @@ def main():
     clustered_ref_db_filepath = os.path.join(ref_db_dir, clustered_ref_db_filename)
 
     # Read mapping
-    sortme_output_basename = input_fastx_basename
+    sortme_output_basename = input_fastq_basename
     sortme_output_basename += '.sortmerna_vs_' + ref_db_basename
     sortme_output_basename += '_b' + str(args.best) + '_m' + str(args.min_lis)
     sortme_output_basepath = os.path.join(workdir, sortme_output_basename)
 
-    sortme_output_fastx_filepath = sortme_output_basepath + input_fastx_extension
+    sortme_output_fastq_filepath = sortme_output_basepath + input_fastq_extension
     sortme_output_sam_filepath = sortme_output_basepath + '.sam'
 
     # Alignments filtering
@@ -930,18 +914,21 @@ def main():
     input_reads_nb = -1
 
     if run_step:
-        if input_fastx_extension in ('.fq', '.fastq'):
-            input_fastx_line_nb = int(subprocess.check_output('wc -l {0}'.format(input_fastx_filepath), shell=True, bufsize=0).split()[0])
-            if input_fastx_line_nb % 4 != 0:
-                logger.warning('FastQ input file does not have a number of lines multiple of 4')
-            input_reads_nb = input_fastx_line_nb // 4
-        elif input_fastx_extension in ('.fa', '.fasta'):
-            input_reads_nb = int(subprocess.check_output('grep -c "^>" {0}'.format(input_fastx_filepath), shell=True, bufsize=0))
+        if input_fastq_extension in ('.fq', '.fastq'):
+            input_fastq_line_nb = int(subprocess.check_output('wc -l {0}'.format(input_fastq_filepath), shell=True, bufsize=0).split()[0])
+            if input_fastq_line_nb % 4 != 0:
+                logger.fatal('FastQ input file does not have a number of lines multiple of 4')
+                sys.exit('Wrong number of lines')
+            elif not is_phred33(input_fastq_filepath, number_of_reads_to_test=400):
+                logger.fatal('Due to SGA, MATAM support only FastQ file with an offset of +33')
+                sys.exit('Not a Phred+33 FastQ file')
+            input_reads_nb = input_fastq_line_nb // 4
         else:
-            logger.warning('Input fastx file extension was not recognised ({0})'.format(input_fastx_extension))
+            logger.fatal('Input fastq file extension was not recognised ({0})'.format(input_fastq_extension))
+            sys.exit('Wrong extension')
 
         logger.info('=== Input ===')
-        logger.info('Input file: {}'.format(input_fastx_filepath))
+        logger.info('Input file: {}'.format(input_fastq_filepath))
         logger.info('Input file reads nb: {} reads'.format(input_reads_nb))
 
     ###############################
@@ -956,7 +943,7 @@ def main():
 
         cmd_line = sortmerna_bin + ' --ref ' + clustered_ref_db_filepath
         cmd_line += ',' + clustered_ref_db_basepath + ' --reads '
-        cmd_line += input_fastx_filepath + ' --aligned ' + sortme_output_basepath
+        cmd_line += input_fastq_filepath + ' --aligned ' + sortme_output_basepath
         cmd_line += ' --fastx --sam --blast "1" --log --best '
         cmd_line += str(args.best) + ' --min_lis ' + str(args.min_lis)
         cmd_line += ' -e {0:.2e}'.format(args.evalue)
@@ -975,11 +962,9 @@ def main():
     # Get selected reads number
     selected_reads_nb = -1
 
-    if input_fastx_extension in ('.fq', '.fastq'):
-        selected_fastx_line_nb = int(subprocess.check_output('wc -l {0}'.format(sortme_output_fastx_filepath), shell=True, bufsize=0).split()[0])
-        selected_reads_nb = selected_fastx_line_nb // 4
-    elif input_fastx_extension in ('.fa', '.fasta'):
-        selected_reads_nb = int(subprocess.check_output('grep -c "^>" {0}'.format(sortme_output_fastx_filepath), shell=True, bufsize=0))
+    if input_fastq_extension in ('.fq', '.fastq'):
+        selected_fastq_line_nb = int(subprocess.check_output('wc -l {0}'.format(sortme_output_fastq_filepath), shell=True, bufsize=0).split()[0])
+        selected_reads_nb = selected_fastq_line_nb // 4
 
     logger.info('Identified as marker: {} / {} reads ({:.2f}%)'.format(selected_reads_nb, input_reads_nb, selected_reads_nb*100.0/input_reads_nb))
 
@@ -1011,7 +996,7 @@ def main():
         t0_wall = time.time()
 
         logger.debug('CMD: {0}'.format(cmd_line))
-        runner.logged_call(cmd_line, verbose=args.verbose)
+        runner.logged_check_call(cmd_line, verbose=args.verbose)
 
         # Output running time
         logger.info('Good alignments filtering completed in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
@@ -1208,7 +1193,7 @@ def main():
         t0_wall = time.time()
 
         components_assembly.assemble_all_components(args.assembler,
-                                                    sortme_output_fastx_filepath, read_metanode_component_filepath, components_lca_filepath,
+                                                    sortme_output_fastq_filepath, read_metanode_component_filepath, components_lca_filepath,
                                                     contigs_filepath, contigs_assembly_wkdir,
                                                     args.cpu, args.read_correction, args.contig_coverage_threshold)
 
@@ -1468,7 +1453,7 @@ def main():
     # Abundance calculation
 
     scaffolds_fasta = large_NR_scaffolds_filepath
-    reads = sortme_output_fastx_filepath
+    reads = sortme_output_fastq_filepath
     fasta_with_abundance_filepath =  '%s.abd%s' % os.path.splitext(scaffolds_fasta)
     abundance = None
 
