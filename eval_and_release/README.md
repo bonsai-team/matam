@@ -116,7 +116,7 @@ bioconda-utils build --docker --mulled-test --packages matam
   (for os in "${OPERATING_SYTEMS[@]}"
   do
     echo ">>>>>>>>>>>>>>>>>>>> Testing $os >>>>>>>>>>>>>>>>>>>>"
-    docker run -v $TEST_DOCKER_DIR:/tmp/test_docker \
+    docker run --rm -v $TEST_DOCKER_DIR:/tmp/test_docker \
     -t ${os} /tmp/test_docker/run_tests.sh || exit 1
     echo "<<<<<<<<<<<<<<<<<<<<<<<<<<<< $os <<<<<<<<<<<<<<<<<<<<"
   done)
@@ -126,7 +126,7 @@ bioconda-utils build --docker --mulled-test --packages matam
   (for os in "${OPERATING_SYTEMS[@]}"
   do
     echo ">>>>>>>>>>>>>>>>>>>> Testing $os >>>>>>>>>>>>>>>>>>>>"
-    docker run \
+    docker run --rm \
     -v $DATABASE_DIR:/tmp/db \
     -v $DATASET_DIR:/tmp/16sp_simulated_dataset  \
     -v $TEST_DOCKER_DIR:/tmp/test_docker \
