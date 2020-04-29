@@ -108,7 +108,7 @@ bioconda-utils build --docker --mulled-test --packages matam
   anaconda login
   anaconda upload /tmp/miniconda/miniconda/conda-bld/linux-64/matam-*.bz2 --user bonsai-team --label dev
   ```
-2. Test the build on various OS (update variables to suit your env)
+2. Test the build on various OS (update variables to suit your env).  \[ For an unknown reason installing using the dev label is not working. We have to specify the full version in [run_tests.sh](https://github.com/bonsai-team/matam/blob/develop/eval_and_release/test_docker/run_tests.sh#L43) before executing the following commands. Ex: `conda install -c bonsai-team/label/dev matam=1.6.0=he513fc3_1 -y` \]
   ```bash
   OPERATING_SYTEMS=(ubuntu:18.04 ubuntu:16.04 centos:7 debian:9)
 
@@ -135,7 +135,6 @@ bioconda-utils build --docker --mulled-test --packages matam
   done)
   ```
 
-WARNING: checks out that the right matam package was used!
 
 ## 4 - Remove the anaconda package
 if you are happy with your new package, remove the conda package from [anaconca](https://anaconda.org/bonsai-team/matam/files)
