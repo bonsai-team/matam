@@ -913,23 +913,6 @@ def main():
     if args.resume_from == 'reads_mapping':
         run_step = True
 
-    # Get input reads number
-    input_reads_nb = -1
-
-    if run_step:
-        if input_fastx_extension in ('.fq', '.fastq'):
-            input_fastx_line_nb = int(subprocess.check_output('wc -l {0}'.format(input_fastx_filepath), shell=True, bufsize=0).split()[0])
-            if input_fastx_line_nb % 4 != 0:
-                logger.warning('FastQ input file does not have a number of lines multiple of 4')
-            input_reads_nb = input_fastx_line_nb // 4
-        elif input_fastx_extension in ('.fa', '.fasta'):
-            input_reads_nb = int(subprocess.check_output('grep -c "^>" {0}'.format(input_fastx_filepath), shell=True, bufsize=0))
-        else:
-            logger.warning('Input fastx file extension was not recognised ({0})'.format(input_fastx_extension))
-
-        logger.info('=== Input ===')
-        logger.info('Input file: {}'.format(input_fastx_filepath))
-        logger.info('Input file reads nb: {} reads'.format(input_reads_nb))
 
     ###############################
     # Reads mapping against ref db
@@ -959,16 +942,6 @@ def main():
         # Output running time
         logger.info('Reads mapping completed in {0:.4f} seconds wall time'.format(time.time() - t0_wall))
 
-    # Get selected reads number
-    selected_reads_nb = -1
-
-    if input_fastx_extension in ('.fq', '.fastq'):
-        selected_fastx_line_nb = int(subprocess.check_output('wc -l {0}'.format(sortme_output_fastx_filepath), shell=True, bufsize=0).split()[0])
-        selected_reads_nb = selected_fastx_line_nb // 4
-    elif input_fastx_extension in ('.fa', '.fasta'):
-        selected_reads_nb = int(subprocess.check_output('grep -c "^>" {0}'.format(sortme_output_fastx_filepath), shell=True, bufsize=0))
-
-    logger.info('Identified as marker: {} / {} reads ({:.2f}%)'.format(selected_reads_nb, input_reads_nb, selected_reads_nb*100.0/input_reads_nb))
 
     # Tag tmp files for removal
     to_rm_filepath_list.append(sortme_output_basepath + '.log')
@@ -1061,12 +1034,6 @@ def main():
         # Tag tmp files for removal
         to_rm_filepath_list.append(ovgraphbuild_asqg_filepath)
 
-    # Get overlap graph stats
-    ovgraph_nodes_nb = int(subprocess.check_output('wc -l {0}'.format(ovgraphbuild_nodes_csv_filepath), shell=True, bufsize=0).split()[0]) - 1
-    ovgraph_edges_nb = int(subprocess.check_output('wc -l {0}'.format(ovgraphbuild_edges_csv_filepath), shell=True, bufsize=0).split()[0]) - 1
-
-    logger.info('Overlap graph stats: {} nodes, {} edges'.format(ovgraph_nodes_nb, ovgraph_edges_nb))
-
     ###############################################
     # Graph compaction & Components identification
 
@@ -1100,15 +1067,6 @@ def main():
         #to_rm_filepath_list.append(ovgraphbuild_nodes_csv_filepath)
         #to_rm_filepath_list.append(ovgraphbuild_edges_csv_filepath)
 
-    # Get compressed graph stats
-    compressed_graph_nodes_nb = int(subprocess.check_output('wc -l {0}'.format(componentsearch_metanodes_csv_filepath), shell=True, bufsize=0).split()[0]) - 1
-    compressed_graph_edges_nb = int(subprocess.check_output('wc -l {0}'.format(componentsearch_metaedges_csv_filepath), shell=True, bufsize=0).split()[0]) - 1
-    compressed_graph_reads_nb = int(subprocess.check_output('cut -d ";" -f5 {0} | awk "\$1!=-1" | wc -l'.format(componentsearch_components_csv_filepath), shell=True, bufsize=0).split()[0]) - 1
-    compressed_graph_excluded_reads_nb = ovgraph_nodes_nb - compressed_graph_reads_nb
-    excluded_reads_percent = compressed_graph_excluded_reads_nb * 100.0 / ovgraph_nodes_nb
-    components_nb = int(subprocess.check_output('cut -d ";" -f5 {0} | {1} | uniq | wc -l'.format(componentsearch_components_csv_filepath, sort_bin), shell=True).split()[0]) - 1
-
-    logger.info('Compressed graph: {} components'.format(components_nb))
 
     ################
     # LCA labelling
@@ -1527,6 +1485,51 @@ def main():
     # Print Assembly Statistics
 
     if args.verbose:
+        # Get input reads number
+        input_reads_nb = -1
+
+        if run_step:
+            if input_fastx_extension in ('.fq', '.fastq'):
+                input_fastx_line_nb = int(subprocess.check_output('wc -l {0}'.format(input_fastx_filepath), shell=True, bufsize=0).split()[0])
+                if input_fastx_line_nb % 4 != 0:
+                    logger.warning('FastQ input file does not have a number of lines multiple of 4')
+                input_reads_nb = input_fastx_line_nb // 4
+            elif input_fastx_extension in ('.fa', '.fasta'):
+                input_reads_nb = int(subprocess.check_output('grep -c "^>" {0}'.format(input_fastx_filepath), shell=True, bufsize=0))
+            else:
+                logger.warning('Input fastx file extension was not recognised ({0})'.format(input_fastx_extension))
+
+        logger.info('=== Input ===')
+        logger.info('Input file: {}'.format(input_fastx_filepath))
+        logger.info('Input file reads nb: {} reads'.format(input_reads_nb))
+
+        # Get selected reads number
+        selected_reads_nb = -1
+
+        if input_fastx_extension in ('.fq', '.fastq'):
+            selected_fastx_line_nb = int(subprocess.check_output('wc -l {0}'.format(sortme_output_fastx_filepath), shell=True, bufsize=0).split()[0])
+            selected_reads_nb = selected_fastx_line_nb // 4
+        elif input_fastx_extension in ('.fa', '.fasta'):
+            selected_reads_nb = int(subprocess.check_output('grep -c "^>" {0}'.format(sortme_output_fastx_filepath), shell=True, bufsize=0))
+
+        logger.info('Identified as marker: {} / {} reads ({:.2f}%)'.format(selected_reads_nb, input_reads_nb, selected_reads_nb*100.0/input_reads_nb))
+
+        # Get overlap graph stats
+        ovgraph_nodes_nb = int(subprocess.check_output('wc -l {0}'.format(ovgraphbuild_nodes_csv_filepath), shell=True, bufsize=0).split()[0]) - 1
+        ovgraph_edges_nb = int(subprocess.check_output('wc -l {0}'.format(ovgraphbuild_edges_csv_filepath), shell=True, bufsize=0).split()[0]) - 1
+
+        logger.info('Overlap graph stats: {} nodes, {} edges'.format(ovgraph_nodes_nb, ovgraph_edges_nb))
+
+        # Get compressed graph stats
+        compressed_graph_nodes_nb = int(subprocess.check_output('wc -l {0}'.format(componentsearch_metanodes_csv_filepath), shell=True, bufsize=0).split()[0]) - 1
+        compressed_graph_edges_nb = int(subprocess.check_output('wc -l {0}'.format(componentsearch_metaedges_csv_filepath), shell=True, bufsize=0).split()[0]) - 1
+        compressed_graph_reads_nb = int(subprocess.check_output('cut -d ";" -f5 {0} | awk "\$1!=-1" | wc -l'.format(componentsearch_components_csv_filepath), shell=True, bufsize=0).split()[0]) - 1
+        compressed_graph_excluded_reads_nb = ovgraph_nodes_nb - compressed_graph_reads_nb
+        excluded_reads_percent = compressed_graph_excluded_reads_nb * 100.0 / ovgraph_nodes_nb
+        components_nb = int(subprocess.check_output('cut -d ";" -f5 {0} | {1} | uniq | wc -l'.format(componentsearch_components_csv_filepath, sort_bin), shell=True).split()[0]) - 1
+
+        logger.info('Compressed graph: {} components'.format(components_nb))
+
         b = '=== MATAM Statistics ===\n\n'
         b += 'Input reads nb: {0}\n'.format(input_reads_nb)
         b += 'Selected reads nb: {0}\n\n'.format(selected_reads_nb)
