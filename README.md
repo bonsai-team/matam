@@ -1,4 +1,4 @@
-MATAM [![Build Status](https://travis-ci.org/bonsai-team/matam.svg?branch=master)](https://travis-ci.org/bonsai-team/matam)
+MATAM
 =========
 *Mapping-Assisted Targeted-Assembly for Metagenomics*
 
